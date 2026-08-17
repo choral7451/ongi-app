@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ongi",
+    "name": "ONGI",
     "slug": "ongi",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,9 +8,11 @@
     "scheme": "ongi",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.ongifamily.app",
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.ongifamily.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -28,9 +30,16 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0164ff",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      "expo-secure-store",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.446390529009-4v2v53ig6830u7h6splbi79r34uaj3n7"
         }
       ]
     ],
