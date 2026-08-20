@@ -2,7 +2,6 @@ import type {
   Album,
   Comment,
   Group,
-  LocalPhoto,
   Member,
   Person,
   Photo,
@@ -226,9 +225,3 @@ export const storageInfo: StorageInfo = {
   usedGb: 4.2,
   totalGb: 15,
 };
-
-/** 업로드 화면의 "최근 사진" — 실제 기기 갤러리 대신 쓰는 목데이터 */
-export const localPhotos: LocalPhoto[] = Array.from({ length: 11 }, (_, i) => ({
-  id: `local-${i + 1}`,
-  uri: `https://picsum.photos/seed/ongi-recent-${i + 1}/400/400?grayscale`,
-}));

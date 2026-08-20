@@ -1,6 +1,7 @@
-import * as db from '../mocks/db';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as MediaLibrary from 'expo-media-library';
 import type { Comment, LocalPhoto, Photo } from '../types';
-import { post, request } from './client';
+import { post, postForm, request } from './client';
 
 async function photoList(path: string): Promise<Photo[]> {
   const result = await request<{ photos: Photo[] }>(path);
@@ -44,9 +45,22 @@ export function addComment(params: {
   return post<Comment>(`/ongi/photos/${params.photoId}/comments`, { text: params.text });
 }
 
-/** 업로드 화면 — 기기 최근 사진 (아직 목: 갤러리 연동(expo-media-library) 전까지 유지) */
-export function getLocalPhotos(): Promise<LocalPhoto[]> {
-  return Promise.resolve(db.localPhotos);
+/** 업로드 화면 — 기기 갤러리의 최근 사진. 권한이 거부되면 빈 목록 */
+export async function getLocalPhotos(): Promise<LocalPhoto[]> {
+  const permission = await MediaLibrary.requestPermissionsAsync();
+  if (!permission.granted) return [];
+
+  const page = await MediaLibrary.getAssetsAsync({
+    mediaType: MediaLibrary.MediaType.photo,
+    sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+    first: 60,
+  });
+
+  return page.assets.map((asset) => ({
+    id: asset.id,
+    uri: asset.uri,
+    aspectRatio: asset.height > 0 ? asset.width / asset.height : 1,
+  }));
 }
 
 /** 그룹별 게시 대상 — 앨범·인물 태그는 그룹에 종속되므로 그룹마다 따로 지정 */
@@ -63,14 +77,38 @@ export interface UploadPayload {
   targets: UploadTarget[];
 }
 
-/** 사진 올리기 — 서버가 그룹(타깃)마다 독립 게시물을 만듭니다 */
+/** 사진 올리기 — 파일을 S3 에 올려 URL 을 받은 뒤, 그룹(타깃)마다 독립 게시물을 만듭니다 */
 export async function uploadPhotos(payload: UploadPayload): Promise<Photo[]> {
-  // 기기 사진 id → URL (갤러리 연동 전: 목 데이터의 URI 를 그대로 사용.
-  // 실제 파일 업로드가 붙으면 여기서 업로드 → URL 을 받아 전달)
-  const photos = payload.localPhotoIds.map((localId) => {
-    const local = db.localPhotos.find((l) => l.id === localId);
-    return { url: local?.uri ?? 'https://picsum.photos/seed/ongi-new/900/620?grayscale', aspectRatio: 1 };
+  // 갤러리 사진을 JPEG 으로 통일 (HEIC 등 기기 포맷은 다른 플랫폼에서 안 보일 수 있음)
+  const prepared = await Promise.all(
+    payload.localPhotoIds.map(async (assetId) => {
+      const info = await MediaLibrary.getAssetInfoAsync(assetId);
+      const jpeg = await ImageManipulator.manipulateAsync(info.localUri ?? info.uri, [], {
+        compress: 0.85,
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
+      return {
+        uri: jpeg.uri,
+        aspectRatio: jpeg.height > 0 ? Math.round((jpeg.width / jpeg.height) * 100) / 100 : 1,
+      };
+    }),
+  );
+
+  const form = new FormData();
+  prepared.forEach((photo, index) => {
+    // React Native 의 FormData 파일 파트 — { uri, name, type } 객체를 그대로 넘긴다
+    form.append('photoFiles', {
+      uri: photo.uri,
+      name: `photo-${index + 1}.jpg`,
+      type: 'image/jpeg',
+    } as unknown as Blob);
   });
+
+  const uploaded = await postForm<{ urls: string[] }>('/ongi/photos/files', form);
+  const photos = uploaded.urls.map((url, index) => ({
+    url,
+    aspectRatio: prepared[index].aspectRatio,
+  }));
 
   const result = await post<{ photos: Photo[] }>('/ongi/photos', {
     photos,

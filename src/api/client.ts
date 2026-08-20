@@ -19,10 +19,12 @@ let refreshPromise: Promise<boolean> | null = null;
 
 async function doFetch(path: string, init?: RequestInit): Promise<Response> {
   const tokens = getTokens();
+  // FormData 는 fetch 가 boundary 포함 Content-Type 을 직접 지정해야 하므로 건드리지 않는다
+  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
   return fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {}),
       ...init?.headers,
     },
@@ -91,4 +93,9 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function post<T>(path: string, body?: unknown): Promise<T> {
   return request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
+}
+
+/** multipart 업로드 — 파일이 담긴 FormData 를 그대로 전송 */
+export function postForm<T>(path: string, form: FormData): Promise<T> {
+  return request<T>(path, { method: 'POST', body: form });
 }

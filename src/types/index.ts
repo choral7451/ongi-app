@@ -85,10 +85,12 @@ export interface StorageInfo {
   totalGb: number;
 }
 
-/** 업로드 화면 — 기기 갤러리의 최근 사진 (목데이터) */
+/** 업로드 화면 — 기기 갤러리의 최근 사진 (expo-media-library) */
 export interface LocalPhoto {
   id: string;
   uri: string;
+  /** width/height — 게시 시 서버에 전달하는 비율 힌트 */
+  aspectRatio: number;
 }
 
 /** 약관·정책 문서 */
