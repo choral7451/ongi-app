@@ -54,7 +54,7 @@ export default function PhotoDetailScreen() {
   const ctxPersonPhotos = usePersonPhotos(ctxPersonId);
   const ctxUnfiledPhotos = useUnfiledPhotos(ctx === 'unfiled' ? activeGroupId : '');
   const ctxPhotos =
-    ctx === 'feed'
+    ctx === 'feed' || ctx === 'all'
       ? feedQuery.data
       : ctxAlbumId
         ? ctxAlbumPhotos.data
@@ -100,6 +100,7 @@ export default function PhotoDetailScreen() {
   // 탭 전환은 히스토리에 안 쌓여 back() 이 홈으로 떨어짐 — 들어온 컨텍스트로 명시 복귀
   const goBack = () => {
     if (ctxAlbumId) return router.replace({ pathname: '/album/[id]', params: { id: ctxAlbumId } });
+    if (ctx === 'all') return router.replace({ pathname: '/album/[id]', params: { id: 'all' } });
     if (ctx === 'unfiled') return router.replace({ pathname: '/album/[id]', params: { id: 'unfiled' } });
     if (ctxPersonId) return router.replace({ pathname: '/person/[id]', params: { id: ctxPersonId } });
     return router.replace('/');

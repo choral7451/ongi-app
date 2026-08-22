@@ -5,25 +5,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoGrid } from '../../../components/PhotoGrid';
 import { IconButton } from '../../../components/ui/Button';
 import { Plate } from '../../../components/ui/Plate';
-import { useAlbumPhotos, useAlbums, useUnfiledPhotos } from '../../../hooks/queries';
+import { useAlbumPhotos, useAlbums, useFeed, useUnfiledPhotos } from '../../../hooks/queries';
 import { useActiveGroupId } from '../../../store/session';
 import { colors, fonts, iconStroke } from '../../../theme';
 
-/** 앨범 상세 — 커버 + 사진 그리드. id 가 'unfiled' 면 앨범에 안 담긴 사진 모음 */
+/** 앨범 상세 — 커버 + 사진 그리드. id 가 'unfiled' 면 미분류, 'all' 이면 전체 사진 */
 export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const isUnfiled = id === 'unfiled';
+  const isAll = id === 'all';
+  const isVirtual = isUnfiled || isAll;
   const activeGroupId = useActiveGroupId();
   const albums = useAlbums();
-  const albumPhotos = useAlbumPhotos(isUnfiled ? '' : id);
+  const albumPhotos = useAlbumPhotos(isVirtual ? '' : id);
   const unfiledPhotos = useUnfiledPhotos(isUnfiled ? activeGroupId : '');
-  const photos = isUnfiled ? unfiledPhotos : albumPhotos;
+  const allPhotos = useFeed();
+  const photos = isAll ? allPhotos : isUnfiled ? unfiledPhotos : albumPhotos;
 
-  const album = isUnfiled ? undefined : albums.data?.find((a) => a.id === id);
-  const title = isUnfiled ? '미분류' : (album?.title ?? '');
-  const coverUrl = isUnfiled ? unfiledPhotos.data?.[0]?.url : album?.coverUrl;
+  const album = isVirtual ? undefined : albums.data?.find((a) => a.id === id);
+  const title = isAll ? '전체 사진' : isUnfiled ? '미분류' : (album?.title ?? '');
+  const coverUrl = isVirtual ? photos.data?.[0]?.url : album?.coverUrl;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 6) }]}>
@@ -41,7 +44,7 @@ export default function AlbumDetailScreen() {
         photos={photos.data ?? []}
         loading={photos.isLoading}
         bottomInset={insets.bottom}
-        detailCtx={isUnfiled ? 'unfiled' : `album:${id}`}
+        detailCtx={isAll ? 'all' : isUnfiled ? 'unfiled' : `album:${id}`}
         ListHeaderComponent={
           <View style={styles.albumHead}>
             {coverUrl ? <Plate uri={coverUrl} height={180} /> : null}

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { albumsApi, familyApi, groupsApi, photosApi, profileApi } from '../api';
 import type { UploadPayload } from '../api/photos';
+import type { Photo } from '../types';
 import { useActiveGroupId, useSession } from '../store/session';
 
 /**
@@ -207,7 +208,10 @@ export function useToggleLike() {
     mutationFn: photosApi.toggleLike,
     onSuccess: (photo) => {
       queryClient.setQueryData(queryKeys.photo(photo.id), photo);
-      queryClient.invalidateQueries({ queryKey: queryKeys.feed(groupId) });
+      // 피드 전체를 리페치하면 새로고침 스피너로 화면이 튀므로, 캐시의 해당 사진만 바꿔치기
+      queryClient.setQueryData(queryKeys.feed(groupId), (old?: Photo[]) =>
+        old?.map((p) => (p.id === photo.id ? photo : p)),
+      );
     },
   });
 }
