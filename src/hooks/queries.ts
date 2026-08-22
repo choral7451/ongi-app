@@ -223,16 +223,19 @@ export function useDeleteAccount() {
 
 // ── 변경 ──────────────────────────────────────────────
 
+/** 같은 사진이 캐시에 여러 벌 존재한다 (피드·앨범·미분류·인물 목록) — 전부 함께 갱신해야 하트가 어긋나지 않는다 */
+const PHOTO_LIST_KEYS = new Set(['feed', 'albumPhotos', 'unfiledPhotos', 'personPhotos']);
+
 export function useToggleLike() {
   const queryClient = useQueryClient();
-  const groupId = useActiveGroupId();
   return useMutation({
     mutationFn: photosApi.toggleLike,
     onSuccess: (photo) => {
       queryClient.setQueryData(queryKeys.photo(photo.id), photo);
-      // 피드 전체를 리페치하면 새로고침 스피너로 화면이 튀므로, 캐시의 해당 사진만 바꿔치기
-      queryClient.setQueryData(queryKeys.feed(groupId), (old?: Photo[]) =>
-        old?.map((p) => (p.id === photo.id ? photo : p)),
+      // 리페치하면 새로고침 스피너로 화면이 튀므로, 모든 사진 목록 캐시에서 해당 사진만 바꿔치기
+      queryClient.setQueriesData<Photo[]>(
+        { predicate: (query) => PHOTO_LIST_KEYS.has(query.queryKey[0] as string) },
+        (old) => old?.map((p) => (p.id === photo.id ? photo : p)),
       );
     },
   });
@@ -240,14 +243,14 @@ export function useToggleLike() {
 
 export function useAddComment(photoId: string) {
   const queryClient = useQueryClient();
-  const groupId = useActiveGroupId();
   return useMutation({
     mutationFn: (params: { authorId: string; text: string }) =>
       photosApi.addComment({ photoId, ...params }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.comments(photoId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.photo(photoId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.feed(groupId) });
+      // 댓글 수(commentCount)가 모든 사진 목록 캐시에 복사돼 있으므로 전부 무효화
+      queryClient.invalidateQueries({ predicate: (query) => PHOTO_LIST_KEYS.has(query.queryKey[0] as string) });
     },
   });
 }
