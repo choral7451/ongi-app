@@ -5,18 +5,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoGrid } from '../../components/PhotoGrid';
 import { IconButton } from '../../components/ui/Button';
 import { Plate } from '../../components/ui/Plate';
-import { useAlbumPhotos, useAlbums } from '../../hooks/queries';
+import { useAlbumPhotos, useAlbums, useUnfiledPhotos } from '../../hooks/queries';
+import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
 
-/** 앨범 상세 — 커버 + 사진 그리드 */
+/** 앨범 상세 — 커버 + 사진 그리드. id 가 'unfiled' 면 앨범에 안 담긴 사진 모음 */
 export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const isUnfiled = id === 'unfiled';
+  const activeGroupId = useActiveGroupId();
   const albums = useAlbums();
-  const photos = useAlbumPhotos(id);
+  const albumPhotos = useAlbumPhotos(isUnfiled ? '' : id);
+  const unfiledPhotos = useUnfiledPhotos(isUnfiled ? activeGroupId : '');
+  const photos = isUnfiled ? unfiledPhotos : albumPhotos;
 
-  const album = albums.data?.find((a) => a.id === id);
+  const album = isUnfiled ? undefined : albums.data?.find((a) => a.id === id);
+  const title = isUnfiled ? '미분류' : (album?.title ?? '');
+  const coverUrl = isUnfiled ? unfiledPhotos.data?.[0]?.url : album?.coverUrl;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 6) }]}>
@@ -36,9 +43,9 @@ export default function AlbumDetailScreen() {
         bottomInset={insets.bottom}
         ListHeaderComponent={
           <View style={styles.albumHead}>
-            {album ? <Plate uri={album.coverUrl} height={180} /> : null}
+            {coverUrl ? <Plate uri={coverUrl} height={180} /> : null}
             <View style={styles.titleRow}>
-              <Text style={styles.title}>{album?.title ?? ''}</Text>
+              <Text style={styles.title}>{title}</Text>
               <Text style={styles.meta}>
                 {photos.data ? `${photos.data.length}장` : ''}
                 {album ? ` · ${album.meta}` : ''}

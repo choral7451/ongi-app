@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { Plate } from '../../components/ui/Plate';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { useAlbums, usePeople } from '../../hooks/queries';
+import { useAlbums, usePeople, useUnfiledPhotos } from '../../hooks/queries';
+import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
 
 /** 1b — 앨범: 직접 만든 앨범 + 인물별 */
@@ -15,6 +16,8 @@ export default function AlbumsScreen() {
   const router = useRouter();
   const albums = useAlbums();
   const people = usePeople();
+  const activeGroupId = useActiveGroupId();
+  const unfiled = useUnfiledPhotos(activeGroupId);
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -54,6 +57,18 @@ export default function AlbumsScreen() {
           meta={albums.data ? `${albums.data.length}개` : undefined}
         />
         <View style={styles.grid}>
+          {unfiled.data && unfiled.data.length > 0 ? (
+            <Pressable
+              style={styles.gridItem}
+              onPress={() => router.push({ pathname: '/album/[id]', params: { id: 'unfiled' } })}
+            >
+              <Plate uri={unfiled.data[0].url} height={108} />
+              <View>
+                <Text style={styles.albumTitle}>미분류</Text>
+                <Text style={styles.albumMeta}>{unfiled.data.length}장 · 앨범에 담기 전 사진</Text>
+              </View>
+            </Pressable>
+          ) : null}
           {albums.data?.map((album) => (
             <Pressable
               key={album.id}

@@ -84,6 +84,15 @@ export function useAlbumPhotos(albumId: string) {
   });
 }
 
+/** 앨범에 담기지 않은 사진 — 앨범 탭의 "미분류" */
+export function useUnfiledPhotos(groupId: string) {
+  return useQuery({
+    queryKey: ['unfiledPhotos', groupId],
+    queryFn: () => photosApi.getUnfiledPhotos(groupId),
+    enabled: groupId.length > 0,
+  });
+}
+
 export function usePersonPhotos(personId: string) {
   return useQuery({
     queryKey: ['personPhotos', personId],
@@ -206,6 +215,7 @@ export function useUploadPhotos() {
       for (const target of payload.targets) {
         queryClient.invalidateQueries({ queryKey: queryKeys.feed(target.groupId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.albums(target.groupId) });
+        queryClient.invalidateQueries({ queryKey: ['unfiledPhotos', target.groupId] });
       }
     },
   });

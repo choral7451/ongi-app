@@ -23,6 +23,11 @@ export function getPhotosByPerson(personId: string): Promise<Photo[]> {
   return photoList(`/ongi/people/${personId}/photos`);
 }
 
+/** 앨범에 담기지 않은 그룹 사진 — 앨범 탭의 "미분류" (최신순) */
+export function getUnfiledPhotos(groupId: string): Promise<Photo[]> {
+  return photoList(`/ongi/groups/${groupId}/photos/unfiled`);
+}
+
 export function getPhoto(id: string): Promise<Photo> {
   return request<Photo>(`/ongi/photos/${id}`);
 }
