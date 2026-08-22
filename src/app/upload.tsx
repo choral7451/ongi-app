@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Camera, Check, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -146,11 +147,18 @@ export default function UploadScreen() {
           personIds: draftOf(groupId).personIds,
         })),
       },
-      { onSuccess: () => router.back() },
+      {
+        onSuccess: () => router.back(),
+        onError: (e) =>
+          Alert.alert('사진 올리기 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
+      },
     );
   };
 
   const multiGroup = selectedGroupIds.length > 1;
+  // 가족 공간이 없으면 게시 대상이 없어 업로드 자체가 불가능
+  const noGroup = !myGroups.isPending && (myGroups.data?.length ?? 0) === 0;
+  const validGroupSelected = selectedGroupIds.some((id) => id !== '');
 
   return (
     <KeyboardAvoidingView
@@ -158,22 +166,30 @@ export default function UploadScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 6) }]}>
+        {/* 타이틀은 절대 중앙 고정 — 버튼 라벨("올리기"→"올리는 중…") 폭 변화에 밀리지 않게 */}
+        <View style={[styles.titleWrap, { paddingTop: Math.max(insets.top, 6) }]} pointerEvents="none">
+          <Text style={styles.title}>사진 올리기</Text>
+        </View>
         <IconButton
           accessibilityLabel="닫기"
           onPress={() => router.back()}
           icon={<X size={18} color={colors.text} strokeWidth={iconStroke} />}
         />
-        <Text style={styles.title}>사진 올리기</Text>
         <Button
           label={upload.isPending ? '올리는 중…' : '올리기'}
           onPress={submit}
-          disabled={selectedIds.length === 0 || upload.isPending}
+          disabled={selectedIds.length === 0 || upload.isPending || !validGroupSelected}
         />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>올릴 공간</Text>
+          {noGroup ? (
+            <Text style={styles.hint}>
+              아직 가족 공간이 없어요. 홈에서 공간을 만들거나 초대 코드로 참여한 뒤 올릴 수 있어요.
+            </Text>
+          ) : null}
           <View style={styles.chips}>
             {myGroups.data?.map((group) => {
               const selected = selectedGroupIds.includes(group.id);
@@ -290,6 +306,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  titleWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingBottom: 10,
   },
   title: {
