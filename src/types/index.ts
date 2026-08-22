@@ -100,15 +100,3 @@ export interface LegalDoc {
   updatedAt: string; // "2026년 1월 1일" 형태의 표시용 문자열
   body: string;
 }
-
-/** 인앱 알림 — 문구는 서버가 완성해 내려준다 */
-export interface Notification {
-  id: string;
-  groupId: string;
-  type: 'PHOTO_UPLOADED' | 'PHOTO_LIKED' | 'COMMENT_ADDED';
-  message: string;
-  photoId: string | null;
-  photoUrl: string | null;
-  read: boolean;
-  createdAt: string; // ISO
-}

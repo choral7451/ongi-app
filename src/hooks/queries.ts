@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { albumsApi, familyApi, groupsApi, notificationsApi, photosApi, profileApi } from '../api';
+import { albumsApi, familyApi, groupsApi, photosApi, profileApi } from '../api';
 import type { UploadPayload } from '../api/photos';
 import { useActiveGroupId, useSession } from '../store/session';
 
@@ -81,24 +81,6 @@ export function useAlbumPhotos(albumId: string) {
     queryKey: ['albumPhotos', albumId],
     queryFn: () => photosApi.getPhotosByAlbum(albumId),
     enabled: albumId.length > 0,
-  });
-}
-
-/** 내 알림 목록 — 홈 종 아이콘 배지에도 사용 (30초마다 갱신) */
-export function useNotifications() {
-  return useQuery({
-    queryKey: ['notifications'],
-    queryFn: notificationsApi.getNotifications,
-    refetchInterval: 30_000,
-  });
-}
-
-/** 알림 모두 읽음 처리 — 알림 화면 진입 시 호출 */
-export function useMarkNotificationsRead() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: notificationsApi.markAllRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
 }
 
