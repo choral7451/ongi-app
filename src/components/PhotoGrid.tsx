@@ -10,10 +10,12 @@ interface PhotoGridProps {
   ListHeaderComponent?: ReactElement;
   bottomInset?: number;
   loading?: boolean;
+  /** 사진 상세에서 좌우 스와이프로 넘길 목록 컨텍스트 — 'feed' | 'album:<id>' | 'unfiled' | 'person:<id>' */
+  detailCtx?: string;
 }
 
 /** 3열 정사각 사진 그리드 — 탭하면 사진 상세로 */
-export function PhotoGrid({ photos, ListHeaderComponent, bottomInset = 0, loading }: PhotoGridProps) {
+export function PhotoGrid({ photos, ListHeaderComponent, bottomInset = 0, loading, detailCtx }: PhotoGridProps) {
   const router = useRouter();
   return (
     <FlatList
@@ -26,7 +28,12 @@ export function PhotoGrid({ photos, ListHeaderComponent, bottomInset = 0, loadin
       renderItem={({ item }) => (
         <Pressable
           style={styles.cell}
-          onPress={() => router.push({ pathname: '/photo/[id]', params: { id: item.id } })}
+          onPress={() =>
+            router.push({
+              pathname: '/photo/[id]',
+              params: detailCtx ? { id: item.id, ctx: detailCtx } : { id: item.id },
+            })
+          }
         >
           <Image source={{ uri: item.url }} style={styles.image} transition={150} />
         </Pressable>

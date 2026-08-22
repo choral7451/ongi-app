@@ -34,6 +34,7 @@ export default function PersonDetailScreen() {
         photos={photos.data ?? []}
         loading={photos.isLoading}
         bottomInset={insets.bottom}
+        detailCtx={`person:${id}`}
         ListHeaderComponent={
           <View style={styles.personHead}>
             <Image source={{ uri: person?.imageUrl }} style={styles.avatar} />

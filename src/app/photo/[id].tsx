@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,38 +23,65 @@ import {
   useAlbumPhotos,
   useAlbums,
   useComments,
+  useFeed,
   useMembers,
   usePeople,
+  usePersonPhotos,
   usePhoto,
   useToggleLike,
+  useUnfiledPhotos,
 } from '../../hooks/queries';
-import { useSession } from '../../store/session';
+import { useActiveGroupId, useSession } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
 import { formatFullDateTime, formatTime } from '../../utils/format';
 
-/** 1e — 사진 상세: 반응 · 댓글 */
+/** 1e — 사진 상세: 반응 · 댓글. ctx(feed | album:<id> | unfiled | person:<id>)가 있으면 좌우 스와이프로 목록을 넘겨본다 */
 export default function PhotoDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, ctx } = useLocalSearchParams<{ id: string; ctx?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const session = useSession();
 
-  const photo = usePhoto(id);
-  const comments = useComments(id);
+  // 스와이프로 현재 사진이 바뀌므로 화면의 기준 id 는 상태로 든다
+  const [currentId, setCurrentId] = useState(id);
+
+  // 진입한 목록 컨텍스트의 사진들 — 스와이프 페이지 목록
+  const activeGroupId = useActiveGroupId();
+  const ctxAlbumId = ctx?.startsWith('album:') ? ctx.slice('album:'.length) : '';
+  const ctxPersonId = ctx?.startsWith('person:') ? ctx.slice('person:'.length) : '';
+  const feedQuery = useFeed();
+  const ctxAlbumPhotos = useAlbumPhotos(ctxAlbumId);
+  const ctxPersonPhotos = usePersonPhotos(ctxPersonId);
+  const ctxUnfiledPhotos = useUnfiledPhotos(ctx === 'unfiled' ? activeGroupId : '');
+  const ctxPhotos =
+    ctx === 'feed'
+      ? feedQuery.data
+      : ctxAlbumId
+        ? ctxAlbumPhotos.data
+        : ctxPersonId
+          ? ctxPersonPhotos.data
+          : ctx === 'unfiled'
+            ? ctxUnfiledPhotos.data
+            : undefined;
+
+  const { width: windowWidth } = useWindowDimensions();
+  const pageWidth = windowWidth - 40; // content 좌우 패딩 20씩 제외
+
+  const photo = usePhoto(currentId);
+  const comments = useComments(currentId);
   const members = useMembers();
   const albums = useAlbums();
   const people = usePeople();
   const toggleLike = useToggleLike();
-  const addComment = useAddComment(id);
+  const addComment = useAddComment(currentId);
 
   const [draft, setDraft] = useState('');
 
   const author = members.data?.find((m) => m.id === photo.data?.authorId);
   const album = albums.data?.find((a) => a.id === photo.data?.albumId);
-  const albumPhotos = useAlbumPhotos(photo.data?.albumId ?? '');
-  const positionInAlbum =
-    album && albumPhotos.data
-      ? `${albumPhotos.data.findIndex((p) => p.id === id) + 1} / ${albumPhotos.data.length}`
+  const positionInList =
+    ctxPhotos && ctxPhotos.length > 1
+      ? `${ctxPhotos.findIndex((p) => p.id === currentId) + 1} / ${ctxPhotos.length}`
       : null;
   const taggedPeople =
     photo.data?.personIds
@@ -91,7 +119,7 @@ export default function PhotoDetailScreen() {
         />
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{album?.title ?? '사진'}</Text>
-          {positionInAlbum ? <Text style={styles.headerMeta}>{positionInAlbum}</Text> : null}
+          {positionInList ? <Text style={styles.headerMeta}>{positionInList}</Text> : null}
         </View>
         <IconButton
           accessibilityLabel="공유"
@@ -103,9 +131,29 @@ export default function PhotoDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {ctxPhotos && ctxPhotos.length > 1 ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentOffset={{ x: Math.max(ctxPhotos.findIndex((p) => p.id === id), 0) * pageWidth, y: 0 }}
+            onMomentumScrollEnd={(e) => {
+              const page = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+              const next = ctxPhotos[page];
+              if (next && next.id !== currentId) setCurrentId(next.id);
+            }}
+          >
+            {ctxPhotos.map((item) => (
+              <View key={item.id} style={{ width: pageWidth }}>
+                <Plate uri={item.url} height={340} />
+              </View>
+            ))}
+          </ScrollView>
+        ) : photo.data ? (
+          <Plate uri={photo.data.url} height={340} />
+        ) : null}
         {photo.data ? (
           <>
-            <Plate uri={photo.data.url} height={340} />
 
             <View style={styles.authorRow}>
               <Avatar name={author?.name ?? '?'} />

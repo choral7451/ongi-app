@@ -21,7 +21,7 @@ export function FeedPost({ photo, author, album, photoFirst = true }: FeedPostPr
   const router = useRouter();
   const toggleLike = useToggleLike();
 
-  const openDetail = () => router.push({ pathname: '/photo/[id]', params: { id: photo.id } });
+  const openDetail = () => router.push({ pathname: '/photo/[id]', params: { id: photo.id, ctx: 'feed' } });
 
   const authorRow = (
     <View style={styles.authorRow}>

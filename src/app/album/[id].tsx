@@ -41,6 +41,7 @@ export default function AlbumDetailScreen() {
         photos={photos.data ?? []}
         loading={photos.isLoading}
         bottomInset={insets.bottom}
+        detailCtx={isUnfiled ? 'unfiled' : `album:${id}`}
         ListHeaderComponent={
           <View style={styles.albumHead}>
             {coverUrl ? <Plate uri={coverUrl} height={180} /> : null}

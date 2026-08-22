@@ -1,12 +1,12 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Plus } from 'lucide-react-native';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { Plate } from '../../components/ui/Plate';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { useAlbums, usePeople, useUnfiledPhotos } from '../../hooks/queries';
+import { useAlbums, useCreateAlbum, usePeople, useUnfiledPhotos } from '../../hooks/queries';
 import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
 
@@ -18,17 +18,39 @@ export default function AlbumsScreen() {
   const people = usePeople();
   const activeGroupId = useActiveGroupId();
   const unfiled = useUnfiledPhotos(activeGroupId);
+  const createAlbum = useCreateAlbum();
+
+  const promptNewAlbum = () => {
+    Alert.prompt(
+      '새 앨범',
+      '앨범 이름을 입력해 주세요',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '만들기',
+          onPress: (title?: string) => {
+            const trimmed = title?.trim();
+            if (!trimmed) return;
+            createAlbum.mutate(trimmed, {
+              onError: (e) =>
+                Alert.alert('앨범 만들기 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
+            });
+          },
+        },
+      ],
+      'plain-text',
+    );
+  };
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.title}>앨범</Text>
         <Button
-          label="새 앨범"
+          label={createAlbum.isPending ? '만드는 중…' : '새 앨범'}
           icon={<Plus size={15} color={colors.accent} strokeWidth={iconStroke} />}
-          onPress={() => {
-            // TODO: 새 앨범 생성 플로우 (albumsApi.createAlbum)
-          }}
+          onPress={promptNewAlbum}
+          disabled={createAlbum.isPending}
         />
       </View>
 

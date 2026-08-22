@@ -97,6 +97,7 @@ export function usePersonPhotos(personId: string) {
   return useQuery({
     queryKey: ['personPhotos', personId],
     queryFn: () => photosApi.getPhotosByPerson(personId),
+    enabled: personId.length > 0,
   });
 }
 
@@ -122,6 +123,15 @@ export function useAlbumsOf(groupId: string) {
     queryKey: queryKeys.albums(groupId),
     queryFn: () => albumsApi.getAlbums(groupId),
     enabled: groupId.length > 0,
+  });
+}
+
+export function useCreateAlbum() {
+  const queryClient = useQueryClient();
+  const groupId = useActiveGroupId();
+  return useMutation({
+    mutationFn: (title: string) => albumsApi.createAlbum(groupId, title),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.albums(groupId) }),
   });
 }
 
