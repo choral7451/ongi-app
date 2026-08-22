@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -119,10 +120,19 @@ export default function UploadScreen() {
   const setDraftOf = (groupId: string) => (next: TargetDraft) =>
     setDrafts((prev) => ({ ...prev, [groupId]: next }));
 
-  const mainPreview = useMemo(() => {
-    if (selectedIds.length === 0) return undefined;
-    return localPhotos.data?.find((p) => p.id === selectedIds[0])?.uri;
-  }, [selectedIds, localPhotos.data]);
+  // 선택 순서 그대로의 사진 목록 — 미리보기에서 좌우로 넘겨본다
+  const selectedPhotos = useMemo(
+    () =>
+      selectedIds
+        .map((id) => localPhotos.data?.find((p) => p.id === id))
+        .filter((p): p is NonNullable<typeof p> => p != null),
+    [selectedIds, localPhotos.data],
+  );
+
+  const { width: windowWidth } = useWindowDimensions();
+  const pageWidth = windowWidth - 40; // content 좌우 패딩 20씩 제외
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const shownIndex = Math.min(previewIndex, Math.max(selectedPhotos.length - 1, 0));
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) =>
@@ -230,10 +240,33 @@ export default function UploadScreen() {
           ) : null}
         </View>
 
-        {mainPreview ? (
+        {selectedPhotos.length > 0 ? (
           <View style={styles.previewBox}>
-            {/* 선택한 비율 그대로 미리보기 — 게시물도 이 비율로 크롭되어 올라간다 */}
-            <Plate uri={mainPreview} aspectRatio={ratio} />
+            {/* 선택한 비율 그대로 미리보기 — 여러 장이면 좌우로 넘겨본다 */}
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) =>
+                setPreviewIndex(Math.round(e.nativeEvent.contentOffset.x / pageWidth))
+              }
+            >
+              {selectedPhotos.map((photo) => (
+                <View key={photo.id} style={{ width: pageWidth }}>
+                  <Plate uri={photo.uri} aspectRatio={ratio} />
+                </View>
+              ))}
+            </ScrollView>
+            {selectedPhotos.length > 1 ? (
+              <View style={styles.dots}>
+                {selectedPhotos.map((photo, index) => (
+                  <View
+                    key={photo.id}
+                    style={[styles.dot, index === shownIndex && styles.dotActive]}
+                  />
+                ))}
+              </View>
+            ) : null}
             <View style={styles.ratioRow}>
               {[
                 { value: 1, label: '정방형 1:1' },
@@ -365,6 +398,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
+  },
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.neutral200,
+  },
+  dotActive: {
+    backgroundColor: colors.accent,
   },
   previewEmpty: {
     height: 230,
