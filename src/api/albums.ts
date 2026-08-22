@@ -14,3 +14,8 @@ export async function getPeople(groupId: string): Promise<Person[]> {
 export function createAlbum(groupId: string, title: string): Promise<Album> {
   return post<Album>(`/ongi/groups/${groupId}/albums`, { title });
 }
+
+/** 그룹에 인물 태그 추가 — 사진 업로드 시 "함께 찍힌 가족" 으로 태그할 대상 */
+export function createPerson(groupId: string, name: string): Promise<Person> {
+  return post<Person>(`/ongi/groups/${groupId}/people`, { name });
+}

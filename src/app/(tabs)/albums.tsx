@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { Plate } from '../../components/ui/Plate';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { useAlbums, useCreateAlbum, usePeople, useUnfiledPhotos } from '../../hooks/queries';
+import { useAlbums, useCreateAlbum, useCreatePerson, usePeople, useUnfiledPhotos } from '../../hooks/queries';
 import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
 
@@ -19,6 +19,29 @@ export default function AlbumsScreen() {
   const activeGroupId = useActiveGroupId();
   const unfiled = useUnfiledPhotos(activeGroupId);
   const createAlbum = useCreateAlbum();
+  const createPerson = useCreatePerson();
+
+  const promptNewPerson = () => {
+    Alert.prompt(
+      '인물 추가',
+      '사진에 태그할 가족·인물의 이름을 입력해 주세요',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '추가',
+          onPress: (name?: string) => {
+            const trimmed = name?.trim();
+            if (!trimmed) return;
+            createPerson.mutate(trimmed, {
+              onError: (e) =>
+                Alert.alert('인물 추가 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
+            });
+          },
+        },
+      ],
+      'plain-text',
+    );
+  };
 
   const promptNewAlbum = () => {
     Alert.prompt(
@@ -72,6 +95,13 @@ export default function AlbumsScreen() {
               <Text style={styles.personCount}>{person.photoCount}장</Text>
             </Pressable>
           ))}
+          <Pressable style={styles.person} onPress={promptNewPerson} accessibilityLabel="인물 추가">
+            <View style={[styles.personImage, styles.personAdd]}>
+              <Plus size={18} color={colors.accent} strokeWidth={iconStroke} />
+            </View>
+            <Text style={styles.personName}>인물 추가</Text>
+            <Text style={styles.personCount}> </Text>
+          </Pressable>
         </ScrollView>
 
         <SectionHeader
@@ -142,6 +172,14 @@ const styles = StyleSheet.create({
   person: {
     alignItems: 'center',
     gap: 6,
+  },
+  personAdd: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.accent,
   },
   personImage: {
     width: 58,

@@ -135,6 +135,15 @@ export function useCreateAlbum() {
   });
 }
 
+export function useCreatePerson() {
+  const queryClient = useQueryClient();
+  const groupId = useActiveGroupId();
+  return useMutation({
+    mutationFn: (name: string) => albumsApi.createPerson(groupId, name),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.people(groupId) }),
+  });
+}
+
 export function usePeople() {
   const groupId = useActiveGroupId();
   return usePeopleOf(groupId);

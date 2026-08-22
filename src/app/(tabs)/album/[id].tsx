@@ -30,7 +30,7 @@ export default function AlbumDetailScreen() {
       <View style={styles.header}>
         <IconButton
           accessibilityLabel="뒤로"
-          onPress={() => router.back()}
+          onPress={() => router.replace('/albums')} // 탭 전환은 히스토리에 안 쌓여 back() 이 홈으로 떨어짐 — 앨범 탭으로 명시 복귀
           icon={<ChevronLeft size={18} color={colors.text} strokeWidth={iconStroke} />}
         />
         <Text style={styles.headerTitle}>앨범</Text>

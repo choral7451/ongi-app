@@ -97,6 +97,14 @@ export default function PhotoDetailScreen() {
           .join(', ')}${photo.data.likeCount > 3 ? ` 외 ${photo.data.likeCount - 3}명` : ''}이 따뜻해했어요`
       : '가장 먼저 따뜻함을 전해보세요';
 
+  // 탭 전환은 히스토리에 안 쌓여 back() 이 홈으로 떨어짐 — 들어온 컨텍스트로 명시 복귀
+  const goBack = () => {
+    if (ctxAlbumId) return router.replace({ pathname: '/album/[id]', params: { id: ctxAlbumId } });
+    if (ctx === 'unfiled') return router.replace({ pathname: '/album/[id]', params: { id: 'unfiled' } });
+    if (ctxPersonId) return router.replace({ pathname: '/person/[id]', params: { id: ctxPersonId } });
+    return router.replace('/');
+  };
+
   const send = () => {
     const text = draft.trim();
     if (!text) return;
@@ -114,7 +122,7 @@ export default function PhotoDetailScreen() {
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 6) }]}>
         <IconButton
           accessibilityLabel="뒤로"
-          onPress={() => router.back()}
+          onPress={goBack}
           icon={<ChevronLeft size={18} color={colors.text} strokeWidth={iconStroke} />}
         />
         <View style={styles.headerCenter}>
