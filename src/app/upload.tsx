@@ -110,6 +110,8 @@ export default function UploadScreen() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
+  /** 인스타그램식 크롭 비율 — 1 (정방형) 또는 0.8 (4:5 세로) */
+  const [ratio, setRatio] = useState<number>(1);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([activeGroupId]);
   const [drafts, setDrafts] = useState<Record<string, TargetDraft>>({});
 
@@ -150,6 +152,7 @@ export default function UploadScreen() {
       {
         localPhotoIds: selectedIds,
         caption: caption.trim() || undefined,
+        ratio,
         targets: selectedGroupIds.map((groupId) => ({
           groupId,
           albumId: draftOf(groupId).albumId,
@@ -228,9 +231,31 @@ export default function UploadScreen() {
         </View>
 
         {mainPreview ? (
-          <Plate uri={mainPreview} height={230} style={styles.preview} />
+          <View style={styles.previewBox}>
+            {/* 선택한 비율 그대로 미리보기 — 게시물도 이 비율로 크롭되어 올라간다 */}
+            <Plate uri={mainPreview} aspectRatio={ratio} />
+            <View style={styles.ratioRow}>
+              {[
+                { value: 1, label: '정방형 1:1' },
+                { value: 0.8, label: '세로 4:5' },
+              ].map((option) => {
+                const selected = ratio === option.value;
+                return (
+                  <Pressable
+                    key={option.label}
+                    style={[styles.chip, selected ? styles.chipOutline : styles.chipNeutral]}
+                    onPress={() => setRatio(option.value)}
+                  >
+                    <Text style={selected ? styles.chipOutlineText : styles.chipNeutralText}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         ) : (
-          <View style={[styles.preview, styles.previewEmpty]}>
+          <View style={styles.previewEmpty}>
             <Camera size={28} color={colors.neutral500} strokeWidth={iconStroke} />
             <Text style={styles.previewEmptyText}>아래에서 사진을 선택해 주세요</Text>
           </View>
@@ -333,10 +358,16 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 16,
   },
-  preview: {
-    height: 230,
+  previewBox: {
+    gap: 8,
+  },
+  ratioRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
   },
   previewEmpty: {
+    height: 230,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

@@ -73,24 +73,33 @@ export interface UploadTarget {
 export interface UploadPayload {
   localPhotoIds: string[];
   caption?: string;
+  /** 인스타그램식 크롭 비율 (width/height) — 1 (정방형) 또는 0.8 (4:5 세로) */
+  ratio: number;
   /** 선택한 모든 그룹에 동시에 게시. 그룹마다 독립 게시물이 생겨 좋아요·댓글이 분리됩니다. */
   targets: UploadTarget[];
 }
 
 /** 사진 올리기 — 파일을 S3 에 올려 URL 을 받은 뒤, 그룹(타깃)마다 독립 게시물을 만듭니다 */
 export async function uploadPhotos(payload: UploadPayload): Promise<Photo[]> {
-  // 갤러리 사진을 JPEG 으로 통일 (HEIC 등 기기 포맷은 다른 플랫폼에서 안 보일 수 있음)
+  // 선택한 비율로 중앙 크롭 + JPEG 통일 (HEIC 등 기기 포맷은 다른 플랫폼에서 안 보일 수 있음)
+  const ratio = payload.ratio;
   const prepared = await Promise.all(
     payload.localPhotoIds.map(async (assetId) => {
       const info = await MediaLibrary.getAssetInfoAsync(assetId);
-      const jpeg = await ImageManipulator.manipulateAsync(info.localUri ?? info.uri, [], {
+      const { width, height } = info;
+      let crop;
+      if (width / height > ratio) {
+        const cropWidth = Math.round(height * ratio);
+        crop = { originX: Math.round((width - cropWidth) / 2), originY: 0, width: cropWidth, height };
+      } else {
+        const cropHeight = Math.round(width / ratio);
+        crop = { originX: 0, originY: Math.round((height - cropHeight) / 2), width, height: cropHeight };
+      }
+      const jpeg = await ImageManipulator.manipulateAsync(info.localUri ?? info.uri, [{ crop }], {
         compress: 0.85,
         format: ImageManipulator.SaveFormat.JPEG,
       });
-      return {
-        uri: jpeg.uri,
-        aspectRatio: jpeg.height > 0 ? Math.round((jpeg.width / jpeg.height) * 100) / 100 : 1,
-      };
+      return { uri: jpeg.uri, aspectRatio: ratio };
     }),
   );
 
