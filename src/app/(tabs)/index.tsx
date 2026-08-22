@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedPost } from '../../components/feed/FeedPost';
 import { IconButton } from '../../components/ui/Button';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { useAlbums, useFamily, useFeed, useMembers } from '../../hooks/queries';
+import { useAlbums, useFamily, useFeed, useMembers, useNotifications } from '../../hooks/queries';
 import { colors, fonts, iconStroke } from '../../theme';
 import type { Photo } from '../../types';
 import { formatFeedDate } from '../../utils/format';
@@ -22,6 +22,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const feed = useFeed();
+  const notifications = useNotifications();
+  const hasUnread = notifications.data?.some((n) => !n.read) ?? false;
   const members = useMembers();
   const albums = useAlbums();
   const group = useFamily();
@@ -63,10 +65,14 @@ export default function HomeScreen() {
           </Pressable>
           <Text style={styles.title}>ONGI</Text>
         </View>
-        <IconButton
-          accessibilityLabel="알림"
-          icon={<Bell size={20} color={colors.text} strokeWidth={iconStroke} />}
-        />
+        <View>
+          <IconButton
+            accessibilityLabel="알림"
+            onPress={() => router.push('/notifications')}
+            icon={<Bell size={20} color={colors.text} strokeWidth={iconStroke} />}
+          />
+          {hasUnread ? <View style={styles.bellBadge} pointerEvents="none" /> : null}
+        </View>
       </View>
 
       <SectionList
@@ -100,6 +106,15 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  bellBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.bg,
