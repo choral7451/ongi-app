@@ -137,6 +137,15 @@ export default function UploadScreen() {
     });
 
   const submit = () => {
+    // 가족 공간이 없으면 업로드 대신 공간 만들기로 안내
+    if (!validGroupSelected) {
+      Alert.alert('가족 공간이 필요해요', '사진은 가족 공간에 올라가요. 먼저 공간을 만들거나 초대 코드로 참여해 주세요.', [
+        { text: '나중에', style: 'cancel' },
+        { text: '공간 만들기', onPress: () => router.push('/groups') },
+      ]);
+      return;
+    }
+
     upload.mutate(
       {
         localPhotoIds: selectedIds,
@@ -178,7 +187,7 @@ export default function UploadScreen() {
         <Button
           label={upload.isPending ? '올리는 중…' : '올리기'}
           onPress={submit}
-          disabled={selectedIds.length === 0 || upload.isPending || !validGroupSelected}
+          disabled={selectedIds.length === 0 || upload.isPending}
         />
       </View>
 
