@@ -1,8 +1,9 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useRouter } from 'expo-router';
 import { Home, Image as ImageIcon, Plus, User, Users } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMyGroups } from '../hooks/queries';
 import { colors, iconStroke } from '../theme';
 
 const TABS = [
@@ -20,6 +21,19 @@ const TABS = [
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const myGroups = useMyGroups();
+
+  // 가족 공간이 없으면 업로드 화면 대신 공간 만들기로 안내
+  const openUpload = () => {
+    if (myGroups.isSuccess && myGroups.data.length === 0) {
+      Alert.alert('가족 공간이 필요해요', '사진은 가족 공간에 올라가요. 먼저 공간을 만들거나 초대 코드로 참여해 주세요.', [
+        { text: '나중에', style: 'cancel' },
+        { text: '공간 만들기', onPress: () => router.push('/groups') },
+      ]);
+      return;
+    }
+    router.push('/upload');
+  };
 
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
@@ -29,7 +43,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             <Pressable
               key={tab.name}
               style={styles.item}
-              onPress={() => router.push('/upload')}
+              onPress={openUpload}
               accessibilityLabel="사진 올리기"
             >
               <View style={styles.uploadCircle}>
