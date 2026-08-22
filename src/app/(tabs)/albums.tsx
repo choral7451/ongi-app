@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { Plate } from '../../components/ui/Plate';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { useAlbums, useCreateAlbum, useFeed, useUnfiledPhotos } from '../../hooks/queries';
+import { useAlbums, useCreateAlbum, useDeleteAlbum, useFeed, useRenameAlbum, useUnfiledPhotos } from '../../hooks/queries';
+import type { Album } from '../../types';
 import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
 
@@ -18,6 +19,51 @@ export default function AlbumsScreen() {
   const unfiled = useUnfiledPhotos(activeGroupId);
   const allPhotos = useFeed();
   const createAlbum = useCreateAlbum();
+  const renameAlbum = useRenameAlbum();
+  const deleteAlbum = useDeleteAlbum();
+
+  const showError = (title: string) => (e: unknown) =>
+    Alert.alert(title, e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
+
+  const promptRename = (album: Album) => {
+    Alert.prompt(
+      '앨범 이름 변경',
+      undefined,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '변경',
+          onPress: (title?: string) => {
+            const trimmed = title?.trim();
+            if (!trimmed || trimmed === album.title) return;
+            renameAlbum.mutate({ albumId: album.id, title: trimmed }, { onError: showError('이름 변경 실패') });
+          },
+        },
+      ],
+      'plain-text',
+      album.title,
+    );
+  };
+
+  const confirmDelete = (album: Album) => {
+    Alert.alert('앨범 삭제', `"${album.title}" 앨범을 삭제할까요?\n사진은 삭제되지 않고 미분류로 이동해요.`, [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: () => deleteAlbum.mutate(album.id, { onError: showError('앨범 삭제 실패') }),
+      },
+    ]);
+  };
+
+  // 길게 누르면 앨범 관리 메뉴 (전체 사진·미분류 같은 가상 앨범 제외)
+  const showAlbumMenu = (album: Album) => {
+    Alert.alert(`앨범 「${album.title}」`, undefined, [
+      { text: '이름 변경', onPress: () => promptRename(album) },
+      { text: '삭제', style: 'destructive', onPress: () => confirmDelete(album) },
+      { text: '취소', style: 'cancel' },
+    ]);
+  };
 
   const promptNewAlbum = () => {
     Alert.prompt(
@@ -88,6 +134,7 @@ export default function AlbumsScreen() {
               key={album.id}
               style={styles.gridItem}
               onPress={() => router.push({ pathname: '/album/[id]', params: { id: album.id } })}
+              onLongPress={() => showAlbumMenu(album)}
             >
               <Plate uri={album.coverUrl} height={108} />
               <View>

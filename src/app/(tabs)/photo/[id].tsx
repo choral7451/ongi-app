@@ -193,7 +193,7 @@ export default function PhotoDetailScreen() {
                 <Heart
                   size={18}
                   color={colors.accent700}
-                  fill={colors.accent700}
+                  fill={photo.data.likedByMe ? colors.accent700 : 'transparent'}
                   strokeWidth={iconStroke}
                 />
                 <Text style={styles.likeCount}>{photo.data.likeCount}</Text>

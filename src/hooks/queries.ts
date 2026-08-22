@@ -136,6 +136,28 @@ export function useCreateAlbum() {
   });
 }
 
+export function useRenameAlbum() {
+  const queryClient = useQueryClient();
+  const groupId = useActiveGroupId();
+  return useMutation({
+    mutationFn: (params: { albumId: string; title: string }) => albumsApi.renameAlbum(params.albumId, params.title),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.albums(groupId) }),
+  });
+}
+
+export function useDeleteAlbum() {
+  const queryClient = useQueryClient();
+  const groupId = useActiveGroupId();
+  return useMutation({
+    mutationFn: albumsApi.deleteAlbum,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.albums(groupId) });
+      // 담겨 있던 사진이 미분류로 이동하므로 함께 갱신
+      queryClient.invalidateQueries({ queryKey: ['unfiledPhotos', groupId] });
+    },
+  });
+}
+
 export function useCreatePerson() {
   const queryClient = useQueryClient();
   const groupId = useActiveGroupId();
