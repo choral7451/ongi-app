@@ -1,34 +1,34 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import {
-  Bell,
-  Camera,
-  ChevronRight,
-  FileText,
-  Image as ImageIcon,
-  ShieldCheck,
-  Users,
-} from 'lucide-react-native';
+import { Bell, Camera, ChevronRight, FileText, Pencil, ShieldCheck, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import {
   Alert,
+  FlatList,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { IconButton } from '../../components/ui/Button';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { Tag } from '../../components/ui/Tag';
 import {
   useDeleteAccount,
   useFamily,
+  useLocalPhotos,
+  useMe,
   useProfileStats,
-  useStorageInfo,
+  useUpdateMyName,
+  useUploadAvatar,
 } from '../../hooks/queries';
 import { useSession } from '../../store/session';
+import { useSettings } from '../../store/settings';
 import { colors, fonts, iconStroke } from '../../theme';
 
 /** Alert는 웹에서 동작하지 않아 웹은 window.confirm으로 대체 */
@@ -50,6 +50,9 @@ function confirmAction(
   ]);
 }
 
+const showError = (title: string) => (e: unknown) =>
+  Alert.alert(title, e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
+
 interface SettingRowProps {
   icon: ReactNode;
   label: string;
@@ -67,7 +70,7 @@ function SettingRow({ icon, label, trailing, divider = true, onPress }: SettingR
       {icon}
       <Text style={styles.settingLabel}>{label}</Text>
       {trailing}
-      <ChevronRight size={16} color={colors.neutral500} strokeWidth={iconStroke} />
+      {onPress ? <ChevronRight size={16} color={colors.neutral500} strokeWidth={iconStroke} /> : null}
     </Pressable>
   );
 }
@@ -77,10 +80,42 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const session = useSession();
+  const me = useMe();
   const stats = useProfileStats();
-  const storage = useStorageInfo();
   const family = useFamily();
   const deleteAccount = useDeleteAccount();
+  const updateMyName = useUpdateMyName();
+  const uploadAvatar = useUploadAvatar();
+  const notificationsEnabled = useSettings((s) => s.notificationsEnabled);
+  const setNotificationsEnabled = useSettings((s) => s.setNotificationsEnabled);
+
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const localPhotos = useLocalPhotos();
+
+  const promptRename = () => {
+    Alert.prompt(
+      '이름 변경',
+      '가족에게 보여질 이름이에요',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '변경',
+          onPress: (name?: string) => {
+            const trimmed = name?.trim();
+            if (!trimmed || trimmed === me.data?.name) return;
+            updateMyName.mutate(trimmed, { onError: showError('이름 변경 실패') });
+          },
+        },
+      ],
+      'plain-text',
+      me.data?.name ?? session.currentUserName,
+    );
+  };
+
+  const pickAvatar = (assetId: string) => {
+    setPickerVisible(false);
+    uploadAvatar.mutate(assetId, { onError: showError('프로필 이미지 변경 실패') });
+  };
 
   const onSignOut = () => {
     confirmAction('로그아웃', '로그아웃 하시겠어요?', '로그아웃', () => session.signOut());
@@ -100,15 +135,28 @@ export default function ProfileScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileHead}>
-          <Image
-            source={{ uri: 'https://picsum.photos/seed/ongi-p2/300/300?grayscale' }}
-            style={styles.avatar}
-          />
+          <Pressable onPress={() => setPickerVisible(true)} accessibilityLabel="프로필 이미지 변경">
+            {me.data?.avatarUrl ? (
+              <Image source={{ uri: me.data.avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarEmpty]}>
+                <Text style={styles.avatarInitial}>
+                  {(me.data?.name ?? session.currentUserName).slice(0, 1)}
+                </Text>
+              </View>
+            )}
+            <View style={styles.avatarBadge}>
+              <Camera size={13} color={colors.white} strokeWidth={iconStroke} />
+            </View>
+          </Pressable>
           <View style={styles.nameBlock}>
-            <Text style={styles.name}>{session.currentUserName}</Text>
-            <Text style={styles.nameMeta}>
-              {family.data?.name ?? ''} · 관리자
-            </Text>
+            <Pressable style={styles.nameRow} onPress={promptRename} accessibilityLabel="이름 변경">
+              <Text style={styles.name}>
+                {updateMyName.isPending ? '변경 중…' : (me.data?.name ?? session.currentUserName)}
+              </Text>
+              <Pencil size={14} color={colors.neutral500} strokeWidth={iconStroke} />
+            </Pressable>
+            <Text style={styles.nameMeta}>{family.data?.name ?? ''}</Text>
           </View>
           <View style={styles.statsRow}>
             <View style={styles.statCell}>
@@ -132,27 +180,14 @@ export default function ProfileScreen() {
         <SettingRow
           icon={<Bell size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
           label="알림"
-          trailing={<Text style={styles.settingMeta}>새 사진·댓글</Text>}
-        />
-        <SettingRow
-          icon={<Camera size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
-          label="자동 백업"
-          trailing={<Tag label="켜짐" variant="accent" />}
-        />
-        <SettingRow
-          icon={<ImageIcon size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
-          label="저장 공간"
-          trailing={
-            <Text style={styles.settingMeta}>
-              {storage.data ? `${storage.data.usedGb}GB / ${storage.data.totalGb}GB` : ''}
-            </Text>
-          }
-        />
-        <SettingRow
-          icon={<Users size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
-          label="가족 관리"
-          trailing={<Text style={styles.settingMeta}>초대 · 권한</Text>}
           divider={false}
+          trailing={
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={setNotificationsEnabled}
+              trackColor={{ true: colors.accent }}
+            />
+          }
         />
 
         <View style={styles.sectionGap}>
@@ -189,6 +224,38 @@ export default function ProfileScreen() {
           탈퇴하면 올린 사진과 댓글이 모두 삭제되며 복구할 수 없어요.
         </Text>
       </ScrollView>
+
+      {/* 프로필 이미지 선택 — 최근 갤러리 사진에서 고른다 */}
+      <Modal visible={pickerVisible} animationType="slide" onRequestClose={() => setPickerVisible(false)}>
+        <View style={[styles.pickerScreen, { paddingTop: Math.max(insets.top, 6) }]}>
+          <View style={styles.pickerHeader}>
+            <IconButton
+              accessibilityLabel="닫기"
+              onPress={() => setPickerVisible(false)}
+              icon={<X size={18} color={colors.text} strokeWidth={iconStroke} />}
+            />
+            <Text style={styles.pickerTitle}>프로필 이미지 선택</Text>
+            <View style={styles.pickerSpacer} />
+          </View>
+          <FlatList
+            data={localPhotos.data ?? []}
+            keyExtractor={(item) => item.id}
+            numColumns={3}
+            columnWrapperStyle={styles.pickerRow}
+            contentContainerStyle={[styles.pickerContent, { paddingBottom: insets.bottom + 24 }]}
+            renderItem={({ item }) => (
+              <Pressable style={styles.pickerCell} onPress={() => pickAvatar(item.id)}>
+                <Image source={{ uri: item.uri }} style={styles.pickerImage} />
+              </Pressable>
+            )}
+            ListEmptyComponent={
+              localPhotos.isLoading ? null : (
+                <Text style={styles.pickerEmpty}>사진 보관함에 사진이 없거나 접근 권한이 없어요.</Text>
+              )
+            }
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -214,8 +281,35 @@ const styles = StyleSheet.create({
     borderRadius: 46,
     backgroundColor: colors.accent100,
   },
+  avatarEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontFamily: fonts.heading,
+    fontSize: 34,
+    color: colors.accent700,
+  },
+  avatarBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.bg,
+  },
   nameBlock: {
     alignItems: 'center',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   name: {
     fontFamily: fonts.heading,
@@ -267,11 +361,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
-  settingMeta: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontVariant: ['tabular-nums'],
-  },
   signOut: {
     flex: 1,
     fontSize: 14,
@@ -290,5 +379,45 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: -6,
     marginBottom: 8,
+  },
+  pickerScreen: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  pickerTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 17,
+    color: colors.text,
+  },
+  pickerSpacer: {
+    width: 36,
+  },
+  pickerContent: {
+    paddingHorizontal: 20,
+  },
+  pickerRow: {
+    gap: 4,
+    marginBottom: 4,
+  },
+  pickerCell: {
+    flex: 1,
+    aspectRatio: 1,
+    backgroundColor: colors.neutral200,
+  },
+  pickerImage: {
+    flex: 1,
+  },
+  pickerEmpty: {
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: 60,
   },
 });

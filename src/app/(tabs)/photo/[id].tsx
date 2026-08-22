@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, Heart, Share as ShareIcon } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -44,6 +44,16 @@ export default function PhotoDetailScreen() {
 
   // 스와이프로 현재 사진이 바뀌므로 화면의 기준 id 는 상태로 든다
   const [currentId, setCurrentId] = useState(id);
+
+  // 탭 안에 있어 화면이 언마운트되지 않는다 — 다른 사진으로 다시 들어오면 상태·스크롤을 재동기화
+  const pagerRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    setCurrentId(id);
+    const index = ctxPhotos?.findIndex((p) => p.id === id) ?? -1;
+    if (index >= 0) pagerRef.current?.scrollTo({ x: index * pageWidth, animated: false });
+    // ctxPhotos 는 의존성에서 제외 — 목록 갱신(좋아요 등)마다 스크롤이 튀지 않게, 재진입 시에만 위치를 맞춘다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, ctx]);
 
   // 진입한 목록 컨텍스트의 사진들 — 스와이프 페이지 목록
   const activeGroupId = useActiveGroupId();
@@ -142,6 +152,7 @@ export default function PhotoDetailScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {ctxPhotos && ctxPhotos.length > 1 ? (
           <ScrollView
+            ref={pagerRef}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}

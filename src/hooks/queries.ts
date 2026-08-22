@@ -201,6 +201,34 @@ export function useMembers() {
 
 // ── 프로필 ────────────────────────────────────────────
 
+export function useMe() {
+  return useQuery({ queryKey: ['me'], queryFn: profileApi.getMe });
+}
+
+/** 이름·프로필 이미지 변경 공통 — 내 정보와, 이름·이미지가 복사돼 있는 캐시들을 갱신 */
+function useApplyProfileChange() {
+  const queryClient = useQueryClient();
+  const groupId = useActiveGroupId();
+  const setCurrentUserName = useSession((s) => s.setCurrentUserName);
+  return (me: profileApi.Me) => {
+    queryClient.setQueryData(['me'], me);
+    setCurrentUserName(me.name);
+    // 구성원·인물에 전파된 이름/이미지 반영
+    queryClient.invalidateQueries({ queryKey: queryKeys.members(groupId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.people(groupId) });
+  };
+}
+
+export function useUpdateMyName() {
+  const apply = useApplyProfileChange();
+  return useMutation({ mutationFn: profileApi.updateMyName, onSuccess: apply });
+}
+
+export function useUploadAvatar() {
+  const apply = useApplyProfileChange();
+  return useMutation({ mutationFn: profileApi.uploadAvatar, onSuccess: apply });
+}
+
 export function useProfileStats() {
   return useQuery({ queryKey: queryKeys.profileStats, queryFn: profileApi.getProfileStats });
 }

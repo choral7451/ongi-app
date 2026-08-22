@@ -17,6 +17,8 @@ interface SessionState {
   activeGroupId: string;
   restore: () => Promise<void>;
   setUser: (user: AuthUser) => void;
+  /** 프로필에서 이름을 바꿨을 때 화면 표시용 이름 갱신 */
+  setCurrentUserName: (name: string) => void;
   setActiveGroup: (groupId: string) => void;
   signOut: () => void;
 }
@@ -42,6 +44,7 @@ export const useSession = create<SessionState>((set) => ({
   },
   setUser: (user) =>
     set({ isAuthenticated: true, currentUserId: user.id, currentUserName: user.name }),
+  setCurrentUserName: (name) => set({ currentUserName: name }),
   setActiveGroup: (groupId) => set({ activeGroupId: groupId }),
   signOut: () => {
     void signOutApi();
