@@ -85,7 +85,7 @@ export default function HomeScreen() {
               photo={item}
               author={members.data?.find((m) => m.id === item.authorId)}
               album={albums.data?.find((a) => a.id === item.albumId)}
-              photoFirst={false}
+              photoFirst
             />
           </View>
         )}
