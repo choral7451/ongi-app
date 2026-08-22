@@ -14,10 +14,10 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar } from '../../components/ui/Avatar';
-import { Button, IconButton } from '../../components/ui/Button';
-import { Plate } from '../../components/ui/Plate';
-import { Tag } from '../../components/ui/Tag';
+import { Avatar } from '../../../components/ui/Avatar';
+import { Button, IconButton } from '../../../components/ui/Button';
+import { Plate } from '../../../components/ui/Plate';
+import { Tag } from '../../../components/ui/Tag';
 import {
   useAddComment,
   useAlbumPhotos,
@@ -30,10 +30,10 @@ import {
   usePhoto,
   useToggleLike,
   useUnfiledPhotos,
-} from '../../hooks/queries';
-import { useActiveGroupId, useSession } from '../../store/session';
-import { colors, fonts, iconStroke } from '../../theme';
-import { formatFullDateTime, formatTime } from '../../utils/format';
+} from '../../../hooks/queries';
+import { useActiveGroupId, useSession } from '../../../store/session';
+import { colors, fonts, iconStroke } from '../../../theme';
+import { formatFullDateTime, formatTime } from '../../../utils/format';
 
 /** 1e — 사진 상세: 반응 · 댓글. ctx(feed | album:<id> | unfiled | person:<id>)가 있으면 좌우 스와이프로 목록을 넘겨본다 */
 export default function PhotoDetailScreen() {

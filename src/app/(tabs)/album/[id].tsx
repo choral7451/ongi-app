@@ -2,12 +2,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PhotoGrid } from '../../components/PhotoGrid';
-import { IconButton } from '../../components/ui/Button';
-import { Plate } from '../../components/ui/Plate';
-import { useAlbumPhotos, useAlbums, useUnfiledPhotos } from '../../hooks/queries';
-import { useActiveGroupId } from '../../store/session';
-import { colors, fonts, iconStroke } from '../../theme';
+import { PhotoGrid } from '../../../components/PhotoGrid';
+import { IconButton } from '../../../components/ui/Button';
+import { Plate } from '../../../components/ui/Plate';
+import { useAlbumPhotos, useAlbums, useUnfiledPhotos } from '../../../hooks/queries';
+import { useActiveGroupId } from '../../../store/session';
+import { colors, fonts, iconStroke } from '../../../theme';
 
 /** 앨범 상세 — 커버 + 사진 그리드. id 가 'unfiled' 면 앨범에 안 담긴 사진 모음 */
 export default function AlbumDetailScreen() {

@@ -15,6 +15,10 @@ export default function TabsLayout() {
       <Tabs.Screen name="albums" options={{ title: '앨범' }} />
       <Tabs.Screen name="family" options={{ title: '가족' }} />
       <Tabs.Screen name="profile" options={{ title: '나' }} />
+      {/* 상세 화면들 — 탭 버튼에는 없지만 탭바가 유지되도록 탭 그룹 안에 둔다 */}
+      <Tabs.Screen name="photo/[id]" options={{ href: null }} />
+      <Tabs.Screen name="album/[id]" options={{ href: null }} />
+      <Tabs.Screen name="person/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

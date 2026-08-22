@@ -79,13 +79,13 @@ export default function HomeScreen() {
         renderSectionHeader={({ section }) => (
           <SectionHeader title={section.title} meta={section.meta} />
         )}
-        renderItem={({ item, index }) => (
+        renderItem={({ item }) => (
           <View style={styles.postWrap}>
             <FeedPost
               photo={item}
               author={members.data?.find((m) => m.id === item.authorId)}
               album={albums.data?.find((a) => a.id === item.albumId)}
-              photoFirst={index % 2 === 0}
+              photoFirst={false}
             />
           </View>
         )}

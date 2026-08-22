@@ -3,10 +3,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PhotoGrid } from '../../components/PhotoGrid';
-import { IconButton } from '../../components/ui/Button';
-import { usePeople, usePersonPhotos } from '../../hooks/queries';
-import { colors, fonts, iconStroke } from '../../theme';
+import { PhotoGrid } from '../../../components/PhotoGrid';
+import { IconButton } from '../../../components/ui/Button';
+import { usePeople, usePersonPhotos } from '../../../hooks/queries';
+import { colors, fonts, iconStroke } from '../../../theme';
 
 /** 인물 상세 — 이 사람이 태그된 모든 사진 */
 export default function PersonDetailScreen() {

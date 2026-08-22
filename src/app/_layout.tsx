@@ -54,9 +54,6 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="upload" options={{ presentation: 'modal' }} />
           <Stack.Screen name="groups" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="photo/[id]" />
-          <Stack.Screen name="album/[id]" />
-          <Stack.Screen name="person/[id]" />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />
