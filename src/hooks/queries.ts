@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { albumsApi, familyApi, groupsApi, photosApi, profileApi } from '../api';
+import { albumsApi, familyApi, groupsApi, photosApi, profileApi, reportsApi } from '../api';
 import type { UploadPayload } from '../api/photos';
 import type { Photo } from '../types';
 import { useActiveGroupId, useSession } from '../store/session';
@@ -20,7 +20,6 @@ export const queryKeys = {
   group: (groupId: string) => ['group', groupId] as const,
   members: (groupId: string) => ['members', groupId] as const,
   profileStats: ['profileStats'] as const,
-  storage: ['storage'] as const,
 };
 
 // ── 그룹 ──────────────────────────────────────────────
@@ -158,15 +157,6 @@ export function useDeleteAlbum() {
   });
 }
 
-export function useCreatePerson() {
-  const queryClient = useQueryClient();
-  const groupId = useActiveGroupId();
-  return useMutation({
-    mutationFn: (name: string) => albumsApi.createPerson(groupId, name),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.people(groupId) }),
-  });
-}
-
 export function usePeople() {
   const groupId = useActiveGroupId();
   return usePeopleOf(groupId);
@@ -233,10 +223,6 @@ export function useProfileStats() {
   return useQuery({ queryKey: queryKeys.profileStats, queryFn: profileApi.getProfileStats });
 }
 
-export function useStorageInfo() {
-  return useQuery({ queryKey: queryKeys.storage, queryFn: profileApi.getStorageInfo });
-}
-
 export function useLegalDoc(slug: string) {
   return useQuery({
     queryKey: ['legal', slug],
@@ -266,6 +252,73 @@ export function useToggleLike() {
         (old) => old?.map((p) => (p.id === photo.id ? photo : p)),
       );
     },
+  });
+}
+
+/** 사진 삭제 — 상세·모든 사진 목록 캐시에서 제거하고 앨범/그룹 카운트를 갱신 */
+export function useDeletePhoto() {
+  const queryClient = useQueryClient();
+  const groupId = useActiveGroupId();
+  return useMutation({
+    mutationFn: photosApi.deletePhoto,
+    onSuccess: (_void, photoId) => {
+      queryClient.removeQueries({ queryKey: queryKeys.photo(photoId) });
+      queryClient.setQueriesData<Photo[]>(
+        { predicate: (query) => PHOTO_LIST_KEYS.has(query.queryKey[0] as string) },
+        (old) => old?.filter((p) => p.id !== photoId),
+      );
+      queryClient.invalidateQueries({ queryKey: queryKeys.albums(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.members(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.profileStats });
+    },
+  });
+}
+
+export function useDeleteComment(photoId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId: string) => photosApi.deleteComment({ photoId, commentId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.comments(photoId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.photo(photoId) });
+      queryClient.invalidateQueries({ predicate: (query) => PHOTO_LIST_KEYS.has(query.queryKey[0] as string) });
+    },
+  });
+}
+
+export function useReport() {
+  return useMutation({ mutationFn: reportsApi.report });
+}
+
+/** 차단/차단 해제 — 차단한 사람의 콘텐츠가 사라지므로 그룹 콘텐츠 전체를 다시 불러온다 */
+function useInvalidateGroupContent() {
+  const queryClient = useQueryClient();
+  const groupId = useActiveGroupId();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.members(groupId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
+    queryClient.invalidateQueries({ predicate: (query) => PHOTO_LIST_KEYS.has(query.queryKey[0] as string) });
+    queryClient.invalidateQueries({ queryKey: ['comments'] });
+  };
+}
+
+export function useBlockMember() {
+  const invalidate = useInvalidateGroupContent();
+  return useMutation({ mutationFn: familyApi.blockMember, onSuccess: invalidate });
+}
+
+export function useUnblockMember() {
+  const invalidate = useInvalidateGroupContent();
+  return useMutation({ mutationFn: familyApi.unblockMember, onSuccess: invalidate });
+}
+
+export function useRemoveMember() {
+  const invalidate = useInvalidateGroupContent();
+  const groupId = useActiveGroupId();
+  return useMutation({
+    mutationFn: (memberId: string) => familyApi.removeMember({ groupId, memberId }),
+    onSuccess: invalidate,
   });
 }
 

@@ -1,11 +1,19 @@
 import * as Clipboard from 'expo-clipboard';
-import { Copy, Share as ShareIcon } from 'lucide-react-native';
-import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Copy, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { Tag } from '../../components/ui/Tag';
-import { useFamily, useMembers } from '../../hooks/queries';
+import {
+  useBlockMember,
+  useFamily,
+  useMembers,
+  useRemoveMember,
+  useReport,
+  useUnblockMember,
+} from '../../hooks/queries';
+import { alertError, confirm, promptReason, REPORT_DONE_MESSAGE, showActions } from '../../utils/dialogs';
 import { colors, fonts, iconStroke, radius } from '../../theme';
 import type { Member } from '../../types';
 
@@ -26,7 +34,61 @@ export default function FamilyScreen() {
   const family = useFamily();
   const members = useMembers();
 
+  const block = useBlockMember();
+  const unblock = useUnblockMember();
+  const remove = useRemoveMember();
+  const report = useReport();
+
   const inviteCode = family.data?.inviteCode ?? '';
+  const me = members.data?.find((m) => m.isMe);
+
+  /** 구성원 ⋯ 메뉴 — 차단/해제 · 신고 · (관리자) 내보내기. App Store 1.2 UGC 요건 */
+  const openMemberActions = (member: Member) => {
+    if (member.isMe) return;
+    showActions(member.name, [
+      member.blockedByMe
+        ? {
+            label: '차단 해제',
+            onPress: () => unblock.mutate(member.id, { onError: alertError('차단 해제 실패') }),
+          }
+        : {
+            label: '차단',
+            destructive: true,
+            onPress: () =>
+              confirm(
+                '구성원 차단',
+                `${member.name}의 사진과 댓글이 더 이상 보이지 않아요. 언제든 해제할 수 있어요.`,
+                '차단',
+                () => block.mutate(member.id, { onError: alertError('차단 실패') }),
+              ),
+          },
+      {
+        label: '신고',
+        onPress: () =>
+          promptReason('구성원 신고', (reason) =>
+            report.mutate(
+              { targetType: 'member', targetId: member.id, reason },
+              { onSuccess: () => Alert.alert('신고 완료', REPORT_DONE_MESSAGE), onError: alertError('신고 실패') },
+            ),
+          ),
+      },
+      ...(me?.role === 'admin' && member.role !== 'admin'
+        ? [
+            {
+              label: '가족 공간에서 내보내기',
+              destructive: true,
+              onPress: () =>
+                confirm(
+                  '구성원 내보내기',
+                  `${member.name}을(를) 이 가족 공간에서 내보낼까요? 다시 참여하려면 새 초대 코드가 필요해요.`,
+                  '내보내기',
+                  () => remove.mutate(member.id, { onError: alertError('내보내기 실패') }),
+                ),
+            },
+          ]
+        : []),
+    ]);
+  };
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -44,8 +106,12 @@ export default function FamilyScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View>
           {members.data?.map((member, i) => (
-            <View
+            <Pressable
               key={member.id}
+              onPress={() => openMemberActions(member)}
+              onLongPress={() => openMemberActions(member)}
+              disabled={member.isMe}
+              accessibilityLabel={`${member.name} 옵션`}
               style={[
                 styles.memberRow,
                 i < (members.data?.length ?? 0) - 1 && styles.memberDivider,
@@ -58,13 +124,18 @@ export default function FamilyScreen() {
                   {member.realName ? ` (${member.realName})` : ''}
                 </Text>
                 <Text style={styles.memberMeta}>
-                  {member.role === 'pending'
-                    ? '초대 수락 대기 중'
-                    : `사진 ${member.photoCount}장`}
+                  {member.blockedByMe
+                    ? '차단됨'
+                    : member.role === 'pending'
+                      ? '초대 수락 대기 중'
+                      : `사진 ${member.photoCount}장`}
                 </Text>
               </View>
               {roleTag(member)}
-            </View>
+              {member.isMe ? null : (
+                <MoreHorizontal size={16} color={colors.neutral500} strokeWidth={iconStroke} />
+              )}
+            </Pressable>
           ))}
         </View>
 

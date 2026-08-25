@@ -33,6 +33,8 @@ export default function PersonDetailScreen() {
       <PhotoGrid
         photos={photos.data ?? []}
         loading={photos.isLoading}
+        error={photos.isError}
+        onRetry={() => photos.refetch()}
         bottomInset={insets.bottom}
         detailCtx={`person:${id}`}
         ListHeaderComponent={

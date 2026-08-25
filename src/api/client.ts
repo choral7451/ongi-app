@@ -6,7 +6,8 @@
  */
 import { clearTokens, getTokens, saveTokens } from './token';
 
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+/** 운영 서버가 기본값 — 로컬 서버로 붙으려면 .env 의 EXPO_PUBLIC_API_URL 로 덮어쓴다 (빌드 시 인라인됨) */
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api-artinfokorea.com';
 
 interface Envelope<T> {
   code: string;

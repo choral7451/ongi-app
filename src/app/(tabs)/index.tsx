@@ -1,10 +1,9 @@
 import { useRouter } from 'expo-router';
-import { Bell, ChevronDown } from 'lucide-react-native';
-import { useMemo } from 'react';
+import { ChevronDown } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedPost } from '../../components/feed/FeedPost';
-import { IconButton } from '../../components/ui/Button';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { useAlbums, useFamily, useFeed, useMembers } from '../../hooks/queries';
 import { colors, fonts, iconStroke } from '../../theme';
@@ -25,6 +24,17 @@ export default function HomeScreen() {
   const members = useMembers();
   const albums = useAlbums();
   const group = useFamily();
+
+  // 당겨서 새로고침 스피너는 사용자가 직접 당겼을 때만 — feed.isRefetching 은 백그라운드 갱신에도 true 가 되어 스피너가 수시로 뜬다
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await feed.refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const sections = useMemo<FeedSection[]>(() => {
     if (!feed.data) return [];
@@ -63,10 +73,6 @@ export default function HomeScreen() {
           </Pressable>
           <Text style={styles.title}>ONGI</Text>
         </View>
-        <IconButton
-          accessibilityLabel="알림"
-          icon={<Bell size={20} color={colors.text} strokeWidth={iconStroke} />}
-        />
       </View>
 
       <SectionList
@@ -74,8 +80,8 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         stickySectionHeadersEnabled={false}
-        refreshing={feed.isRefetching}
-        onRefresh={() => feed.refetch()}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         renderSectionHeader={({ section }) => (
           <SectionHeader title={section.title} meta={section.meta} />
         )}
@@ -90,8 +96,13 @@ export default function HomeScreen() {
           </View>
         )}
         ListEmptyComponent={
-          feed.isLoading ? null : (
-            <Text style={styles.empty}>아직 올라온 사진이 없어요. 첫 사진을 올려보세요.</Text>
+          feed.isLoading ? null : feed.isError ? (
+            <Pressable onPress={() => feed.refetch()} style={styles.emptyBox}>
+              <Text style={styles.empty}>피드를 불러오지 못했어요.</Text>
+              <Text style={styles.retry}>다시 시도</Text>
+            </Pressable>
+          ) : (
+            <Text style={[styles.empty, styles.emptyBox]}>아직 올라온 사진이 없어요. 첫 사진을 올려보세요.</Text>
           )
         }
       />
@@ -107,7 +118,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 14,
@@ -137,10 +147,19 @@ const styles = StyleSheet.create({
   postWrap: {
     marginBottom: 22,
   },
+  emptyBox: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 40,
+  },
   empty: {
     fontSize: 13,
     color: colors.textMuted,
-    paddingVertical: 40,
     textAlign: 'center',
+  },
+  retry: {
+    fontSize: 13,
+    color: colors.accent700,
+    textDecorationLine: 'underline',
   },
 });

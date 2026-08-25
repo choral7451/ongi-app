@@ -43,6 +43,8 @@ export default function AlbumDetailScreen() {
       <PhotoGrid
         photos={photos.data ?? []}
         loading={photos.isLoading}
+        error={photos.isError}
+        onRetry={() => photos.refetch()}
         bottomInset={insets.bottom}
         detailCtx={isAll ? 'all' : isUnfiled ? 'unfiled' : `album:${id}`}
         ListHeaderComponent={

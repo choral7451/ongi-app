@@ -27,6 +27,10 @@ export interface Member {
   role: MemberRole;
   photoCount: number;
   avatarUrl?: string;
+  /** 내가 이 구성원을 차단했는지 — 차단한 사람의 사진·댓글은 나에게 보이지 않는다 */
+  blockedByMe?: boolean;
+  /** 이 구성원 레코드가 나(로그인 사용자)인지 */
+  isMe?: boolean;
 }
 
 /** 인물 태그 대상 (구성원이 아닌 아이 등 포함) */
@@ -80,12 +84,16 @@ export interface ProfileStats {
   familyCount: number;
 }
 
-export interface StorageInfo {
-  usedGb: number;
-  totalGb: number;
-}
+/** 신고 대상 종류 */
+export type ReportTargetType = 'photo' | 'comment' | 'member';
 
 /** 업로드 화면 — 기기 갤러리의 최근 사진 (expo-media-library) */
+export interface LocalPhotos {
+  photos: LocalPhoto[];
+  /** iOS '선택한 사진만' 접근 모드 — 사진을 더 고를 수 있는 버튼을 보여준다 */
+  limited: boolean;
+}
+
 export interface LocalPhoto {
   id: string;
   uri: string;

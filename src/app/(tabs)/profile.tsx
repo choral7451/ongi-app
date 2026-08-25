@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Bell, Camera, ChevronRight, FileText, Pencil, ShieldCheck, X } from 'lucide-react-native';
+import { Camera, ChevronRight, FileText, Pencil, ShieldCheck, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
@@ -11,7 +11,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from 'react-native';
@@ -28,7 +27,6 @@ import {
   useUploadAvatar,
 } from '../../hooks/queries';
 import { useSession } from '../../store/session';
-import { useSettings } from '../../store/settings';
 import { colors, fonts, iconStroke } from '../../theme';
 
 /** Alert는 웹에서 동작하지 않아 웹은 window.confirm으로 대체 */
@@ -86,8 +84,6 @@ export default function ProfileScreen() {
   const deleteAccount = useDeleteAccount();
   const updateMyName = useUpdateMyName();
   const uploadAvatar = useUploadAvatar();
-  const notificationsEnabled = useSettings((s) => s.notificationsEnabled);
-  const setNotificationsEnabled = useSettings((s) => s.setNotificationsEnabled);
 
   const [pickerVisible, setPickerVisible] = useState(false);
   const localPhotos = useLocalPhotos();
@@ -126,7 +122,11 @@ export default function ProfileScreen() {
       '회원탈퇴',
       '탈퇴하면 올린 사진과 댓글이 모두 삭제되며 되돌릴 수 없어요. 정말 탈퇴하시겠어요?',
       '탈퇴하기',
-      () => deleteAccount.mutate(undefined, { onSuccess: () => session.signOut() }),
+      () =>
+        deleteAccount.mutate(undefined, {
+          onSuccess: () => session.signOut(),
+          onError: showError('회원탈퇴 실패'),
+        }),
       true,
     );
   };
@@ -176,23 +176,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <SectionHeader title="설정" size="sm" />
-        <SettingRow
-          icon={<Bell size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
-          label="알림"
-          divider={false}
-          trailing={
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ true: colors.accent }}
-            />
-          }
-        />
-
-        <View style={styles.sectionGap}>
-          <SectionHeader title="약관 및 정책" size="sm" />
-        </View>
+        <SectionHeader title="약관 및 정책" size="sm" />
         <SettingRow
           icon={<FileText size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
           label="이용약관"
@@ -238,7 +222,7 @@ export default function ProfileScreen() {
             <View style={styles.pickerSpacer} />
           </View>
           <FlatList
-            data={localPhotos.data ?? []}
+            data={localPhotos.data?.photos ?? []}
             keyExtractor={(item) => item.id}
             numColumns={3}
             columnWrapperStyle={styles.pickerRow}

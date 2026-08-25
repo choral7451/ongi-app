@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
-import { Heart, MessageCircle } from 'lucide-react-native';
+import { Heart, MessageCircle, MoreHorizontal } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useToggleLike } from '../../hooks/queries';
+import { usePhotoActions } from '../../hooks/usePhotoActions';
 import { colors, iconStroke } from '../../theme';
 import type { Album, Member, Photo } from '../../types';
 import { formatTime } from '../../utils/format';
@@ -20,6 +21,7 @@ interface FeedPostProps {
 export function FeedPost({ photo, author, album, photoFirst = true }: FeedPostProps) {
   const router = useRouter();
   const toggleLike = useToggleLike();
+  const openActions = usePhotoActions();
 
   const openDetail = () => router.push({ pathname: '/photo/[id]', params: { id: photo.id, ctx: 'feed' } });
 
@@ -52,6 +54,9 @@ export function FeedPost({ photo, author, album, photoFirst = true }: FeedPostPr
           <Text style={styles.statText}>{photo.commentCount}</Text>
         </Pressable>
       ) : null}
+      <Pressable style={styles.more} onPress={() => openActions(photo)} accessibilityLabel="더보기" hitSlop={8}>
+        <MoreHorizontal size={16} color={colors.neutral600} strokeWidth={iconStroke} />
+      </Pressable>
     </View>
   );
 
@@ -107,6 +112,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.neutral600,
     fontVariant: ['tabular-nums'],
+  },
+  more: {
+    marginLeft: 4,
   },
   caption: {
     fontSize: 13.5,

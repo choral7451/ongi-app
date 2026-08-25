@@ -1,6 +1,7 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as MediaLibrary from 'expo-media-library';
-import type { Comment, LocalPhoto, Photo } from '../types';
+import { Platform } from 'react-native';
+import type { Comment, LocalPhotos, Photo } from '../types';
 import { post, postForm, request } from './client';
 
 async function photoList(path: string): Promise<Photo[]> {
@@ -42,6 +43,16 @@ export function toggleLike(photoId: string): Promise<Photo> {
   return post<Photo>(`/ongi/photos/${photoId}/like`);
 }
 
+/** 사진 삭제 — 작성자 본인 또는 그룹 관리자만 가능 (서버가 검증) */
+export async function deletePhoto(photoId: string): Promise<void> {
+  await request<null>(`/ongi/photos/${photoId}`, { method: 'DELETE' });
+}
+
+/** 댓글 삭제 — 댓글 작성자·사진 작성자·그룹 관리자만 가능 (서버가 검증) */
+export async function deleteComment(params: { photoId: string; commentId: string }): Promise<void> {
+  await request<null>(`/ongi/photos/${params.photoId}/comments/${params.commentId}`, { method: 'DELETE' });
+}
+
 export function addComment(params: {
   photoId: string;
   authorId: string; // 서버는 세션에서 작성자를 유도하므로 사용하지 않음 (훅 시그니처 유지용)
@@ -51,9 +62,10 @@ export function addComment(params: {
 }
 
 /** 업로드 화면 — 기기 갤러리의 최근 사진. 권한이 거부되면 빈 목록 */
-export async function getLocalPhotos(): Promise<LocalPhoto[]> {
+export async function getLocalPhotos(): Promise<LocalPhotos> {
   const permission = await MediaLibrary.requestPermissionsAsync();
-  if (!permission.granted) return [];
+  if (!permission.granted) return { photos: [], limited: false };
+  const limited = permission.accessPrivileges === 'limited';
 
   const page = await MediaLibrary.getAssetsAsync({
     mediaType: MediaLibrary.MediaType.photo,
@@ -61,11 +73,20 @@ export async function getLocalPhotos(): Promise<LocalPhoto[]> {
     first: 60,
   });
 
-  return page.assets.map((asset) => ({
-    id: asset.id,
-    uri: asset.uri,
-    aspectRatio: asset.height > 0 ? asset.width / asset.height : 1,
-  }));
+  return {
+    limited,
+    photos: page.assets.map((asset) => ({
+      id: asset.id,
+      uri: asset.uri,
+      aspectRatio: asset.height > 0 ? asset.width / asset.height : 1,
+    })),
+  };
+}
+
+/** iOS '선택한 사진만' 모드에서 접근 가능한 사진을 다시 고르는 시스템 시트 */
+export async function presentLimitedLibraryPicker(): Promise<void> {
+  if (Platform.OS !== 'ios') return;
+  await MediaLibrary.presentPermissionsPickerAsync();
 }
 
 /** 그룹별 게시 대상 — 앨범·인물 태그는 그룹에 종속되므로 그룹마다 따로 지정 */

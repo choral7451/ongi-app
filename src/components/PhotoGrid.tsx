@@ -10,12 +10,15 @@ interface PhotoGridProps {
   ListHeaderComponent?: ReactElement;
   bottomInset?: number;
   loading?: boolean;
+  /** 불러오기 실패 — 빈 상태와 구분해 재시도 버튼을 보여준다 */
+  error?: boolean;
+  onRetry?: () => void;
   /** 사진 상세에서 좌우 스와이프로 넘길 목록 컨텍스트 — 'feed' | 'album:<id>' | 'unfiled' | 'person:<id>' */
   detailCtx?: string;
 }
 
 /** 3열 정사각 사진 그리드 — 탭하면 사진 상세로 */
-export function PhotoGrid({ photos, ListHeaderComponent, bottomInset = 0, loading, detailCtx }: PhotoGridProps) {
+export function PhotoGrid({ photos, ListHeaderComponent, bottomInset = 0, loading, error, onRetry, detailCtx }: PhotoGridProps) {
   const router = useRouter();
   return (
     <FlatList
@@ -39,13 +42,34 @@ export function PhotoGrid({ photos, ListHeaderComponent, bottomInset = 0, loadin
         </Pressable>
       )}
       ListEmptyComponent={
-        loading ? null : <Text style={styles.empty}>아직 사진이 없어요.</Text>
+        loading ? null : error ? (
+          <Pressable onPress={onRetry} style={styles.errorBox}>
+            <Text style={styles.emptyText}>사진을 불러오지 못했어요.</Text>
+            <Text style={styles.retry}>다시 시도</Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.empty}>아직 사진이 없어요.</Text>
+        )
       }
     />
   );
 }
 
 const styles = StyleSheet.create({
+  errorBox: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  retry: {
+    fontSize: 13,
+    color: colors.accent700,
+    textDecorationLine: 'underline',
+  },
   content: {
     paddingHorizontal: 20,
   },

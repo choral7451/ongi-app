@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Heart, Share as ShareIcon } from 'lucide-react-native';
+import { ChevronLeft, Heart, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -23,16 +24,21 @@ import {
   useAlbumPhotos,
   useAlbums,
   useComments,
+  useDeleteComment,
   useFeed,
   useMembers,
   usePeople,
   usePersonPhotos,
   usePhoto,
+  useReport,
   useToggleLike,
   useUnfiledPhotos,
 } from '../../../hooks/queries';
+import { usePhotoActions } from '../../../hooks/usePhotoActions';
+import { alertError, promptReason, REPORT_DONE_MESSAGE, showActions } from '../../../utils/dialogs';
 import { useActiveGroupId, useSession } from '../../../store/session';
 import { colors, fonts, iconStroke } from '../../../theme';
+import type { Comment } from '../../../types';
 import { formatFullDateTime, formatTime } from '../../../utils/format';
 
 /** 1e — 사진 상세: 반응 · 댓글. ctx(feed | album:<id> | unfiled | person:<id>)가 있으면 좌우 스와이프로 목록을 넘겨본다 */
@@ -84,6 +90,9 @@ export default function PhotoDetailScreen() {
   const people = usePeople();
   const toggleLike = useToggleLike();
   const addComment = useAddComment(currentId);
+  const deleteComment = useDeleteComment(currentId);
+  const report = useReport();
+  const me = members.data?.find((m) => m.isMe);
 
   const [draft, setDraft] = useState('');
 
@@ -116,6 +125,40 @@ export default function PhotoDetailScreen() {
     return router.replace('/');
   };
 
+  // 사진 삭제·작성자 차단 후에는 이 화면에 남을 이유가 없다 — 들어온 목록으로 복귀
+  const openPhotoActions = usePhotoActions(() => goBack());
+
+  /** 댓글 길게 누르기 — 삭제(댓글·사진 작성자·관리자) · 신고 */
+  const openCommentActions = (comment: Comment) => {
+    const isMine = me?.id === comment.authorId;
+    const canDelete = isMine || me?.id === photo.data?.authorId || me?.role === 'admin';
+    showActions('댓글', [
+      ...(canDelete
+        ? [
+            {
+              label: '댓글 삭제',
+              destructive: true,
+              onPress: () => deleteComment.mutate(comment.id, { onError: alertError('삭제 실패') }),
+            },
+          ]
+        : []),
+      ...(!isMine
+        ? [
+            {
+              label: '댓글 신고',
+              onPress: () =>
+                promptReason('댓글 신고', (reason) =>
+                  report.mutate(
+                    { targetType: 'comment', targetId: comment.id, reason },
+                    { onSuccess: () => Alert.alert('신고 완료', REPORT_DONE_MESSAGE), onError: alertError('신고 실패') },
+                  ),
+                ),
+            },
+          ]
+        : []),
+    ]);
+  };
+
   const send = () => {
     const text = draft.trim();
     if (!text) return;
@@ -140,13 +183,20 @@ export default function PhotoDetailScreen() {
           <Text style={styles.headerTitle}>{album?.title ?? '사진'}</Text>
           {positionInList ? <Text style={styles.headerMeta}>{positionInList}</Text> : null}
         </View>
-        <IconButton
-          accessibilityLabel="공유"
-          onPress={() =>
-            photo.data && Share.share({ message: photo.data.caption ?? photo.data.url })
-          }
-          icon={<ShareIcon size={18} color={colors.text} strokeWidth={iconStroke} />}
-        />
+        <View style={styles.headerActions}>
+          <IconButton
+            accessibilityLabel="공유"
+            onPress={() =>
+              photo.data && Share.share({ message: photo.data.caption ?? photo.data.url })
+            }
+            icon={<ShareIcon size={18} color={colors.text} strokeWidth={iconStroke} />}
+          />
+          <IconButton
+            accessibilityLabel="더보기"
+            onPress={() => photo.data && openPhotoActions(photo.data)}
+            icon={<MoreHorizontal size={18} color={colors.text} strokeWidth={iconStroke} />}
+          />
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -216,7 +266,13 @@ export default function PhotoDetailScreen() {
               {comments.data?.map((comment) => {
                 const commentAuthor = members.data?.find((m) => m.id === comment.authorId);
                 return (
-                  <View key={comment.id} style={styles.comment}>
+                  <Pressable
+                    key={comment.id}
+                    style={styles.comment}
+                    onLongPress={() => openCommentActions(comment)}
+                    delayLongPress={350}
+                    accessibilityHint="길게 누르면 삭제·신고 메뉴가 열려요"
+                  >
                     <Avatar name={commentAuthor?.name ?? '?'} size={30} />
                     <View style={styles.commentBody}>
                       <Text style={styles.commentHead}>
@@ -228,7 +284,7 @@ export default function PhotoDetailScreen() {
                       </Text>
                       <Text style={styles.commentText}>{comment.text}</Text>
                     </View>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -267,6 +323,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 10,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 4,
   },
   headerCenter: {
     alignItems: 'center',

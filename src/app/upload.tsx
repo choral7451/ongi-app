@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Camera, Check, X } from 'lucide-react-native';
+import { Check, Image as ImageIcon, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
   Alert,
@@ -18,11 +18,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, IconButton } from '../components/ui/Button';
 import { Plate } from '../components/ui/Plate';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { photosApi } from '../api';
 import {
   useAlbumsOf,
   useLocalPhotos,
   useMyGroups,
-  usePeopleOf,
   useUploadPhotos,
 } from '../hooks/queries';
 import { useSession } from '../store/session';
@@ -40,21 +40,11 @@ interface GroupTargetFieldsProps {
   onChange: (next: TargetDraft) => void;
 }
 
-/** 한 그룹의 앨범 칩 + 인물 칩 — 단일/멀티 그룹 모두에서 재사용 */
+/** 한 그룹의 앨범 칩 — 단일/멀티 그룹 모두에서 재사용 (인물 태그는 인물 UI 가 생기면 다시 추가) */
 function GroupTargetFields({ groupId, draft, onChange }: GroupTargetFieldsProps) {
   const albums = useAlbumsOf(groupId);
-  const people = usePeopleOf(groupId);
-
   const toggleAlbum = (albumId: string) =>
     onChange({ ...draft, albumId: draft.albumId === albumId ? undefined : albumId });
-
-  const togglePerson = (personId: string) =>
-    onChange({
-      ...draft,
-      personIds: draft.personIds.includes(personId)
-        ? draft.personIds.filter((p) => p !== personId)
-        : [...draft.personIds, personId],
-    });
 
   return (
     <>
@@ -71,25 +61,6 @@ function GroupTargetFields({ groupId, draft, onChange }: GroupTargetFieldsProps)
               >
                 <Text style={selected ? styles.chipOutlineText : styles.chipNeutralText}>
                   {album.title}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>함께 찍힌 가족</Text>
-        <View style={styles.chips}>
-          {people.data?.map((person) => {
-            const selected = draft.personIds.includes(person.id);
-            return (
-              <Pressable
-                key={person.id}
-                style={[styles.chip, selected ? styles.chipAccent : styles.chipNeutral]}
-                onPress={() => togglePerson(person.id)}
-              >
-                <Text style={selected ? styles.chipAccentText : styles.chipNeutralText}>
-                  {person.name}
                 </Text>
               </Pressable>
             );
@@ -124,7 +95,7 @@ export default function UploadScreen() {
   const selectedPhotos = useMemo(
     () =>
       selectedIds
-        .map((id) => localPhotos.data?.find((p) => p.id === id))
+        .map((id) => localPhotos.data?.photos.find((p) => p.id === id))
         .filter((p): p is NonNullable<typeof p> => p != null),
     [selectedIds, localPhotos.data],
   );
@@ -289,7 +260,7 @@ export default function UploadScreen() {
           </View>
         ) : (
           <View style={styles.previewEmpty}>
-            <Camera size={28} color={colors.neutral500} strokeWidth={iconStroke} />
+            <ImageIcon size={28} color={colors.neutral500} strokeWidth={iconStroke} />
             <Text style={styles.previewEmptyText}>아래에서 사진을 선택해 주세요</Text>
           </View>
         )}
@@ -300,7 +271,7 @@ export default function UploadScreen() {
           meta={selectedIds.length > 0 ? `${selectedIds.length}장 선택됨` : undefined}
         />
         <View style={styles.grid}>
-          {localPhotos.data?.map((photo) => {
+          {localPhotos.data?.photos.map((photo) => {
             const order = selectedIds.indexOf(photo.id);
             const selected = order >= 0;
             return (
@@ -318,10 +289,18 @@ export default function UploadScreen() {
               </Pressable>
             );
           })}
-          <Pressable style={[styles.cell, styles.cameraCell]}>
-            <Camera size={18} color={colors.neutral500} strokeWidth={iconStroke} />
-          </Pressable>
         </View>
+        {localPhotos.data && !localPhotos.isLoading && localPhotos.data.photos.length === 0 ? (
+          <Text style={styles.libraryHint}>사진 보관함에 사진이 없거나 접근 권한이 없어요. 설정에서 온기의 사진 접근을 허용해 주세요.</Text>
+        ) : null}
+        {localPhotos.data?.limited ? (
+          <Pressable
+            onPress={() => photosApi.presentLimitedLibraryPicker().then(() => localPhotos.refetch())}
+            style={styles.libraryButton}
+          >
+            <Text style={styles.libraryButtonText}>접근 가능한 사진 더 고르기</Text>
+          </Pressable>
+        ) : null}
 
         {multiGroup ? (
           selectedGroupIds.map((groupId) => {
@@ -364,6 +343,22 @@ export default function UploadScreen() {
 }
 
 const styles = StyleSheet.create({
+  libraryHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textMuted,
+    marginTop: 8,
+  },
+  libraryButton: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingVertical: 6,
+  },
+  libraryButtonText: {
+    fontSize: 13,
+    color: colors.accent700,
+    textDecorationLine: 'underline',
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -458,14 +453,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.white,
     fontVariant: ['tabular-nums'],
-  },
-  cameraCell: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.divider,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   field: {
     gap: 5,
