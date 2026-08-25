@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { signInWithProvider, type SocialProvider } from '../../api/auth';
+import { AppleSignInCancelled, isAppleSignInAvailable } from '../../api/apple';
 import { GoogleSignInCancelled } from '../../api/google';
 import { useSession } from '../../store/session';
 import { colors, fonts } from '../../theme';
@@ -32,13 +33,13 @@ function GoogleLogo({ size = 18 }: { size?: number }) {
   );
 }
 
-/** 카카오 말풍선 로고 */
-function KakaoLogo({ size = 18 }: { size?: number }) {
+/** Apple 로고 (단색) */
+function AppleLogo({ size = 18, color = '#ffffff' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path
-        fill="#191919"
-        d="M12 3C6.48 3 2 6.48 2 10.77c0 2.76 1.86 5.18 4.66 6.55l-.95 3.52c-.08.31.27.56.54.38l4.18-2.78c.51.07 1.04.11 1.57.11 5.52 0 10-3.48 10-7.78S17.52 3 12 3z"
+        fill={color}
+        d="M16.37 12.7c-.02-2.3 1.88-3.4 1.96-3.45-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.83-.81-3-.79-1.54.02-2.97.9-3.76 2.28-1.61 2.79-.41 6.91 1.15 9.17.77 1.11 1.67 2.35 2.86 2.3 1.15-.05 1.59-.74 2.98-.74 1.39 0 1.78.74 3 .72 1.24-.02 2.02-1.12 2.78-2.24.88-1.28 1.24-2.53 1.26-2.59-.03-.01-2.41-.92-2.44-3.69zM14.09 5.96c.63-.77 1.06-1.83.94-2.9-.91.04-2.01.61-2.67 1.37-.58.68-1.1 1.77-.96 2.81 1.02.08 2.05-.52 2.69-1.28z"
       />
     </Svg>
   );
@@ -53,23 +54,15 @@ interface SocialButtonSpec {
   icon: React.ReactNode;
 }
 
+const APPLE_BUTTON: SocialButtonSpec = {
+  provider: 'apple',
+  label: 'Apple로 시작하기',
+  bg: '#000000',
+  fg: '#ffffff',
+  icon: <AppleLogo />,
+};
+
 const SOCIAL_BUTTONS: SocialButtonSpec[] = [
-  {
-    provider: 'kakao',
-    label: '카카오로 시작하기',
-    bg: '#FEE500',
-    fg: '#191919',
-    icon: <KakaoLogo />,
-  },
-  {
-    provider: 'naver',
-    label: '네이버로 시작하기',
-    bg: '#03C75A',
-    fg: '#ffffff',
-    icon: (
-      <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '800' }}>N</Text>
-    ),
-  },
   {
     provider: 'google',
     label: 'Google로 시작하기',
@@ -80,12 +73,24 @@ const SOCIAL_BUTTONS: SocialButtonSpec[] = [
   },
 ];
 
-/** 로그인 / 회원가입 — 소셜 전용 (카카오 · 네이버 · 구글) */
+/** 로그인 / 회원가입 — 소셜 전용 (구글 + iOS 에서는 Apple, 카카오·네이버는 추후 추가) */
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const setUser = useSession((s) => s.setUser);
   const [pendingProvider, setPendingProvider] = useState<SocialProvider | null>(null);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    isAppleSignInAvailable().then((ok) => mounted && setAppleAvailable(ok));
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // App Store 심사 규정: 다른 소셜 로그인을 제공하면 iOS 에선 Apple 로그인을 함께(맨 위) 제공
+  const buttons = appleAvailable ? [APPLE_BUTTON, ...SOCIAL_BUTTONS] : SOCIAL_BUTTONS;
 
   const startWith = async (provider: SocialProvider) => {
     if (pendingProvider) return;
@@ -95,7 +100,7 @@ export default function LoginScreen() {
       setUser(user); // 인증 가드가 자동으로 홈으로 보냅니다
     } catch (e) {
       // 사용자가 로그인 창을 닫은 경우는 조용히 무시
-      if (!(e instanceof GoogleSignInCancelled)) {
+      if (!(e instanceof GoogleSignInCancelled) && !(e instanceof AppleSignInCancelled)) {
         Alert.alert('로그인 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
       }
     } finally {
@@ -120,7 +125,7 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.actions}>
-        {SOCIAL_BUTTONS.map((spec) => (
+        {buttons.map((spec) => (
           <Pressable
             key={spec.provider}
             accessibilityRole="button"
