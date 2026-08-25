@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { signInWithProvider, type SocialProvider } from '../../api/auth';
+import { DEFAULT_USER_NAME, signInWithProvider, type SocialProvider } from '../../api/auth';
+import { profileApi } from '../../api';
 import { AppleSignInCancelled, isAppleSignInAvailable } from '../../api/apple';
 import { GoogleSignInCancelled } from '../../api/google';
 import { useSession } from '../../store/session';
@@ -79,7 +80,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const setUser = useSession((s) => s.setUser);
   const [pendingProvider, setPendingProvider] = useState<SocialProvider | null>(null);
-  const [appleAvailable, setAppleAvailable] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(Platform.OS === 'ios');
 
   useEffect(() => {
     let mounted = true;
@@ -92,12 +93,37 @@ export default function LoginScreen() {
   // App Store 심사 규정: 다른 소셜 로그인을 제공하면 iOS 에선 Apple 로그인을 함께(맨 위) 제공
   const buttons = appleAvailable ? [APPLE_BUTTON, ...SOCIAL_BUTTONS] : SOCIAL_BUTTONS;
 
+  const setCurrentUserName = useSession((s) => s.setCurrentUserName);
+  const askDisplayName = () => {
+    Alert.prompt(
+      '가족에게 보여질 이름',
+      '이름은 언제든 \'나\' 탭에서 바꿀 수 있어요.',
+      [
+        { text: '나중에', style: 'cancel' },
+        {
+          text: '저장',
+          onPress: (name?: string) => {
+            const trimmed = name?.trim();
+            if (!trimmed) return;
+            profileApi
+              .updateMyName(trimmed)
+              .then((me) => setCurrentUserName(me.name))
+              .catch(() => {});
+          },
+        },
+      ],
+      'plain-text',
+    );
+  };
+
   const startWith = async (provider: SocialProvider) => {
     if (pendingProvider) return;
     setPendingProvider(provider);
     try {
       const user = await signInWithProvider(provider);
       setUser(user); // 인증 가드가 자동으로 홈으로 보냅니다
+      // Apple 은 이름을 최초 승인 1회만 주므로, 못 받았으면 지금 한 번 물어본다 (나중에 '나' 탭에서도 변경 가능)
+      if (user.name === DEFAULT_USER_NAME && Platform.OS === 'ios') askDisplayName();
     } catch (e) {
       // 사용자가 로그인 창을 닫은 경우는 조용히 무시
       if (!(e instanceof GoogleSignInCancelled) && !(e instanceof AppleSignInCancelled)) {
@@ -165,7 +191,7 @@ export default function LoginScreen() {
           >
             개인정보 처리방침
           </Text>
-          에 동의하게 됩니다.
+          에 동의하게 됩니다. 가족 공간에서 부적절하거나 타인을 괴롭히는 콘텐츠는 허용되지 않아요.
         </Text>
       </View>
     </View>

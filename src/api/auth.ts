@@ -5,6 +5,9 @@ import { clearTokens, saveTokens } from './token';
 
 export type SocialProvider = 'kakao' | 'naver' | 'google' | 'apple';
 
+/** 서버가 이름을 못 받았을 때 붙이는 기본 이름 — 이 값이면 로그인 직후 이름을 물어본다 */
+export const DEFAULT_USER_NAME = '온기 사용자';
+
 export interface AuthUser {
   id: string;
   name: string;

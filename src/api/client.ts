@@ -15,6 +15,12 @@ interface Envelope<T> {
   item: T;
 }
 
+/** 토큰 갱신까지 실패해 세션이 끝났을 때 호출 — 세션 스토어가 등록해 로그인 화면으로 보낸다 (순환 import 회피) */
+let onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
+
 /** 401 동시 발생 시 갱신 요청이 한 번만 나가도록 공유 */
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -86,6 +92,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
       res = await doFetch(path, init);
     } else {
       await clearTokens();
+      onUnauthorized?.();
     }
   }
 

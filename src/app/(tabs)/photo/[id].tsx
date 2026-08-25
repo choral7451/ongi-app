@@ -107,13 +107,14 @@ export default function PhotoDetailScreen() {
       .map((pid) => people.data?.find((p) => p.id === pid))
       .filter((p): p is NonNullable<typeof p> => p != null) ?? [];
 
-  const likers = members.data?.filter((m) => m.id !== photo.data?.authorId) ?? [];
+  // 누가 눌렀는지는 서버가 내려주지 않으므로 이름을 지어내지 않고 개수만 보여준다
   const likeSummary =
     photo.data && photo.data.likeCount > 0
-      ? `${likers
-          .slice(0, 3)
-          .map((m) => m.name)
-          .join(', ')}${photo.data.likeCount > 3 ? ` 외 ${photo.data.likeCount - 3}명` : ''}이 따뜻해했어요`
+      ? photo.data.likedByMe
+        ? photo.data.likeCount === 1
+          ? '내가 따뜻해했어요'
+          : `나와 가족 ${photo.data.likeCount - 1}명이 따뜻해했어요`
+        : `가족 ${photo.data.likeCount}명이 따뜻해했어요`
       : '가장 먼저 따뜻함을 전해보세요';
 
   // 탭 전환은 히스토리에 안 쌓여 back() 이 홈으로 떨어짐 — 들어온 컨텍스트로 명시 복귀
@@ -128,8 +129,12 @@ export default function PhotoDetailScreen() {
   // 사진 삭제·작성자 차단 후에는 이 화면에 남을 이유가 없다 — 들어온 목록으로 복귀
   const openPhotoActions = usePhotoActions(() => goBack());
 
-  /** 댓글 길게 누르기 — 삭제(댓글·사진 작성자·관리자) · 신고 */
+  /** 댓글 ⋯ 버튼(또는 길게 누르기) — 삭제(댓글·사진 작성자·관리자) · 신고 */
   const openCommentActions = (comment: Comment) => {
+    if (!members.data) {
+      Alert.alert('잠시만요', '구성원 정보를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
     const isMine = me?.id === comment.authorId;
     const canDelete = isMine || me?.id === photo.data?.authorId || me?.role === 'admin';
     showActions('댓글', [
@@ -187,7 +192,13 @@ export default function PhotoDetailScreen() {
           <IconButton
             accessibilityLabel="공유"
             onPress={() =>
-              photo.data && Share.share({ message: photo.data.caption ?? photo.data.url })
+              // 저장소 원본 URL 은 밖으로 내보내지 않는다 — 문구만 공유
+              photo.data &&
+              Share.share({
+                message: photo.data.caption
+                  ? `"${photo.data.caption}" — 온기에서 가족과 나눈 사진이에요.`
+                  : '온기에서 가족과 나눈 사진이에요.',
+              })
             }
             icon={<ShareIcon size={18} color={colors.text} strokeWidth={iconStroke} />}
           />
@@ -284,6 +295,15 @@ export default function PhotoDetailScreen() {
                       </Text>
                       <Text style={styles.commentText}>{comment.text}</Text>
                     </View>
+                    <Pressable
+                      onPress={() => openCommentActions(comment)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="댓글 옵션"
+                      style={styles.commentMore}
+                    >
+                      <MoreHorizontal size={16} color={colors.neutral500} strokeWidth={iconStroke} />
+                    </Pressable>
                   </Pressable>
                 );
               })}
@@ -409,6 +429,10 @@ const styles = StyleSheet.create({
   },
   commentBody: {
     flex: 1,
+  },
+  commentMore: {
+    paddingTop: 2,
+    paddingLeft: 6,
   },
   commentHead: {
     fontSize: 12,

@@ -2,10 +2,11 @@ import { useRouter } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NoGroupState } from '../../components/NoGroupState';
 import { Button } from '../../components/ui/Button';
 import { Plate } from '../../components/ui/Plate';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { useAlbums, useCreateAlbum, useDeleteAlbum, useFeed, useRenameAlbum, useUnfiledPhotos } from '../../hooks/queries';
+import { useAlbums, useCreateAlbum, useDeleteAlbum, useFeed, useMyGroups, useRenameAlbum, useUnfiledPhotos } from '../../hooks/queries';
 import type { Album } from '../../types';
 import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
@@ -21,6 +22,8 @@ export default function AlbumsScreen() {
   const createAlbum = useCreateAlbum();
   const renameAlbum = useRenameAlbum();
   const deleteAlbum = useDeleteAlbum();
+  const myGroups = useMyGroups();
+  const hasNoGroup = myGroups.isSuccess && myGroups.data.length === 0;
 
   const showError = (title: string) => (e: unknown) =>
     Alert.alert(title, e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
@@ -91,14 +94,19 @@ export default function AlbumsScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.title}>앨범</Text>
-        <Button
-          label={createAlbum.isPending ? '만드는 중…' : '새 앨범'}
-          icon={<Plus size={15} color={colors.accent} strokeWidth={iconStroke} />}
-          onPress={promptNewAlbum}
-          disabled={createAlbum.isPending}
-        />
+        {hasNoGroup ? null : (
+          <Button
+            label={createAlbum.isPending ? '만드는 중…' : '새 앨범'}
+            icon={<Plus size={15} color={colors.accent} strokeWidth={iconStroke} />}
+            onPress={promptNewAlbum}
+            disabled={createAlbum.isPending}
+          />
+        )}
       </View>
 
+      {hasNoGroup ? (
+        <NoGroupState compact />
+      ) : (
       <ScrollView contentContainerStyle={styles.content}>
         <SectionHeader
           title="가족 앨범"
@@ -147,6 +155,7 @@ export default function AlbumsScreen() {
           ))}
         </View>
       </ScrollView>
+      )}
     </View>
   );
 }

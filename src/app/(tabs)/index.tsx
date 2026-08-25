@@ -4,8 +4,9 @@ import { useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedPost } from '../../components/feed/FeedPost';
+import { NoGroupState } from '../../components/NoGroupState';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { useAlbums, useFamily, useFeed, useMembers } from '../../hooks/queries';
+import { useAlbums, useFamily, useFeed, useMembers, useMyGroups } from '../../hooks/queries';
 import { colors, fonts, iconStroke } from '../../theme';
 import type { Photo } from '../../types';
 import { formatFeedDate } from '../../utils/format';
@@ -24,6 +25,8 @@ export default function HomeScreen() {
   const members = useMembers();
   const albums = useAlbums();
   const group = useFamily();
+  const myGroups = useMyGroups();
+  const hasNoGroup = myGroups.isSuccess && myGroups.data.length === 0;
 
   // 당겨서 새로고침 스피너는 사용자가 직접 당겼을 때만 — feed.isRefetching 은 백그라운드 갱신에도 true 가 되어 스피너가 수시로 뜬다
   const [refreshing, setRefreshing] = useState(false);
@@ -75,6 +78,9 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {hasNoGroup ? (
+        <NoGroupState />
+      ) : (
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -106,6 +112,7 @@ export default function HomeScreen() {
           )
         }
       />
+      )}
     </View>
   );
 }

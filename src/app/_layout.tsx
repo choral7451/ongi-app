@@ -10,7 +10,7 @@ import { useEffect } from 'react';
 import { useSession } from '../store/session';
 import { colors } from '../theme';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,10 +25,12 @@ export default function RootLayout() {
   const isAuthenticated = useSession((s) => s.isAuthenticated);
   const isHydrating = useSession((s) => s.isHydrating);
   const restore = useSession((s) => s.restore);
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     NotoSerifKR_400Regular,
     NotoSerifKR_600SemiBold,
   });
+  // 폰트 로드에 실패해도 시스템 폰트로 진행 — 스플래시에 갇히지 않게
+  const fontsReady = fontsLoaded || !!fontError;
 
   // 앱 시작 시 저장된 토큰으로 세션 복원
   useEffect(() => {
@@ -36,10 +38,10 @@ export default function RootLayout() {
   }, [restore]);
 
   useEffect(() => {
-    if (fontsLoaded && !isHydrating) SplashScreen.hideAsync();
-  }, [fontsLoaded, isHydrating]);
+    if (fontsReady && !isHydrating) SplashScreen.hideAsync().catch(() => {});
+  }, [fontsReady, isHydrating]);
 
-  if (!fontsLoaded || isHydrating) return null;
+  if (!fontsReady || isHydrating) return null;
 
   return (
     <QueryClientProvider client={queryClient}>

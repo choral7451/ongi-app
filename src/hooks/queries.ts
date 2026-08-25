@@ -73,7 +73,7 @@ export function useFeed() {
 }
 
 export function usePhoto(id: string) {
-  return useQuery({ queryKey: queryKeys.photo(id), queryFn: () => photosApi.getPhoto(id) });
+  return useQuery({ queryKey: queryKeys.photo(id), queryFn: () => photosApi.getPhoto(id), enabled: !!id });
 }
 
 export function useAlbumPhotos(albumId: string) {
@@ -105,11 +105,13 @@ export function useComments(photoId: string) {
   return useQuery({
     queryKey: queryKeys.comments(photoId),
     queryFn: () => photosApi.getComments(photoId),
+    enabled: !!photoId,
   });
 }
 
-export function useLocalPhotos() {
-  return useQuery({ queryKey: queryKeys.localPhotos, queryFn: photosApi.getLocalPhotos });
+/** 기기 사진 보관함 — queryFn 이 권한을 요청하므로 사용자가 실제로 사진을 고르려 할 때만 enabled 로 켠다 */
+export function useLocalPhotos(enabled = true) {
+  return useQuery({ queryKey: queryKeys.localPhotos, queryFn: photosApi.getLocalPhotos, enabled });
 }
 
 export function useAlbums() {

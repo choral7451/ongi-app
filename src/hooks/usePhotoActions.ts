@@ -14,7 +14,12 @@ export function usePhotoActions(onDeleted?: () => void) {
   const block = useBlockMember();
 
   return (photo: Photo) => {
-    const me = members.data?.find((m) => m.isMe);
+    // 구성원 정보가 아직 없으면 '내 사진'을 판별할 수 없어 자기 자신을 신고/차단하는 메뉴가 뜬다 — 로드 후에만 연다
+    if (!members.data) {
+      Alert.alert('잠시만요', '구성원 정보를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
+    const me = members.data.find((m) => m.isMe);
     const author: Member | undefined = members.data?.find((m) => m.id === photo.authorId);
     const isMine = me?.id === photo.authorId;
     const canDelete = isMine || me?.role === 'admin';

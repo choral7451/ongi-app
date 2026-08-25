@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Camera, ChevronRight, FileText, Pencil, ShieldCheck, X } from 'lucide-react-native';
+import { Camera, ChevronRight, FileText, Mail, Pencil, ShieldCheck, Users, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
   Alert,
   FlatList,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -48,6 +49,9 @@ function confirmAction(
   ]);
 }
 
+/** 운영 문의처 — 약관·개인정보 처리방침의 문의 이메일과 동일 */
+const SUPPORT_EMAIL = 'artinfokorea2022@gmail.com';
+
 const showError = (title: string) => (e: unknown) =>
   Alert.alert(title, e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
 
@@ -86,7 +90,8 @@ export default function ProfileScreen() {
   const uploadAvatar = useUploadAvatar();
 
   const [pickerVisible, setPickerVisible] = useState(false);
-  const localPhotos = useLocalPhotos();
+  // 사진 보관함 권한은 사용자가 프로필 이미지 변경을 눌렀을 때만 요청한다 (App Store 5.1.1)
+  const localPhotos = useLocalPhotos(pickerVisible);
 
   const promptRename = () => {
     Alert.prompt(
@@ -176,7 +181,17 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <SectionHeader title="약관 및 정책" size="sm" />
+        <SectionHeader title="가족 공간" size="sm" />
+        <SettingRow
+          icon={<Users size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
+          label="가족 공간 만들기 · 참여 · 전환"
+          divider={false}
+          onPress={() => router.push('/groups')}
+        />
+
+        <View style={styles.sectionGap}>
+          <SectionHeader title="약관 및 정책" size="sm" />
+        </View>
         <SettingRow
           icon={<FileText size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
           label="이용약관"
@@ -185,8 +200,18 @@ export default function ProfileScreen() {
         <SettingRow
           icon={<ShieldCheck size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
           label="개인정보 처리방침"
-          divider={false}
           onPress={() => router.push({ pathname: '/legal/[slug]', params: { slug: 'privacy' } })}
+        />
+        <SettingRow
+          icon={<Mail size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
+          label="문의하기"
+          trailing={<Text style={styles.settingMeta}>{SUPPORT_EMAIL}</Text>}
+          divider={false}
+          onPress={() =>
+            Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('[온기] 문의')}`).catch(() =>
+              Alert.alert('문의하기', `${SUPPORT_EMAIL} 로 메일을 보내주세요.`),
+            )
+          }
         />
 
         <View style={styles.sectionGap}>
@@ -344,6 +369,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: colors.text,
+  },
+  settingMeta: {
+    fontSize: 11,
+    color: colors.textMuted,
   },
   signOut: {
     flex: 1,

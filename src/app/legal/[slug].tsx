@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton } from '../../components/ui/Button';
 import { useLegalDoc } from '../../hooks/queries';
@@ -21,14 +21,24 @@ export default function LegalDocScreen() {
           onPress={() => router.back()}
           icon={<ChevronLeft size={18} color={colors.text} strokeWidth={iconStroke} />}
         />
-        <Text style={styles.headerTitle}>{doc.data?.title ?? ''}</Text>
+        <Text style={styles.headerTitle}>{doc.data?.title ?? (slug === 'privacy' ? '개인정보 처리방침' : '이용약관')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
       >
-        {doc.data ? (
+        {doc.isPending ? (
+          <View style={styles.stateBox}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={styles.stateText}>문서를 불러오는 중이에요…</Text>
+          </View>
+        ) : doc.isError ? (
+          <Pressable style={styles.stateBox} onPress={() => doc.refetch()} accessibilityRole="button">
+            <Text style={styles.stateText}>문서를 불러오지 못했어요.</Text>
+            <Text style={styles.retry}>다시 시도</Text>
+          </Pressable>
+        ) : doc.data ? (
           <>
             <Text style={styles.kicker}>온기 정책</Text>
             <Text style={styles.title}>{doc.data.title}</Text>
@@ -94,5 +104,19 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 23,
     color: colors.text,
+  },
+  stateBox: {
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 60,
+  },
+  stateText: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  retry: {
+    fontSize: 13,
+    color: colors.accent700,
+    textDecorationLine: 'underline',
   },
 });

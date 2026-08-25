@@ -2,6 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Copy, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NoGroupState } from '../../components/NoGroupState';
 import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { Tag } from '../../components/ui/Tag';
@@ -9,6 +10,7 @@ import {
   useBlockMember,
   useFamily,
   useMembers,
+  useMyGroups,
   useRemoveMember,
   useReport,
   useUnblockMember,
@@ -33,6 +35,8 @@ export default function FamilyScreen() {
   const insets = useSafeAreaInsets();
   const family = useFamily();
   const members = useMembers();
+  const myGroups = useMyGroups();
+  const hasNoGroup = myGroups.isSuccess && myGroups.data.length === 0;
 
   const block = useBlockMember();
   const unblock = useUnblockMember();
@@ -94,7 +98,7 @@ export default function FamilyScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.kicker}>우리 가족</Text>
-        <Text style={styles.title}>{family.data?.name ?? ' '}</Text>
+        <Text style={styles.title}>{hasNoGroup ? '가족 공간' : (family.data?.name ?? ' ')}</Text>
         {family.data ? (
           <Text style={styles.headerMeta}>
             구성원 {family.data.memberCount}명 · 사진 {family.data.photoCount}장 ·{' '}
@@ -103,6 +107,9 @@ export default function FamilyScreen() {
         ) : null}
       </View>
 
+      {hasNoGroup ? (
+        <NoGroupState compact />
+      ) : (
       <ScrollView contentContainerStyle={styles.content}>
         <View>
           {members.data?.map((member, i) => (
@@ -139,6 +146,7 @@ export default function FamilyScreen() {
           ))}
         </View>
 
+        {inviteCode ? (
         <View style={styles.inviteCard}>
           <Text style={styles.inviteKicker}>가족 초대하기</Text>
           <Text style={styles.inviteCode}>{inviteCode}</Text>
@@ -154,17 +162,19 @@ export default function FamilyScreen() {
               onPress={() => Clipboard.setStringAsync(inviteCode)}
             />
             <Button
-              label="초대 링크 공유"
+              label="초대 코드 공유"
               icon={<ShareIcon size={15} color={colors.accent} strokeWidth={iconStroke} />}
               onPress={() =>
                 Share.share({
-                  message: `온기에서 우리 가족과 함께해요! 초대 코드: ${inviteCode}`,
+                  message: `온기에서 우리 가족과 함께해요! 앱을 설치하고 초대 코드 ${inviteCode} 를 입력해 주세요.`,
                 })
               }
             />
           </View>
         </View>
+        ) : null}
       </ScrollView>
+      )}
     </View>
   );
 }

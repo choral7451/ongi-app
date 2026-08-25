@@ -21,12 +21,13 @@ export interface AppleCredential {
   name: string | null;
 }
 
+/** iOS 에선 기본 노출(App Store 4.8) — 명시적으로 false 가 돌아올 때만 숨긴다 */
 export async function isAppleSignInAvailable(): Promise<boolean> {
   if (Platform.OS !== 'ios') return false;
   try {
-    return await AppleAuthentication.isAvailableAsync();
+    return (await AppleAuthentication.isAvailableAsync()) !== false;
   } catch {
-    return false;
+    return true;
   }
 }
 
