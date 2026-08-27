@@ -121,7 +121,9 @@ export default function LoginScreen() {
     setPendingProvider(provider);
     try {
       const user = await signInWithProvider(provider);
-      setUser(user); // 인증 가드가 자동으로 홈으로 보냅니다
+      setUser(user);
+      // 인증 가드가 탭으로 전환하지만, 대기 중이던 딥링크 등으로 다른 탭이 열리지 않도록 첫 화면은 항상 홈으로 고정
+      router.replace('/');
       // Apple 은 이름을 최초 승인 1회만 주므로, 못 받았으면 지금 한 번 물어본다 (나중에 '나' 탭에서도 변경 가능)
       if (user.name === DEFAULT_USER_NAME && Platform.OS === 'ios') askDisplayName();
     } catch (e) {
