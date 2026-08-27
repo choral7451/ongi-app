@@ -129,7 +129,7 @@ export default function FamilyScreen() {
               <View style={styles.memberInfo}>
                 <Text style={styles.memberName}>
                   {member.name}
-                  {member.realName ? ` (${member.realName})` : ''}
+                  {member.realName && member.realName !== member.name ? ` (${member.realName})` : ''}
                 </Text>
                 <Text style={styles.memberMeta}>
                   {member.blockedByMe
