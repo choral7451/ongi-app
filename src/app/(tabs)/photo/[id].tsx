@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, Heart, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -232,7 +233,14 @@ export default function PhotoDetailScreen() {
           </ScrollView>
         ) : photo.data ? (
           <Plate uri={photo.data.url} height={340} />
-        ) : null}
+        ) : photo.isError ? (
+          <Pressable onPress={() => photo.refetch()} style={styles.errorBox}>
+            <Text style={styles.errorText}>사진을 불러오지 못했어요.</Text>
+            <Text style={styles.retry}>다시 시도</Text>
+          </Pressable>
+        ) : (
+          <ActivityIndicator style={styles.errorBox} color={colors.textMuted} />
+        )}
         {photo.data ? (
           <>
 
@@ -469,5 +477,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.divider,
     borderRadius: 4,
+  },
+  errorBox: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  retry: {
+    fontSize: 13,
+    color: colors.accent700,
+    textDecorationLine: 'underline',
   },
 });
