@@ -86,8 +86,6 @@ export default function UploadScreen() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [caption, setCaption] = useState('');
-  /** 인스타그램식 크롭 비율 — 1 (정방형) 또는 0.8 (4:5 세로) */
-  const [ratio, setRatio] = useState<number>(1);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([activeGroupId]);
   const [drafts, setDrafts] = useState<Record<string, TargetDraft>>({});
 
@@ -148,7 +146,6 @@ export default function UploadScreen() {
         localPhotoIds: ids,
         // 문구는 첫 업로드에만 — 재시도 때 또 붙이면 중복된다
         caption: ids === selectedIds ? caption.trim() || undefined : undefined,
-        ratio,
         targets: selectedGroupIds.map((groupId) => ({
           groupId,
           albumId: draftOf(groupId).albumId,
@@ -244,7 +241,7 @@ export default function UploadScreen() {
 
         {selectedPhotos.length > 0 ? (
           <View style={styles.previewBox}>
-            {/* 선택한 비율 그대로 미리보기 — 여러 장이면 좌우로 넘겨본다.
+            {/* 원본 비율 그대로 미리보기 — 여러 장이면 좌우로 넘겨본다.
                 수백 장을 골라도 화면 근처 페이지만 렌더링하도록 FlatList 윈도잉 (전부 그리면 선택 직후 멈춘 것처럼 보임) */}
             <FlatList
               horizontal
@@ -254,7 +251,7 @@ export default function UploadScreen() {
               keyExtractor={(photo) => photo.id}
               renderItem={({ item }) => (
                 <View style={{ width: pageWidth }}>
-                  <Plate uri={item.uri} aspectRatio={ratio} />
+                  <Plate uri={item.uri} aspectRatio={item.aspectRatio || 1} />
                 </View>
               )}
               getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
@@ -280,25 +277,6 @@ export default function UploadScreen() {
                 {shownIndex + 1} / {selectedPhotos.length}
               </Text>
             ) : null}
-            <View style={styles.ratioRow}>
-              {[
-                { value: 1, label: '정방형 1:1' },
-                { value: 0.8, label: '세로 4:5' },
-              ].map((option) => {
-                const selected = ratio === option.value;
-                return (
-                  <Pressable
-                    key={option.label}
-                    style={[styles.chip, selected ? styles.chipOutline : styles.chipNeutral]}
-                    onPress={() => setRatio(option.value)}
-                  >
-                    <Text style={selected ? styles.chipOutlineText : styles.chipNeutralText}>
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
           </View>
         ) : (
           <View style={styles.previewEmpty}>
@@ -491,11 +469,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   previewBox: {
-    gap: 8,
-  },
-  ratioRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     gap: 8,
   },
   dots: {

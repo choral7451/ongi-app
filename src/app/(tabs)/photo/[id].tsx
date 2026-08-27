@@ -218,12 +218,12 @@ export default function PhotoDetailScreen() {
           >
             {ctxPhotos.map((item) => (
               <View key={item.id} style={{ width: pageWidth }}>
-                <Plate uri={item.url} height={340} />
+                <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} />
               </View>
             ))}
           </ScrollView>
         ) : photo.data ? (
-          <Plate uri={photo.data.url} height={340} />
+          <Plate uri={photo.data.url} aspectRatio={photo.data.aspectRatio || 1} />
         ) : photo.isError ? (
           <Pressable onPress={() => photo.refetch()} style={styles.errorBox}>
             <Text style={styles.errorText}>사진을 불러오지 못했어요.</Text>

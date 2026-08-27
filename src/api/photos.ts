@@ -99,8 +99,6 @@ export interface UploadTarget {
 export interface UploadPayload {
   localPhotoIds: string[];
   caption?: string;
-  /** 인스타그램식 크롭 비율 (width/height) — 1 (정방형) 또는 0.8 (4:5 세로) */
-  ratio: number;
   /** 선택한 모든 그룹에 동시에 게시. 그룹마다 독립 게시물이 생겨 좋아요·댓글이 분리됩니다. */
   targets: UploadTarget[];
   /** 진행률 콜백 — 완료(성공+실패)된 장수 / 전체 */
@@ -122,28 +120,25 @@ const UPLOAD_CONCURRENCY = 2;
 /** 한 번에 선택 가능한 최대 장수 */
 export const UPLOAD_MAX_SELECT = 500;
 
-/** 선택한 비율로 중앙 크롭 + JPEG 통일 (HEIC 등 기기 포맷은 다른 플랫폼에서 안 보일 수 있음) */
-async function prepareAsset(assetId: string, ratio: number): Promise<{ uri: string; aspectRatio: number }> {
+/** 긴 변 최대 픽셀 — 원본(12MP+)을 그대로 올리면 업로드·로딩 모두 느려진다 */
+const UPLOAD_MAX_EDGE = 2048;
+
+/** 원본 비율 유지 + 긴 변 2048 축소 + JPEG 통일 (HEIC 등 기기 포맷은 다른 플랫폼에서 안 보일 수 있음) */
+async function prepareAsset(assetId: string): Promise<{ uri: string; aspectRatio: number }> {
   const info = await MediaLibrary.getAssetInfoAsync(assetId);
   const { width, height } = info;
-  let crop;
-  if (width / height > ratio) {
-    const cropWidth = Math.round(height * ratio);
-    crop = { originX: Math.round((width - cropWidth) / 2), originY: 0, width: cropWidth, height };
-  } else {
-    const cropHeight = Math.round(width / ratio);
-    crop = { originX: 0, originY: Math.round((height - cropHeight) / 2), width, height: cropHeight };
-  }
-  const jpeg = await ImageManipulator.manipulateAsync(info.localUri ?? info.uri, [{ crop }], {
+  const aspectRatio = width > 0 && height > 0 ? width / height : 1;
+  const resize = width >= height ? { width: Math.min(width, UPLOAD_MAX_EDGE) } : { height: Math.min(height, UPLOAD_MAX_EDGE) };
+  const jpeg = await ImageManipulator.manipulateAsync(info.localUri ?? info.uri, [{ resize }], {
     compress: 0.85,
     format: ImageManipulator.SaveFormat.JPEG,
   });
-  return { uri: jpeg.uri, aspectRatio: ratio };
+  return { uri: jpeg.uri, aspectRatio };
 }
 
 /** 청크 하나 — 변환 → S3 업로드 → 게시. 실패하면 throw (호출부가 청크 단위로 실패를 기록) */
 async function uploadChunk(ids: string[], payload: UploadPayload, withCaption: boolean): Promise<Photo[]> {
-  const prepared = await Promise.all(ids.map((id) => prepareAsset(id, payload.ratio)));
+  const prepared = await Promise.all(ids.map((id) => prepareAsset(id)));
 
   const form = new FormData();
   prepared.forEach((photo, index) => {
