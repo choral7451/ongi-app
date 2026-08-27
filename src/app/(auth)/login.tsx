@@ -208,6 +208,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    // 정중앙보다 위쪽에 두어 화면 전체가 위로 올라간 인상을 준다
+    paddingBottom: 96,
   },
   kicker: {
     fontSize: 11,
@@ -235,6 +237,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   actions: {
+    marginBottom: 20,
     gap: 10,
   },
   socialButton: {
