@@ -120,6 +120,7 @@ export default function GroupsScreen() {
             icon={<Plus size={15} color={colors.accent} strokeWidth={iconStroke} />}
             onPress={onCreate}
             disabled={newName.trim().length === 0 || createGroup.isPending}
+            style={styles.formButton}
           />
         </View>
         <Text style={styles.hint}>
@@ -146,6 +147,7 @@ export default function GroupsScreen() {
             icon={<Ticket size={15} color={colors.accent} strokeWidth={iconStroke} />}
             onPress={onJoin}
             disabled={inviteCode.trim().length === 0 || joinGroup.isPending}
+            style={styles.formButton}
           />
         </View>
         {joinError ? <Text style={styles.error}>{joinError}</Text> : null}
@@ -222,6 +224,11 @@ const styles = StyleSheet.create({
   },
   sectionGap: {
     marginTop: 28,
+  },
+  // 만들기·참여하기 버튼 폭을 같게
+  formButton: {
+    width: 112,
+    justifyContent: 'center',
   },
   formRow: {
     flexDirection: 'row',
