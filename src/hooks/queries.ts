@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { albumsApi, familyApi, groupsApi, photosApi, profileApi, reportsApi } from '../api';
 import type { UploadPayload } from '../api/photos';
@@ -72,8 +72,26 @@ export function useFeed() {
   });
 }
 
+const PHOTO_LIST_KEYS = new Set(['feed', 'albumPhotos', 'unfiledPhotos', 'personPhotos']);
+
+/** 목록 캐시(피드·앨범·미분류·인물)에 이미 있는 사진 — 상세 진입/스와이프 시 서버 응답 전에 바로 보여준다 */
+function findPhotoInLists(queryClient: QueryClient, id: string): Photo | undefined {
+  for (const [, data] of queryClient.getQueriesData<Photo[]>({ predicate: (q) => PHOTO_LIST_KEYS.has(q.queryKey[0] as string) })) {
+    const found = data?.find((p) => p.id === id);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 export function usePhoto(id: string) {
-  return useQuery({ queryKey: queryKeys.photo(id), queryFn: () => photosApi.getPhoto(id), enabled: !!id });
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: queryKeys.photo(id),
+    queryFn: () => photosApi.getPhoto(id),
+    enabled: !!id,
+    // 스와이프로 넘길 때 정보 영역이 비었다 다시 그려지는 깜빡임 방지
+    placeholderData: () => findPhotoInLists(queryClient, id),
+  });
 }
 
 export function useAlbumPhotos(albumId: string) {
@@ -106,6 +124,8 @@ export function useComments(photoId: string) {
     queryKey: queryKeys.comments(photoId),
     queryFn: () => photosApi.getComments(photoId),
     enabled: !!photoId,
+    // 다음 사진 댓글이 오기 전까지 이전 목록을 유지해 레이아웃이 튀지 않게
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -240,7 +260,6 @@ export function useDeleteAccount() {
 // ── 변경 ──────────────────────────────────────────────
 
 /** 같은 사진이 캐시에 여러 벌 존재한다 (피드·앨범·미분류·인물 목록) — 전부 함께 갱신해야 하트가 어긋나지 않는다 */
-const PHOTO_LIST_KEYS = new Set(['feed', 'albumPhotos', 'unfiledPhotos', 'personPhotos']);
 
 export function useToggleLike() {
   const queryClient = useQueryClient();
