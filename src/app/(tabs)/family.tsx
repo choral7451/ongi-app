@@ -98,8 +98,6 @@ export default function FamilyScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>우리 가족</Text>
-        <Text style={styles.title}>{hasNoGroup ? '가족 공간' : (family.data?.name ?? ' ')}</Text>
         {family.data ? (
           <Text style={styles.headerMeta}>
             구성원 {family.data.memberCount}명 · 사진 {family.data.photoCount}장 ·{' '}

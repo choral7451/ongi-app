@@ -96,7 +96,7 @@ export default function AlbumsScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>앨범</Text>
+        <View />
         {hasNoGroup || !isAdmin ? null : (
           <Button
             label={createAlbum.isPending ? '만드는 중…' : '새 앨범'}
