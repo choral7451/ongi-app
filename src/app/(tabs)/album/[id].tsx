@@ -1,11 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { ChevronLeft, Trash2 } from 'lucide-react-native';
+import { useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoGrid } from '../../../components/PhotoGrid';
-import { IconButton } from '../../../components/ui/Button';
+import { Button, IconButton } from '../../../components/ui/Button';
 import { Plate } from '../../../components/ui/Plate';
-import { useAlbumPhotos, useAlbums, useFeed, useUnfiledPhotos } from '../../../hooks/queries';
+import { useAlbumPhotos, useAlbums, useDeletePhotos, useFeed, useMembers, useUnfiledPhotos } from '../../../hooks/queries';
+import type { Photo } from '../../../types';
 import { useActiveGroupId } from '../../../store/session';
 import { colors, fonts, iconStroke } from '../../../theme';
 
@@ -24,6 +26,47 @@ export default function AlbumDetailScreen() {
   const allPhotos = useFeed();
   const photos = isAll ? allPhotos : isUnfiled ? unfiledPhotos : albumPhotos;
 
+  // 선택 모드 — 작성자 본인 또는 관리자인 사진만 골라서 한 번에 삭제
+  const members = useMembers();
+  const me = members.data?.find((m) => m.isMe);
+  const canDelete = (photo: Photo) => !!me && (me.role === 'admin' || photo.authorId === me.id);
+  const deletePhotos = useDeletePhotos();
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const deletableCount = photos.data?.filter(canDelete).length ?? 0;
+
+  const exitSelect = () => {
+    setSelecting(false);
+    setSelectedIds(new Set());
+  };
+  const toggleSelect = (photo: Photo) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(photo.id)) next.delete(photo.id);
+      else next.add(photo.id);
+      return next;
+    });
+  const selectAll = () => setSelectedIds(new Set((photos.data ?? []).filter(canDelete).map((p) => p.id)));
+  const confirmDelete = () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    Alert.alert('사진 삭제', `선택한 ${count}장과 달린 댓글이 모두 삭제되며 되돌릴 수 없어요.`, [
+      { text: '취소', style: 'cancel' },
+      {
+        text: `${count}장 삭제`,
+        style: 'destructive',
+        onPress: () =>
+          deletePhotos.mutate([...selectedIds], {
+            onSuccess: ({ skippedIds }) => {
+              exitSelect();
+              if (skippedIds.length > 0) Alert.alert('일부 사진은 삭제하지 못했어요', `${skippedIds.length}장은 권한이 없거나 이미 삭제됐어요.`);
+            },
+            onError: (e) => Alert.alert('삭제 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
+          }),
+      },
+    ]);
+  };
+
   const album = isVirtual ? undefined : albums.data?.find((a) => a.id === id);
   const title = isAll ? '전체 사진' : isUnfiled ? '미분류' : (album?.title ?? '');
   const coverUrl = isVirtual ? photos.data?.[0]?.url : album?.coverUrl;
@@ -36,8 +79,14 @@ export default function AlbumDetailScreen() {
           onPress={() => router.replace('/albums')} // 탭 전환은 히스토리에 안 쌓여 back() 이 홈으로 떨어짐 — 앨범 탭으로 명시 복귀
           icon={<ChevronLeft size={18} color={colors.text} strokeWidth={iconStroke} />}
         />
-        <Text style={styles.headerTitle}>앨범</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.headerTitle}>{selecting ? `${selectedIds.size}장 선택` : '앨범'}</Text>
+        {selecting ? (
+          <Button label="취소" onPress={exitSelect} />
+        ) : deletableCount > 0 ? (
+          <Button label="선택" onPress={() => setSelecting(true)} />
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
       </View>
 
       <PhotoGrid
@@ -47,6 +96,10 @@ export default function AlbumDetailScreen() {
         onRetry={() => photos.refetch()}
         bottomInset={insets.bottom}
         detailCtx={isAll ? 'all' : isUnfiled ? 'unfiled' : `album:${id}`}
+        selectable={selecting}
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelect}
+        canSelect={canDelete}
         ListHeaderComponent={
           <View style={styles.albumHead}>
             {coverUrl ? <Plate uri={coverUrl} height={180} /> : null}
@@ -61,6 +114,19 @@ export default function AlbumDetailScreen() {
           </View>
         }
       />
+
+      {selecting ? (
+        <View style={[styles.selectBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <Button label={selectedIds.size === deletableCount ? '선택 해제' : '모두 선택'} onPress={selectedIds.size === deletableCount ? () => setSelectedIds(new Set()) : selectAll} />
+          <Button
+            label={deletePhotos.isPending ? '삭제 중…' : `${selectedIds.size}장 삭제`}
+            icon={<Trash2 size={15} color={colors.danger} strokeWidth={iconStroke} />}
+            onPress={confirmDelete}
+            disabled={selectedIds.size === 0 || deletePhotos.isPending}
+            style={styles.deleteButton}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -104,6 +170,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
     fontVariant: ['tabular-nums'],
+  },
+  selectBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+    backgroundColor: colors.bg,
+  },
+  deleteButton: {
+    borderColor: colors.danger,
   },
   rule: {
     height: StyleSheet.hairlineWidth,

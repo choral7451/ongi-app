@@ -48,6 +48,11 @@ export async function deletePhoto(photoId: string): Promise<void> {
   await request<null>(`/ongi/photos/${photoId}`, { method: 'DELETE' });
 }
 
+/** 사진 일괄 삭제 — 사진마다 작성자·관리자 권한을 서버가 확인하고, 권한 없는 것은 skippedIds 로 돌려준다 */
+export function deletePhotos(photoIds: string[]): Promise<{ deletedIds: string[]; skippedIds: string[] }> {
+  return post<{ deletedIds: string[]; skippedIds: string[] }>('/ongi/photos/delete', { photoIds });
+}
+
 /** 댓글 삭제 — 댓글 작성자·사진 작성자·그룹 관리자만 가능 (서버가 검증) */
 export async function deleteComment(params: { photoId: string; commentId: string }): Promise<void> {
   await request<null>(`/ongi/photos/${params.photoId}/comments/${params.commentId}`, { method: 'DELETE' });
