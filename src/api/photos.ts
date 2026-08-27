@@ -53,6 +53,11 @@ export function deletePhotos(photoIds: string[]): Promise<{ deletedIds: string[]
   return post<{ deletedIds: string[]; skippedIds: string[] }>('/ongi/photos/delete', { photoIds });
 }
 
+/** 다른 가족 공간에 사진 공유(복사) — 대상 공간에 독립 게시물 생성. 권한 없는 사진은 skippedIds */
+export function copyPhotos(params: { photoIds: string[]; targetGroupId: string; albumId: string | null }): Promise<{ copiedIds: string[]; skippedIds: string[] }> {
+  return post<{ copiedIds: string[]; skippedIds: string[] }>('/ongi/photos/copy', params);
+}
+
 /** 사진 일괄 앨범 이동 — albumId null 이면 미분류. 권한 없거나 다른 그룹 사진은 skippedIds */
 export function movePhotos(params: { photoIds: string[]; albumId: string | null }): Promise<{ movedIds: string[]; skippedIds: string[] }> {
   return post<{ movedIds: string[]; skippedIds: string[] }>('/ongi/photos/move', params);

@@ -1,12 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, FolderInput, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, FolderInput, Send, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoGrid } from '../../../components/PhotoGrid';
 import { Button, IconButton } from '../../../components/ui/Button';
 import { Plate } from '../../../components/ui/Plate';
-import { useAlbumPhotos, useAlbums, useDeletePhotos, useFeed, useMembers, useMovePhotos, useUnfiledPhotos } from '../../../hooks/queries';
+import { queryKeys, useAlbumPhotos, useAlbums, useCopyPhotos, useDeletePhotos, useFeed, useMembers, useMovePhotos, useMyGroups, useUnfiledPhotos } from '../../../hooks/queries';
+import { useQueryClient } from '@tanstack/react-query';
+import * as albumsApi from '../../../api/albums';
 import { showActions } from '../../../utils/dialogs';
 import type { Photo } from '../../../types';
 import { useActiveGroupId } from '../../../store/session';
@@ -33,6 +35,10 @@ export default function AlbumDetailScreen() {
   const canDelete = (photo: Photo) => !!me && (me.role === 'admin' || photo.authorId === me.id);
   const deletePhotos = useDeletePhotos();
   const movePhotos = useMovePhotos();
+  const copyPhotos = useCopyPhotos();
+  const myGroups = useMyGroups();
+  const queryClient = useQueryClient();
+  const otherGroups = (myGroups.data ?? []).filter((g) => g.id !== activeGroupId);
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const deletableCount = photos.data?.filter(canDelete).length ?? 0;
@@ -68,6 +74,34 @@ export default function AlbumDetailScreen() {
       ...(isUnfiled ? [] : [{ label: '앨범 없음 (미분류)', onPress: () => move(null) }]),
       ...targets.map((a) => ({ label: a.title, onPress: () => move(a.id) })),
     ]);
+  };
+
+  /** 다른 가족 공간에 공유 — 대상 공간 → 그 공간의 앨범 순으로 고른 뒤 복사 */
+  const pickGroupAndCopy = () => {
+    const count = selectedIds.size;
+    if (count === 0 || otherGroups.length === 0) return;
+    const copy = (targetGroupId: string, albumId: string | null) =>
+      copyPhotos.mutate(
+        { photoIds: [...selectedIds], targetGroupId, albumId },
+        {
+          onSuccess: ({ copiedIds, skippedIds }) => {
+            exitSelect();
+            Alert.alert(
+              '공유 완료',
+              `${copiedIds.length}장을 공유했어요.${skippedIds.length > 0 ? `\n${skippedIds.length}장은 권한이 없어 건너뛰었어요.` : ''}`,
+            );
+          },
+          onError: (e) => Alert.alert('공유 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
+        },
+      );
+    const pickAlbum = async (targetGroupId: string, groupName: string) => {
+      const albums = await queryClient.fetchQuery({ queryKey: queryKeys.albums(targetGroupId), queryFn: () => albumsApi.getAlbums(targetGroupId) }).catch(() => []);
+      showActions(`「${groupName}」의 앨범`, [
+        { label: '앨범 없음 (미분류)', onPress: () => copy(targetGroupId, null) },
+        ...albums.map((a) => ({ label: a.title, onPress: () => copy(targetGroupId, a.id) })),
+      ]);
+    };
+    showActions(`${count}장을 공유할 가족 공간`, otherGroups.map((g) => ({ label: g.name, onPress: () => void pickAlbum(g.id, g.name) })));
   };
 
   const confirmDelete = () => {
@@ -141,6 +175,14 @@ export default function AlbumDetailScreen() {
       {selecting ? (
         <View style={[styles.selectBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <Button label={selectedIds.size === deletableCount ? '선택 해제' : '모두 선택'} onPress={selectedIds.size === deletableCount ? () => setSelectedIds(new Set()) : selectAll} />
+          {otherGroups.length > 0 ? (
+            <Button
+              label={copyPhotos.isPending ? '공유 중…' : '다른 공간에 공유'}
+              icon={<Send size={15} color={colors.accent} strokeWidth={iconStroke} />}
+              onPress={pickGroupAndCopy}
+              disabled={selectedIds.size === 0 || copyPhotos.isPending}
+            />
+          ) : null}
           <Button
             label={movePhotos.isPending ? '이동 중…' : '앨범 이동'}
             icon={<FolderInput size={15} color={colors.accent} strokeWidth={iconStroke} />}

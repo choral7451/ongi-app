@@ -276,6 +276,22 @@ export function useToggleLike() {
   });
 }
 
+/** 다른 가족 공간에 사진 공유(복사) — 대상 공간의 피드·앨범·미분류 캐시를 갱신 */
+export function useCopyPhotos() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: photosApi.copyPhotos,
+    onSuccess: (_result, { targetGroupId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.feed(targetGroupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.albums(targetGroupId) });
+      queryClient.invalidateQueries({ queryKey: ['albumPhotos'] });
+      queryClient.invalidateQueries({ queryKey: ['unfiledPhotos', targetGroupId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(targetGroupId) });
+    },
+  });
+}
+
 /** 사진 일괄 앨범 이동 — 옮긴 사진의 albumId 를 캐시에 반영하고 앨범 목록·앨범별/미분류 목록을 갱신 */
 export function useMovePhotos() {
   const queryClient = useQueryClient();
