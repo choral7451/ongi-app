@@ -105,7 +105,7 @@ export default function AlbumDetailScreen() {
         <Text style={styles.headerTitle}>{selecting ? `${selectedIds.size}장 선택` : '앨범'}</Text>
         {selecting ? (
           <Button label="취소" onPress={exitSelect} />
-        ) : !isAll && deletableCount > 0 ? (
+        ) : !isAll && (photos.data?.length ?? 0) > 0 ? (
           <Button label="선택" onPress={() => setSelecting(true)} />
         ) : (
           <View style={styles.headerSpacer} />
