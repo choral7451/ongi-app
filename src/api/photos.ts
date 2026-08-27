@@ -53,6 +53,11 @@ export function deletePhotos(photoIds: string[]): Promise<{ deletedIds: string[]
   return post<{ deletedIds: string[]; skippedIds: string[] }>('/ongi/photos/delete', { photoIds });
 }
 
+/** 사진 일괄 앨범 이동 — albumId null 이면 미분류. 권한 없거나 다른 그룹 사진은 skippedIds */
+export function movePhotos(params: { photoIds: string[]; albumId: string | null }): Promise<{ movedIds: string[]; skippedIds: string[] }> {
+  return post<{ movedIds: string[]; skippedIds: string[] }>('/ongi/photos/move', params);
+}
+
 /** 댓글 삭제 — 댓글 작성자·사진 작성자·그룹 관리자만 가능 (서버가 검증) */
 export async function deleteComment(params: { photoId: string; commentId: string }): Promise<void> {
   await request<null>(`/ongi/photos/${params.photoId}/comments/${params.commentId}`, { method: 'DELETE' });

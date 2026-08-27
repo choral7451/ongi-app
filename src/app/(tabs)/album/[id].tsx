@@ -1,12 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, FolderInput, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoGrid } from '../../../components/PhotoGrid';
 import { Button, IconButton } from '../../../components/ui/Button';
 import { Plate } from '../../../components/ui/Plate';
-import { useAlbumPhotos, useAlbums, useDeletePhotos, useFeed, useMembers, useUnfiledPhotos } from '../../../hooks/queries';
+import { useAlbumPhotos, useAlbums, useDeletePhotos, useFeed, useMembers, useMovePhotos, useUnfiledPhotos } from '../../../hooks/queries';
+import { showActions } from '../../../utils/dialogs';
 import type { Photo } from '../../../types';
 import { useActiveGroupId } from '../../../store/session';
 import { colors, fonts, iconStroke } from '../../../theme';
@@ -31,6 +32,7 @@ export default function AlbumDetailScreen() {
   const me = members.data?.find((m) => m.isMe);
   const canDelete = (photo: Photo) => !!me && (me.role === 'admin' || photo.authorId === me.id);
   const deletePhotos = useDeletePhotos();
+  const movePhotos = useMovePhotos();
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const deletableCount = photos.data?.filter(canDelete).length ?? 0;
@@ -47,6 +49,27 @@ export default function AlbumDetailScreen() {
       return next;
     });
   const selectAll = () => setSelectedIds(new Set((photos.data ?? []).filter(canDelete).map((p) => p.id)));
+  const pickAlbumAndMove = () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    const move = (albumId: string | null) =>
+      movePhotos.mutate(
+        { photoIds: [...selectedIds], albumId },
+        {
+          onSuccess: ({ skippedIds }) => {
+            exitSelect();
+            if (skippedIds.length > 0) Alert.alert('일부 사진은 옮기지 못했어요', `${skippedIds.length}장은 권한이 없어요.`);
+          },
+          onError: (e) => Alert.alert('앨범 이동 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
+        },
+      );
+    const targets = (albums.data ?? []).filter((a) => a.id !== id);
+    showActions(`${count}장을 옮길 앨범`, [
+      ...(isUnfiled ? [] : [{ label: '앨범 없음 (미분류)', onPress: () => move(null) }]),
+      ...targets.map((a) => ({ label: a.title, onPress: () => move(a.id) })),
+    ]);
+  };
+
   const confirmDelete = () => {
     const count = selectedIds.size;
     if (count === 0) return;
@@ -119,6 +142,12 @@ export default function AlbumDetailScreen() {
         <View style={[styles.selectBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <Button label={selectedIds.size === deletableCount ? '선택 해제' : '모두 선택'} onPress={selectedIds.size === deletableCount ? () => setSelectedIds(new Set()) : selectAll} />
           <Button
+            label={movePhotos.isPending ? '이동 중…' : '앨범 이동'}
+            icon={<FolderInput size={15} color={colors.accent} strokeWidth={iconStroke} />}
+            onPress={pickAlbumAndMove}
+            disabled={selectedIds.size === 0 || movePhotos.isPending}
+          />
+          <Button
             label={deletePhotos.isPending ? '삭제 중…' : `${selectedIds.size}장 삭제`}
             icon={<Trash2 size={15} color={colors.danger} strokeWidth={iconStroke} />}
             onPress={confirmDelete}
@@ -174,8 +203,9 @@ const styles = StyleSheet.create({
   selectBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    gap: 8,
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
