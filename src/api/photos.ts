@@ -43,6 +43,14 @@ export function toggleLike(photoId: string): Promise<Photo> {
   return post<Photo>(`/ongi/photos/${photoId}/like`);
 }
 
+/** 사진 수정(문구·앨범) — 작성자 본인 또는 그룹 관리자만 가능 (서버가 검증). 갱신된 사진을 돌려받는다 */
+export function updatePhoto(params: { photoId: string; caption: string | null; albumId: string | null }): Promise<Photo> {
+  return request<Photo>(`/ongi/photos/${params.photoId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ caption: params.caption, albumId: params.albumId }),
+  });
+}
+
 /** 사진 삭제 — 작성자 본인 또는 그룹 관리자만 가능 (서버가 검증) */
 export async function deletePhoto(photoId: string): Promise<void> {
   await request<null>(`/ongi/photos/${photoId}`, { method: 'DELETE' });

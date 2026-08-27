@@ -257,6 +257,25 @@ export function useToggleLike() {
   });
 }
 
+/** 사진 수정(문구·앨범) — 상세·목록 캐시를 바꿔치기하고, 앨범 이동 시 앨범 목록·앨범별 사진 목록을 갱신 */
+export function useUpdatePhoto() {
+  const queryClient = useQueryClient();
+  const groupId = useActiveGroupId();
+  return useMutation({
+    mutationFn: photosApi.updatePhoto,
+    onSuccess: (photo) => {
+      queryClient.setQueryData(queryKeys.photo(photo.id), photo);
+      queryClient.setQueriesData<Photo[]>(
+        { predicate: (query) => PHOTO_LIST_KEYS.has(query.queryKey[0] as string) },
+        (old) => old?.map((p) => (p.id === photo.id ? photo : p)),
+      );
+      queryClient.invalidateQueries({ queryKey: queryKeys.albums(groupId) });
+      queryClient.invalidateQueries({ queryKey: ['albumPhotos'] });
+      queryClient.invalidateQueries({ queryKey: ['unfiledPhotos'] });
+    },
+  });
+}
+
 /** 사진 삭제 — 상세·모든 사진 목록 캐시에서 제거하고 앨범/그룹 카운트를 갱신 */
 export function useDeletePhoto() {
   const queryClient = useQueryClient();
