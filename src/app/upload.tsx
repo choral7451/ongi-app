@@ -4,6 +4,7 @@ import { Check, Image as ImageIcon, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -242,22 +243,29 @@ export default function UploadScreen() {
 
         {selectedPhotos.length > 0 ? (
           <View style={styles.previewBox}>
-            {/* 선택한 비율 그대로 미리보기 — 여러 장이면 좌우로 넘겨본다 */}
-            <ScrollView
+            {/* 선택한 비율 그대로 미리보기 — 여러 장이면 좌우로 넘겨본다.
+                수백 장을 골라도 화면 근처 페이지만 렌더링하도록 FlatList 윈도잉 (전부 그리면 선택 직후 멈춘 것처럼 보임) */}
+            <FlatList
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
+              data={selectedPhotos}
+              keyExtractor={(photo) => photo.id}
+              renderItem={({ item }) => (
+                <View style={{ width: pageWidth }}>
+                  <Plate uri={item.uri} aspectRatio={ratio} />
+                </View>
+              )}
+              getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
+              initialNumToRender={1}
+              maxToRenderPerBatch={2}
+              windowSize={3}
+              removeClippedSubviews
               onMomentumScrollEnd={(e) =>
                 setPreviewIndex(Math.round(e.nativeEvent.contentOffset.x / pageWidth))
               }
-            >
-              {selectedPhotos.map((photo) => (
-                <View key={photo.id} style={{ width: pageWidth }}>
-                  <Plate uri={photo.uri} aspectRatio={ratio} />
-                </View>
-              ))}
-            </ScrollView>
-            {selectedPhotos.length > 1 ? (
+            />
+            {selectedPhotos.length > 1 && selectedPhotos.length <= 12 ? (
               <View style={styles.dots}>
                 {selectedPhotos.map((photo, index) => (
                   <View
@@ -266,6 +274,10 @@ export default function UploadScreen() {
                   />
                 ))}
               </View>
+            ) : selectedPhotos.length > 12 ? (
+              <Text style={styles.pageCounter}>
+                {shownIndex + 1} / {selectedPhotos.length}
+              </Text>
             ) : null}
             <View style={styles.ratioRow}>
               {[
@@ -436,6 +448,12 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     backgroundColor: colors.accent,
+  },
+  pageCounter: {
+    textAlign: 'center',
+    fontSize: 11,
+    color: colors.textMuted,
+    fontVariant: ['tabular-nums'],
   },
   previewEmpty: {
     height: 230,
