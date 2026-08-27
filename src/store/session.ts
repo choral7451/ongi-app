@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { fetchMe, signOut as signOutApi, type AuthUser } from '../api/auth';
 import { setUnauthorizedHandler } from '../api/client';
 import { loadTokens } from '../api/token';
+import { unregisterCurrentPushToken } from '../push/token';
 
 /** 앱 시작 시 세션 복원 최대 대기 — 네트워크가 멈춰도 스플래시에 갇히지 않게 한다 */
 const RESTORE_TIMEOUT_MS = 8_000;
@@ -67,7 +68,8 @@ export const useSession = create<SessionState>((set) => ({
   setCurrentUserName: (name) => set({ currentUserName: name }),
   setActiveGroup: (groupId) => set({ activeGroupId: groupId }),
   signOut: () => {
-    void signOutApi();
+    // 이 기기 푸시 토큰 해제 → 세션 토큰이 살아있는 동안 먼저 호출
+    void unregisterCurrentPushToken().finally(() => void signOutApi());
     set({ isAuthenticated: false, currentUserId: '', currentUserName: '', activeGroupId: '' });
   },
 }));

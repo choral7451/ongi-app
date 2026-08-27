@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useSession } from '../store/session';
 import { colors } from '../theme';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -20,6 +21,12 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+/** 로그인 후 푸시 토큰 등록 + 알림 탭 이동 — 라우터가 준비된 트리 안에서 실행 */
+function PushNotificationsBridge() {
+  usePushNotifications();
+  return null;
+}
 
 export default function RootLayout() {
   const isAuthenticated = useSession((s) => s.isAuthenticated);
@@ -45,6 +52,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <PushNotificationsBridge />
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
