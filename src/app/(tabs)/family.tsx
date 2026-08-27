@@ -18,6 +18,7 @@ import {
 import { alertError, confirm, promptReason, REPORT_DONE_MESSAGE, showActions } from '../../utils/dialogs';
 import { colors, fonts, iconStroke, radius } from '../../theme';
 import type { Member } from '../../types';
+import { buildInviteMessage } from '../../utils/invite';
 
 function roleTag(member: Member) {
   switch (member.role) {
@@ -166,7 +167,11 @@ export default function FamilyScreen() {
               icon={<ShareIcon size={15} color={colors.accent} strokeWidth={iconStroke} />}
               onPress={() =>
                 Share.share({
-                  message: `온기에서 우리 가족과 함께해요! 앱을 설치하고 초대 코드 ${inviteCode} 를 입력해 주세요.`,
+                  message: buildInviteMessage({
+                    groupName: family.data?.name,
+                    inviteCode,
+                    expiresInDays: family.data?.inviteExpiresInDays,
+                  }),
                 })
               }
             />
