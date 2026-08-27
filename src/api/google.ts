@@ -9,6 +9,11 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 /** Google Cloud 콘솔의 iOS OAuth 클라이언트 ID (비밀 아님) */
 const GOOGLE_IOS_CLIENT_ID = '446390529009-4v2v53ig6830u7h6splbi79r34uaj3n7.apps.googleusercontent.com';
+/**
+ * 웹 애플리케이션 OAuth 클라이언트 ID — Android 는 이 값이 webClientId 로 필요하다.
+ * Android 에서 로그인이 되려면 같은 Google Cloud 프로젝트에 "Android" 유형 클라이언트(패키지명 + 서명 키 SHA-1)도 등록돼 있어야 한다.
+ */
+const GOOGLE_WEB_CLIENT_ID = '446390529009-mmvlcfo00f04nvt1uloi0glg00np6o4m.apps.googleusercontent.com';
 
 /** Expo Go(스토어 클라이언트)에서는 네이티브 모듈이 없으므로 require 자체를 건너뛴다 */
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -37,7 +42,7 @@ export async function getGoogleAccessToken(): Promise<string | null> {
   if (!configured) {
     GoogleSignin.configure({
       iosClientId: GOOGLE_IOS_CLIENT_ID,
-      // Android 연동 시 웹 클라이언트 ID 를 webClientId 로 추가
+      webClientId: GOOGLE_WEB_CLIENT_ID,
     });
     configured = true;
   }
