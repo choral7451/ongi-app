@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Check, Image as ImageIcon, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -379,6 +380,25 @@ export default function UploadScreen() {
           />
         </View>
       </ScrollView>
+      {upload.isPending ? (
+        <View style={styles.overlay} pointerEvents="auto" accessibilityViewIsModal accessibilityLabel="사진 올리는 중">
+          <View style={styles.overlayCard}>
+            <ActivityIndicator size="large" color={colors.accent} />
+            <Text style={styles.overlayTitle}>사진을 올리고 있어요</Text>
+            {progress ? (
+              <>
+                <Text style={styles.overlayCount}>
+                  {progress.done} / {progress.total}
+                </Text>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${Math.round((progress.done / Math.max(progress.total, 1)) * 100)}%` }]} />
+                </View>
+              </>
+            ) : null}
+            <Text style={styles.overlayHint}>완료될 때까지 화면을 유지해 주세요</Text>
+          </View>
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -399,6 +419,49 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.accent700,
     textDecorationLine: 'underline',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  overlayCard: {
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 28,
+    paddingVertical: 24,
+    borderRadius: 12,
+    backgroundColor: colors.bg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.divider,
+    minWidth: 220,
+  },
+  overlayTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.text,
+  },
+  overlayCount: {
+    fontSize: 22,
+    color: colors.accent700,
+    fontVariant: ['tabular-nums'],
+  },
+  progressTrack: {
+    width: 180,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.neutral200,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.accent,
+  },
+  overlayHint: {
+    fontSize: 11,
+    color: colors.textMuted,
   },
   screen: {
     flex: 1,
