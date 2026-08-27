@@ -361,7 +361,8 @@ export function useUploadPhotos() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UploadPayload) => photosApi.uploadPhotos(payload),
-    onSuccess: (_created, payload) => {
+    // 일부 청크만 실패해도 올라간 사진은 있으니 항상 목록을 갱신한다
+    onSuccess: (_result, payload) => {
       for (const target of payload.targets) {
         queryClient.invalidateQueries({ queryKey: queryKeys.feed(target.groupId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.albums(target.groupId) });

@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { UPLOAD_MAX_SELECT } from '../api/photos';
 import { Button, IconButton } from '../components/ui/Button';
 import { Plate } from '../components/ui/Plate';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -81,6 +82,7 @@ export default function UploadScreen() {
   const upload = useUploadPhotos();
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [caption, setCaption] = useState('');
   /** 인스타그램식 크롭 비율 — 1 (정방형) 또는 0.8 (4:5 세로) */
   const [ratio, setRatio] = useState<number>(1);
@@ -106,9 +108,14 @@ export default function UploadScreen() {
   const shownIndex = Math.min(previewIndex, Math.max(selectedPhotos.length - 1, 0));
 
   const toggleSelect = (id: string) =>
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= UPLOAD_MAX_SELECT) {
+        Alert.alert('선택 한도', `한 번에 ${UPLOAD_MAX_SELECT}장까지 올릴 수 있어요. 나눠서 올려주세요.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
 
   const toggleGroup = (groupId: string) =>
     setSelectedGroupIds((prev) => {
@@ -129,19 +136,41 @@ export default function UploadScreen() {
       return;
     }
 
+    runUpload(selectedIds);
+  };
+
+  /** ids 만 올린다 — 실패분 재시도에도 그대로 쓴다 */
+  const runUpload = (ids: string[]) => {
     upload.mutate(
       {
-        localPhotoIds: selectedIds,
-        caption: caption.trim() || undefined,
+        localPhotoIds: ids,
+        // 문구는 첫 업로드에만 — 재시도 때 또 붙이면 중복된다
+        caption: ids === selectedIds ? caption.trim() || undefined : undefined,
         ratio,
         targets: selectedGroupIds.map((groupId) => ({
           groupId,
           albumId: draftOf(groupId).albumId,
           personIds: draftOf(groupId).personIds,
         })),
+        onProgress: (done, total) => setProgress({ done, total }),
       },
       {
-        onSuccess: () => router.back(),
+        onSettled: () => setProgress(null),
+        onSuccess: (result) => {
+          if (result.failedIds.length === 0) {
+            router.back();
+            return;
+          }
+          const ok = ids.length - result.failedIds.length;
+          Alert.alert(
+            '일부 사진을 올리지 못했어요',
+            `${ok}장 성공, ${result.failedIds.length}장 실패${result.errorMessage ? `\n${result.errorMessage}` : ''}`,
+            [
+              { text: '그만하기', style: 'cancel', onPress: () => router.back() },
+              { text: '실패한 사진 다시 올리기', onPress: () => runUpload(result.failedIds) },
+            ],
+          );
+        },
         onError: (e) =>
           Alert.alert('사진 올리기 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
       },
@@ -169,7 +198,7 @@ export default function UploadScreen() {
           icon={<X size={18} color={colors.text} strokeWidth={iconStroke} />}
         />
         <Button
-          label={upload.isPending ? '올리는 중…' : '올리기'}
+          label={upload.isPending ? (progress ? `올리는 중 ${progress.done}/${progress.total}` : '올리는 중…') : '올리기'}
           onPress={submit}
           disabled={selectedIds.length === 0 || upload.isPending}
         />

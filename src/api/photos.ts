@@ -111,31 +111,47 @@ export interface UploadPayload {
   ratio: number;
   /** 선택한 모든 그룹에 동시에 게시. 그룹마다 독립 게시물이 생겨 좋아요·댓글이 분리됩니다. */
   targets: UploadTarget[];
+  /** 진행률 콜백 — 완료(성공+실패)된 장수 / 전체 */
+  onProgress?: (done: number, total: number) => void;
 }
 
-/** 사진 올리기 — 파일을 S3 에 올려 URL 을 받은 뒤, 그룹(타깃)마다 독립 게시물을 만듭니다 */
-export async function uploadPhotos(payload: UploadPayload): Promise<Photo[]> {
-  // 선택한 비율로 중앙 크롭 + JPEG 통일 (HEIC 등 기기 포맷은 다른 플랫폼에서 안 보일 수 있음)
-  const ratio = payload.ratio;
-  const prepared = await Promise.all(
-    payload.localPhotoIds.map(async (assetId) => {
-      const info = await MediaLibrary.getAssetInfoAsync(assetId);
-      const { width, height } = info;
-      let crop;
-      if (width / height > ratio) {
-        const cropWidth = Math.round(height * ratio);
-        crop = { originX: Math.round((width - cropWidth) / 2), originY: 0, width: cropWidth, height };
-      } else {
-        const cropHeight = Math.round(width / ratio);
-        crop = { originX: 0, originY: Math.round((height - cropHeight) / 2), width, height: cropHeight };
-      }
-      const jpeg = await ImageManipulator.manipulateAsync(info.localUri ?? info.uri, [{ crop }], {
-        compress: 0.85,
-        format: ImageManipulator.SaveFormat.JPEG,
-      });
-      return { uri: jpeg.uri, aspectRatio: ratio };
-    }),
-  );
+export interface UploadResult {
+  photos: Photo[];
+  /** 실패한 사진의 로컬 id — 그대로 다시 넘기면 실패분만 재시도 */
+  failedIds: string[];
+  /** 마지막 실패 메시지 (실패가 있을 때) */
+  errorMessage?: string;
+}
+
+/** 서버는 요청당 파일 10장까지 받는다 (FilesInterceptor 한도) */
+export const UPLOAD_CHUNK_SIZE = 10;
+/** 동시에 올리는 청크 수 — 변환 메모리와 네트워크 부담을 제한 */
+const UPLOAD_CONCURRENCY = 2;
+/** 한 번에 선택 가능한 최대 장수 */
+export const UPLOAD_MAX_SELECT = 500;
+
+/** 선택한 비율로 중앙 크롭 + JPEG 통일 (HEIC 등 기기 포맷은 다른 플랫폼에서 안 보일 수 있음) */
+async function prepareAsset(assetId: string, ratio: number): Promise<{ uri: string; aspectRatio: number }> {
+  const info = await MediaLibrary.getAssetInfoAsync(assetId);
+  const { width, height } = info;
+  let crop;
+  if (width / height > ratio) {
+    const cropWidth = Math.round(height * ratio);
+    crop = { originX: Math.round((width - cropWidth) / 2), originY: 0, width: cropWidth, height };
+  } else {
+    const cropHeight = Math.round(width / ratio);
+    crop = { originX: 0, originY: Math.round((height - cropHeight) / 2), width, height: cropHeight };
+  }
+  const jpeg = await ImageManipulator.manipulateAsync(info.localUri ?? info.uri, [{ crop }], {
+    compress: 0.85,
+    format: ImageManipulator.SaveFormat.JPEG,
+  });
+  return { uri: jpeg.uri, aspectRatio: ratio };
+}
+
+/** 청크 하나 — 변환 → S3 업로드 → 게시. 실패하면 throw (호출부가 청크 단위로 실패를 기록) */
+async function uploadChunk(ids: string[], payload: UploadPayload, withCaption: boolean): Promise<Photo[]> {
+  const prepared = await Promise.all(ids.map((id) => prepareAsset(id, payload.ratio)));
 
   const form = new FormData();
   prepared.forEach((photo, index) => {
@@ -146,16 +162,11 @@ export async function uploadPhotos(payload: UploadPayload): Promise<Photo[]> {
       type: 'image/jpeg',
     } as unknown as Blob);
   });
-
   const uploaded = await postForm<{ urls: string[] }>('/ongi/photos/files', form);
-  const photos = uploaded.urls.map((url, index) => ({
-    url,
-    aspectRatio: prepared[index].aspectRatio,
-  }));
 
   const result = await post<{ photos: Photo[] }>('/ongi/photos', {
-    photos,
-    caption: payload.caption,
+    photos: uploaded.urls.map((url, index) => ({ url, aspectRatio: prepared[index].aspectRatio })),
+    caption: withCaption ? payload.caption : undefined,
     targets: payload.targets.map((target) => ({
       groupId: target.groupId,
       albumId: target.albumId,
@@ -163,4 +174,43 @@ export async function uploadPhotos(payload: UploadPayload): Promise<Photo[]> {
     })),
   });
   return result.photos;
+}
+
+/**
+ * 사진 올리기 — 10장씩 청크로 나눠 순차(동시 2개) 업로드.
+ * 100장 이상도 메모리 폭주 없이 올라가고, 청크 하나가 실패해도 나머지는 계속 진행한 뒤 실패분을 돌려준다.
+ */
+export async function uploadPhotos(payload: UploadPayload): Promise<UploadResult> {
+  const chunks: string[][] = [];
+  for (let i = 0; i < payload.localPhotoIds.length; i += UPLOAD_CHUNK_SIZE) {
+    chunks.push(payload.localPhotoIds.slice(i, i + UPLOAD_CHUNK_SIZE));
+  }
+
+  const total = payload.localPhotoIds.length;
+  let done = 0;
+  const photos: Photo[] = [];
+  const failedIds: string[] = [];
+  let errorMessage: string | undefined;
+  payload.onProgress?.(0, total);
+
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < chunks.length) {
+      const index = cursor++;
+      const ids = chunks[index];
+      try {
+        // 문구는 첫 사진에만 붙는다 — 첫 청크에서만 전달
+        photos.push(...(await uploadChunk(ids, payload, index === 0)));
+      } catch (e) {
+        failedIds.push(...ids);
+        errorMessage = e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.';
+      } finally {
+        done += ids.length;
+        payload.onProgress?.(done, total);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(UPLOAD_CONCURRENCY, chunks.length) }, worker));
+
+  return { photos, failedIds, errorMessage };
 }
