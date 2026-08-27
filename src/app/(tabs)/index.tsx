@@ -63,19 +63,19 @@ export default function HomeScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="가족 공간 전환"
-            style={styles.groupSelector}
-            onPress={() => router.push('/groups')}
-            hitSlop={8}
-          >
-            <Text style={styles.kicker}>{group.data?.name ?? '우리 가족의 오늘'}</Text>
-            <ChevronDown size={12} color={colors.accent} strokeWidth={iconStroke} />
-          </Pressable>
-          <Text style={styles.title}>ONGI</Text>
-        </View>
+        <Text style={styles.title}>ONGI</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="가족 공간 전환"
+          style={styles.groupSelector}
+          onPress={() => router.push('/groups')}
+          hitSlop={8}
+        >
+          <Text style={styles.kicker} numberOfLines={1}>
+            {group.data?.name ?? '우리 가족의 오늘'}
+          </Text>
+          <ChevronDown size={14} color={colors.accent} strokeWidth={iconStroke} />
+        </Pressable>
       </View>
 
       {hasNoGroup ? (
@@ -124,7 +124,9 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 14,
@@ -132,19 +134,25 @@ const styles = StyleSheet.create({
   groupSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    marginBottom: 4,
+    gap: 4,
+    maxWidth: '50%',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.divider,
   },
   kicker: {
-    fontSize: 11,
-    letterSpacing: 0.8,
+    flexShrink: 1,
+    fontSize: 13,
+    letterSpacing: 0.3,
     color: colors.accent,
   },
   title: {
     fontFamily: fonts.heading,
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: 2.5,
+    fontSize: 40,
+    lineHeight: 46,
+    letterSpacing: 3,
     color: colors.text,
   },
   list: {
