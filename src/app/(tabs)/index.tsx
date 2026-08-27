@@ -5,7 +5,6 @@ import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedPost } from '../../components/feed/FeedPost';
 import { NoGroupState } from '../../components/NoGroupState';
-import { SectionHeader } from '../../components/ui/SectionHeader';
 import { useAlbums, useFamily, useFeed, useMembers, useMyGroups } from '../../hooks/queries';
 import { colors, fonts, iconStroke } from '../../theme';
 import type { Photo } from '../../types';
@@ -88,9 +87,6 @@ export default function HomeScreen() {
         stickySectionHeadersEnabled={false}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        renderSectionHeader={({ section }) => (
-          <SectionHeader title={section.title} meta={section.meta} />
-        )}
         renderItem={({ item }) => (
           <View style={styles.postWrap}>
             <FeedPost
