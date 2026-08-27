@@ -42,7 +42,7 @@ import { colors, fonts, iconStroke } from '../../../theme';
 import type { Comment } from '../../../types';
 import { formatFullDateTime, formatTime } from '../../../utils/format';
 
-/** 1e — 사진 상세: 반응 · 댓글. ctx(feed | album:<id> | unfiled | person:<id>)가 있으면 좌우 스와이프로 목록을 넘겨본다 */
+/** 1e — 사진 상세: 반응 · 댓글. 앨범 계열 ctx(all | album:<id> | unfiled | person:<id>)로 들어오면 좌우 스와이프로 그 목록을 넘겨본다. 홈 피드(feed)에서는 단건만 */
 export default function PhotoDetailScreen() {
   const { id, ctx } = useLocalSearchParams<{ id: string; ctx?: string }>();
   const insets = useSafeAreaInsets();
@@ -70,8 +70,9 @@ export default function PhotoDetailScreen() {
   const ctxAlbumPhotos = useAlbumPhotos(ctxAlbumId);
   const ctxPersonPhotos = usePersonPhotos(ctxPersonId);
   const ctxUnfiledPhotos = useUnfiledPhotos(ctx === 'unfiled' ? activeGroupId : '');
+  // 홈 피드에서 들어온 경우(ctx=feed)는 넘김 없이 그 사진만 본다
   const ctxPhotos =
-    ctx === 'feed' || ctx === 'all'
+    ctx === 'all'
       ? feedQuery.data
       : ctxAlbumId
         ? ctxAlbumPhotos.data
