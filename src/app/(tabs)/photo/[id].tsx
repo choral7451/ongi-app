@@ -108,16 +108,6 @@ export default function PhotoDetailScreen() {
       .map((pid) => people.data?.find((p) => p.id === pid))
       .filter((p): p is NonNullable<typeof p> => p != null) ?? [];
 
-  // 누가 눌렀는지는 서버가 내려주지 않으므로 이름을 지어내지 않고 개수만 보여준다
-  const likeSummary =
-    photo.data && photo.data.likeCount > 0
-      ? photo.data.likedByMe
-        ? photo.data.likeCount === 1
-          ? '내가 따뜻해했어요'
-          : `나와 가족 ${photo.data.likeCount - 1}명이 따뜻해했어요`
-        : `가족 ${photo.data.likeCount}명이 따뜻해했어요`
-      : '가장 먼저 따뜻함을 전해보세요';
-
   // 탭 전환은 히스토리에 안 쌓여 back() 이 홈으로 떨어짐 — 들어온 컨텍스트로 명시 복귀
   const goBack = () => {
     if (ctxAlbumId) return router.replace({ pathname: '/album/[id]', params: { id: ctxAlbumId } });
@@ -258,28 +248,26 @@ export default function PhotoDetailScreen() {
                   <Tag key={p.id} label={p.name} variant="accent" />
                 ))}
               </View>
-            </View>
-
-            {photo.data.caption ? (
-              <Text style={styles.quote}>{`"${photo.data.caption}"`}</Text>
-            ) : null}
-
-            <View style={styles.likeRow}>
               <Pressable
                 style={styles.likeButton}
                 onPress={() => toggleLike.mutate(photo.data!.id)}
+                accessibilityRole="button"
                 accessibilityLabel="따뜻해요"
+                hitSlop={8}
               >
                 <Heart
-                  size={18}
+                  size={20}
                   color={colors.accent700}
                   fill={photo.data.likedByMe ? colors.accent700 : 'transparent'}
                   strokeWidth={iconStroke}
                 />
                 <Text style={styles.likeCount}>{photo.data.likeCount}</Text>
               </Pressable>
-              <Text style={styles.likeSummary}>{likeSummary}</Text>
             </View>
+
+            {photo.data.caption ? (
+              <Text style={styles.quote}>{`"${photo.data.caption}"`}</Text>
+            ) : null}
 
             <View style={styles.comments}>
               {comments.data?.map((comment) => {
@@ -404,28 +392,16 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginVertical: 14,
   },
-  likeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.divider,
-  },
   likeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    paddingLeft: 6,
   },
   likeCount: {
     fontSize: 13,
     color: colors.accent700,
     fontVariant: ['tabular-nums'],
-  },
-  likeSummary: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.textMuted,
   },
   comments: {
     paddingTop: 14,
