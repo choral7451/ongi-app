@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoGroupState } from '../../components/NoGroupState';
 import { Button } from '../../components/ui/Button';
 import { Plate } from '../../components/ui/Plate';
-import { SectionHeader } from '../../components/ui/SectionHeader';
 import { useAlbums, useCreateAlbum, useDeleteAlbum, useFeed, useMembers, useMyGroups, useRenameAlbum, useUnfiledPhotos } from '../../hooks/queries';
 import type { Album } from '../../types';
 import { useActiveGroupId } from '../../store/session';
@@ -111,10 +110,6 @@ export default function AlbumsScreen() {
         <NoGroupState compact />
       ) : (
       <ScrollView contentContainerStyle={styles.content}>
-        <SectionHeader
-          title="가족 앨범"
-          meta={albums.data ? `${albums.data.length}개` : undefined}
-        />
         <View style={styles.grid}>
           {allPhotos.data && allPhotos.data.length > 0 ? (
             <Pressable
