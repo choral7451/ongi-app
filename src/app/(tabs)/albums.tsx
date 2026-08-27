@@ -6,7 +6,7 @@ import { NoGroupState } from '../../components/NoGroupState';
 import { Button } from '../../components/ui/Button';
 import { Plate } from '../../components/ui/Plate';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { useAlbums, useCreateAlbum, useDeleteAlbum, useFeed, useMyGroups, useRenameAlbum, useUnfiledPhotos } from '../../hooks/queries';
+import { useAlbums, useCreateAlbum, useDeleteAlbum, useFeed, useMembers, useMyGroups, useRenameAlbum, useUnfiledPhotos } from '../../hooks/queries';
 import type { Album } from '../../types';
 import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
@@ -24,6 +24,9 @@ export default function AlbumsScreen() {
   const deleteAlbum = useDeleteAlbum();
   const myGroups = useMyGroups();
   const hasNoGroup = myGroups.isSuccess && myGroups.data.length === 0;
+  const members = useMembers();
+  // 앨범 추가·이름 변경·삭제는 그룹 관리자만
+  const isAdmin = members.data?.find((m) => m.isMe)?.role === 'admin';
 
   const showError = (title: string) => (e: unknown) =>
     Alert.alert(title, e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
@@ -94,7 +97,7 @@ export default function AlbumsScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.title}>앨범</Text>
-        {hasNoGroup ? null : (
+        {hasNoGroup || !isAdmin ? null : (
           <Button
             label={createAlbum.isPending ? '만드는 중…' : '새 앨범'}
             icon={<Plus size={15} color={colors.accent} strokeWidth={iconStroke} />}
@@ -142,7 +145,7 @@ export default function AlbumsScreen() {
               key={album.id}
               style={styles.gridItem}
               onPress={() => router.push({ pathname: '/album/[id]', params: { id: album.id } })}
-              onLongPress={() => showAlbumMenu(album)}
+              onLongPress={isAdmin ? () => showAlbumMenu(album) : undefined}
             >
               <Plate uri={album.coverUrl} height={108} />
               <View>
