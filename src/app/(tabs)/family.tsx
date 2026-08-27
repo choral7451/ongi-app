@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { Copy, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoGroupState } from '../../components/NoGroupState';
 import { Avatar } from '../../components/ui/Avatar';
@@ -9,6 +10,7 @@ import { Tag } from '../../components/ui/Tag';
 import {
   useBlockMember,
   useFamily,
+  useLeaveGroup,
   useMembers,
   useMyGroups,
   useRemoveMember,
@@ -16,6 +18,7 @@ import {
   useUnblockMember,
 } from '../../hooks/queries';
 import { alertError, confirm, promptReason, REPORT_DONE_MESSAGE, showActions } from '../../utils/dialogs';
+import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke, radius } from '../../theme';
 import type { Member } from '../../types';
 import { buildInviteMessage } from '../../utils/invite';
@@ -41,11 +44,32 @@ export default function FamilyScreen() {
 
   const block = useBlockMember();
   const unblock = useUnblockMember();
+  const router = useRouter();
   const remove = useRemoveMember();
+
   const report = useReport();
 
   const inviteCode = family.data?.inviteCode ?? '';
   const me = members.data?.find((m) => m.isMe);
+  const activeGroupId = useActiveGroupId();
+  const leave = useLeaveGroup();
+  const isSoleAdmin = me?.role === 'admin' && !members.data?.some((m) => m.id !== me.id && m.role === 'admin');
+  const othersCount = (members.data?.length ?? 1) - 1;
+  const confirmLeave = () =>
+    confirm(
+      '가족 공간 나가기',
+      othersCount === 0
+        ? '마지막 구성원이라 나가면 이 가족 공간도 사라져요. 올린 사진은 함께 삭제됩니다.'
+        : isSoleAdmin
+          ? '나가면 가장 먼저 참여한 구성원이 관리자가 돼요. 올린 사진과 댓글은 공간에 남습니다.'
+          : '올린 사진과 댓글은 공간에 남고, 다시 참여하려면 새 초대 코드가 필요해요.',
+      '나가기',
+      () =>
+        leave.mutate(activeGroupId, {
+          onSuccess: () => router.replace('/'),
+          onError: alertError('나가기 실패'),
+        }),
+    );
 
   /** 구성원 ⋯ 메뉴 — 차단/해제 · 신고 · (관리자) 내보내기. App Store 1.2 UGC 요건 */
   const openMemberActions = (member: Member) => {
@@ -176,6 +200,10 @@ export default function FamilyScreen() {
           </View>
         </View>
         ) : null}
+
+        <Pressable onPress={confirmLeave} disabled={leave.isPending} style={styles.leaveRow} accessibilityRole="button">
+          <Text style={styles.leaveText}>{leave.isPending ? '나가는 중…' : '가족 공간 나가기'}</Text>
+        </Pressable>
       </ScrollView>
       )}
     </View>
@@ -183,6 +211,16 @@ export default function FamilyScreen() {
 }
 
 const styles = StyleSheet.create({
+  leaveRow: {
+    marginTop: 28,
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  leaveText: {
+    fontSize: 13,
+    color: colors.danger,
+    textDecorationLine: 'underline',
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.bg,

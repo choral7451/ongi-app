@@ -373,6 +373,24 @@ export function useUnblockMember() {
   return useMutation({ mutationFn: familyApi.unblockMember, onSuccess: invalidate });
 }
 
+/** 가족 공간 나가기 — 내 그룹 목록을 갱신하고, 남은 그룹이 있으면 첫 번째로 전환 (없으면 비움) */
+export function useLeaveGroup() {
+  const queryClient = useQueryClient();
+  const setActiveGroup = useSession((s) => s.setActiveGroup);
+  return useMutation({
+    mutationFn: (groupId: string) => groupsApi.leaveGroup(groupId),
+    onSuccess: async (_void, groupId) => {
+      queryClient.removeQueries({ queryKey: queryKeys.group(groupId) });
+      queryClient.removeQueries({ queryKey: queryKeys.members(groupId) });
+      queryClient.removeQueries({ queryKey: queryKeys.feed(groupId) });
+      queryClient.removeQueries({ queryKey: queryKeys.albums(groupId) });
+      const groups = await queryClient.fetchQuery({ queryKey: queryKeys.myGroups, queryFn: groupsApi.getMyGroups });
+      setActiveGroup(groups[0]?.id ?? '');
+      queryClient.invalidateQueries({ queryKey: queryKeys.profileStats });
+    },
+  });
+}
+
 export function useRemoveMember() {
   const invalidate = useInvalidateGroupContent();
   const groupId = useActiveGroupId();

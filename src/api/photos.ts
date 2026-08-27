@@ -178,9 +178,11 @@ async function uploadChunk(ids: string[], payload: UploadPayload, withCaption: b
  * 100장 이상도 메모리 폭주 없이 올라가고, 청크 하나가 실패해도 나머지는 계속 진행한 뒤 실패분을 돌려준다.
  */
 export async function uploadPhotos(payload: UploadPayload): Promise<UploadResult> {
+  // 청크 크기는 장수에 맞춰 조절 — 적게 올릴 때도 진행률이 1장 단위로 움직이게 (2장 → 1장씩, 100장 → 10장씩)
+  const chunkSize = Math.max(1, Math.min(UPLOAD_CHUNK_SIZE, Math.ceil(payload.localPhotoIds.length / 4)));
   const chunks: string[][] = [];
-  for (let i = 0; i < payload.localPhotoIds.length; i += UPLOAD_CHUNK_SIZE) {
-    chunks.push(payload.localPhotoIds.slice(i, i + UPLOAD_CHUNK_SIZE));
+  for (let i = 0; i < payload.localPhotoIds.length; i += chunkSize) {
+    chunks.push(payload.localPhotoIds.slice(i, i + chunkSize));
   }
 
   const total = payload.localPhotoIds.length;
