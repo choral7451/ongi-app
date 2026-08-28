@@ -383,30 +383,19 @@ export default function UploadScreen() {
           </View>
         )}
 
-        {multiGroup ? (
-          selectedGroupIds.map((groupId) => {
-            const group = myGroups.data?.find((g) => g.id === groupId);
-            return (
-              <View key={groupId} style={styles.groupCard}>
-                <View style={styles.groupCardHead}>
-                  <Text style={styles.groupCardTitle}>{group?.name ?? ''}</Text>
-                  <View style={styles.groupCardRule} />
-                </View>
-                <GroupTargetFields
-                  groupId={groupId}
-                  draft={draftOf(groupId)}
-                  onChange={setDraftOf(groupId)}
-                />
+        {/* 공간 1개든 여러 개든 같은 카드 UI — 공간 이름 + 그 공간의 앨범 칩 */}
+        {selectedGroupIds.map((groupId) => {
+          const group = myGroups.data?.find((g) => g.id === groupId);
+          return (
+            <View key={groupId} style={styles.groupCard}>
+              <View style={styles.groupCardHead}>
+                <Text style={styles.groupCardTitle}>{group?.name ?? ''}</Text>
+                <View style={styles.groupCardRule} />
               </View>
-            );
-          })
-        ) : (
-          <GroupTargetFields
-            groupId={selectedGroupIds[0]}
-            draft={draftOf(selectedGroupIds[0])}
-            onChange={setDraftOf(selectedGroupIds[0])}
-          />
-        )}
+              <GroupTargetFields groupId={groupId} draft={draftOf(groupId)} onChange={setDraftOf(groupId)} />
+            </View>
+          );
+        })}
 
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>설명</Text>
