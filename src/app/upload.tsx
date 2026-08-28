@@ -75,6 +75,9 @@ function GroupTargetFields({ groupId, draft, onChange }: GroupTargetFieldsProps)
   );
 }
 
+/** 미리보기 높이 — 선택 여부·비율과 무관하게 고정해 그리드 위치가 흔들리지 않게 */
+const PREVIEW_HEIGHT = 240;
+
 /** 1c — 사진 올리기: 사진·설명은 공통, 앨범·인물은 그룹별로 지정 */
 export default function UploadScreen() {
   const insets = useSafeAreaInsets();
@@ -136,19 +139,23 @@ export default function UploadScreen() {
       return has ? prev.filter((x) => x !== id) : prev;
     });
   };
+  const measureGrid = () => {
+    gridRef.current?.measureInWindow((x, y, width) => {
+      gridOrigin.current = { x, y, width };
+    });
+  };
   const panResponder = useRef(
     PanResponder.create({
-      // 가로로 먼저 움직이면 드래그 선택 시작 (세로는 스크롤에 양보)
-      onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
+      // 가로로 먼저 움직이면 드래그 선택 시작 (세로로 먼저 움직이면 스크롤에 양보)
+      onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 4 && Math.abs(g.dx) >= Math.abs(g.dy),
       onPanResponderGrant: (e) => {
-        gridRef.current?.measureInWindow((x, y, width) => {
-          gridOrigin.current = { x, y, width };
-          const id = cellAt(e.nativeEvent.pageX, e.nativeEvent.pageY);
-          dragVisited.current = new Set();
-          dragMode.current = id && selectedIdsRef.current.includes(id) ? 'deselect' : 'select';
-          setDragging(true);
-          if (id) applyDrag(id);
-        });
+        // 원점은 onLayout/스크롤 때 미리 측정해 둔 값으로 즉시 계산 (measure 콜백을 기다리면 첫 칸을 놓친다)
+        measureGrid();
+        const id = cellAt(e.nativeEvent.pageX, e.nativeEvent.pageY);
+        dragVisited.current = new Set();
+        dragMode.current = id && selectedIdsRef.current.includes(id) ? 'deselect' : 'select';
+        setDragging(true);
+        if (id) applyDrag(id);
       },
       onPanResponderMove: (e) => {
         if (!dragMode.current) return;
@@ -271,6 +278,7 @@ export default function UploadScreen() {
         scrollEnabled={!dragging}
         scrollEventThrottle={200}
         onScroll={(e) => {
+          measureGrid();
           // 갤러리 그리드 끝 근처에서 다음 60장 자동 로드
           const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
           if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 600 && localPhotos.hasNextPage && !localPhotos.isFetchingNextPage) {
@@ -325,7 +333,7 @@ export default function UploadScreen() {
               keyExtractor={(photo) => photo.id}
               renderItem={({ item }) => (
                 <View style={{ width: pageWidth }}>
-                  <Plate uri={item.uri} aspectRatio={item.aspectRatio || 1} />
+                  <Plate uri={item.uri} height={PREVIEW_HEIGHT} contentFit="contain" />
                 </View>
               )}
               getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
@@ -337,6 +345,7 @@ export default function UploadScreen() {
                 setPreviewIndex(Math.round(e.nativeEvent.contentOffset.x / pageWidth))
               }
             />
+            {/* 인디케이터 영역은 항상 같은 높이 — 장수에 따라 레이아웃이 튀지 않게 */}
             {selectedPhotos.length > 1 && selectedPhotos.length <= 12 ? (
               <View style={styles.dots}>
                 {selectedPhotos.map((photo, index) => (
@@ -350,7 +359,9 @@ export default function UploadScreen() {
               <Text style={styles.pageCounter}>
                 {shownIndex + 1} / {selectedPhotos.length}
               </Text>
-            ) : null}
+            ) : (
+              <View style={styles.dots} />
+            )}
           </View>
         ) : (
           <View style={styles.previewEmpty}>
@@ -358,48 +369,6 @@ export default function UploadScreen() {
             <Text style={styles.previewEmptyText}>아래에서 사진을 선택해 주세요</Text>
           </View>
         )}
-
-        <SectionHeader
-          title="최근 사진"
-          size="sm"
-          meta={selectedIds.length > 0 ? `${selectedIds.length}장 선택됨` : undefined}
-        />
-        <View ref={gridRef} style={styles.grid} {...panResponder.panHandlers}>
-          {localPhotos.data?.photos.map((photo) => {
-            const order = selectedIds.indexOf(photo.id);
-            const selected = order >= 0;
-            return (
-              <Pressable
-                key={photo.id}
-                style={[styles.cell, selected && styles.cellSelected]}
-                onPress={() => toggleSelect(photo.id)}
-              >
-                <Image source={{ uri: photo.uri }} style={styles.cellImage} />
-                {selected ? (
-                  <View style={styles.orderBadge}>
-                    <Text style={styles.orderText}>{order + 1}</Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-        {localPhotos.hasNextPage ? (
-          <Pressable onPress={() => void localPhotos.fetchNextPage()} disabled={localPhotos.isFetchingNextPage} style={styles.libraryButton}>
-            <Text style={styles.libraryButtonText}>{localPhotos.isFetchingNextPage ? '불러오는 중…' : '사진 더 보기'}</Text>
-          </Pressable>
-        ) : null}
-        {localPhotos.data && !localPhotos.isLoading && localPhotos.data.photos.length === 0 ? (
-          <Text style={styles.libraryHint}>사진 보관함에 사진이 없거나 접근 권한이 없어요. 설정에서 온기의 사진 접근을 허용해 주세요.</Text>
-        ) : null}
-        {localPhotos.data?.limited ? (
-          <Pressable
-            onPress={() => photosApi.presentLimitedLibraryPicker().then(() => localPhotos.refetch())}
-            style={styles.libraryButton}
-          >
-            <Text style={styles.libraryButtonText}>접근 가능한 사진 더 고르기</Text>
-          </Pressable>
-        ) : null}
 
         {multiGroup ? (
           selectedGroupIds.map((groupId) => {
@@ -436,6 +405,48 @@ export default function UploadScreen() {
             placeholderTextColor={colors.neutral500}
           />
         </View>
+        <SectionHeader
+          title="최근 사진"
+          size="sm"
+          meta={selectedIds.length > 0 ? `${selectedIds.length}장 선택됨` : undefined}
+        />
+        <View ref={gridRef} style={styles.grid} onLayout={measureGrid} {...panResponder.panHandlers}>
+          {localPhotos.data?.photos.map((photo) => {
+            const order = selectedIds.indexOf(photo.id);
+            const selected = order >= 0;
+            return (
+              <Pressable
+                key={photo.id}
+                style={[styles.cell, selected && styles.cellSelected]}
+                onPress={() => toggleSelect(photo.id)}
+              >
+                <Image source={{ uri: photo.uri }} style={styles.cellImage} />
+                {selected ? (
+                  <View style={styles.orderBadge}>
+                    <Text style={styles.orderText}>{order + 1}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+        {localPhotos.hasNextPage ? (
+          <Pressable onPress={() => void localPhotos.fetchNextPage()} disabled={localPhotos.isFetchingNextPage} style={styles.libraryButton}>
+            <Text style={styles.libraryButtonText}>{localPhotos.isFetchingNextPage ? '불러오는 중…' : '사진 더 보기'}</Text>
+          </Pressable>
+        ) : null}
+        {localPhotos.data && !localPhotos.isLoading && localPhotos.data.photos.length === 0 ? (
+          <Text style={styles.libraryHint}>사진 보관함에 사진이 없거나 접근 권한이 없어요. 설정에서 온기의 사진 접근을 허용해 주세요.</Text>
+        ) : null}
+        {localPhotos.data?.limited ? (
+          <Pressable
+            onPress={() => photosApi.presentLimitedLibraryPicker().then(() => localPhotos.refetch())}
+            style={styles.libraryButton}
+          >
+            <Text style={styles.libraryButtonText}>접근 가능한 사진 더 고르기</Text>
+          </Pressable>
+        ) : null}
+
       </ScrollView>
       {upload.isPending ? (
         <View style={styles.overlay} pointerEvents="auto" accessibilityViewIsModal accessibilityLabel="사진 올리는 중">
@@ -554,6 +565,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 5,
+    height: 14,
+    alignItems: 'center',
   },
   dot: {
     width: 6,
@@ -565,13 +578,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   pageCounter: {
+    height: 14,
+    lineHeight: 14,
     textAlign: 'center',
     fontSize: 11,
     color: colors.textMuted,
     fontVariant: ['tabular-nums'],
   },
   previewEmpty: {
-    height: 230,
+    height: PREVIEW_HEIGHT + 8 + 14,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
