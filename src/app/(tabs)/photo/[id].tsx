@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,8 +13,8 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../../components/ui/Avatar';
@@ -165,8 +166,9 @@ export default function PhotoDetailScreen() {
       {
         onSuccess: () => {
           setDraft('');
-          // 방금 쓴 댓글이 목록 맨 아래에 붙으므로 그쪽으로 스크롤
-          setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+          // 키보드를 내리고, 방금 쓴 댓글(목록 맨 아래)로 스크롤
+          Keyboard.dismiss();
+          setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
         },
       },
     );
