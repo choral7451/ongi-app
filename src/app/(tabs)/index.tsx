@@ -146,10 +146,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.heading,
-    fontSize: 40,
-    lineHeight: 46,
-    letterSpacing: 3,
+    // 세로는 낮게, 가로는 넓게 — 글자 간격 + 가로 확대
+    fontSize: 30,
+    lineHeight: 34,
+    letterSpacing: 5,
     color: colors.text,
+    transform: [{ scaleX: 1.25 }],
+    transformOrigin: 'left',
   },
   list: {
     paddingHorizontal: 20,

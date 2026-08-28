@@ -92,6 +92,9 @@ export interface LocalPhotos {
   photos: LocalPhoto[];
   /** iOS '선택한 사진만' 접근 모드 — 사진을 더 고를 수 있는 버튼을 보여준다 */
   limited: boolean;
+  /** 다음 페이지 커서 — 없으면 끝 */
+  endCursor?: string;
+  hasNextPage: boolean;
 }
 
 export interface LocalPhoto {

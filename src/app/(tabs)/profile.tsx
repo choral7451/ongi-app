@@ -39,7 +39,6 @@ function confirmAction(
   destructive = false,
 ) {
   if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
     if (window.confirm(`${title}\n\n${message}`)) onConfirm();
     return;
   }
@@ -252,6 +251,10 @@ export default function ProfileScreen() {
             numColumns={3}
             columnWrapperStyle={styles.pickerRow}
             contentContainerStyle={[styles.pickerContent, { paddingBottom: insets.bottom + 24 }]}
+            onEndReached={() => {
+              if (localPhotos.hasNextPage && !localPhotos.isFetchingNextPage) void localPhotos.fetchNextPage();
+            }}
+            onEndReachedThreshold={0.5}
             renderItem={({ item }) => (
               <Pressable style={styles.pickerCell} onPress={() => pickAvatar(item.id)}>
                 <Image source={{ uri: item.uri }} style={styles.pickerImage} />

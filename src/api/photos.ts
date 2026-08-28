@@ -76,20 +76,26 @@ export function addComment(params: {
   return post<Comment>(`/ongi/photos/${params.photoId}/comments`, { text: params.text });
 }
 
-/** 업로드 화면 — 기기 갤러리의 최근 사진. 권한이 거부되면 빈 목록 */
-export async function getLocalPhotos(): Promise<LocalPhotos> {
+/** 한 번에 불러오는 갤러리 사진 수 — 스크롤 끝에서 이어서 불러온다 */
+export const LOCAL_PHOTOS_PAGE = 60;
+
+/** 업로드 화면 — 기기 갤러리 사진(최신순). after 커서로 다음 페이지. 권한이 거부되면 빈 목록 */
+export async function getLocalPhotos(after?: string): Promise<LocalPhotos> {
   const permission = await MediaLibrary.requestPermissionsAsync();
-  if (!permission.granted) return { photos: [], limited: false };
+  if (!permission.granted) return { photos: [], limited: false, hasNextPage: false };
   const limited = permission.accessPrivileges === 'limited';
 
   const page = await MediaLibrary.getAssetsAsync({
     mediaType: MediaLibrary.MediaType.photo,
     sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-    first: 60,
+    first: LOCAL_PHOTOS_PAGE,
+    ...(after ? { after } : {}),
   });
 
   return {
     limited,
+    endCursor: page.endCursor,
+    hasNextPage: page.hasNextPage,
     photos: page.assets.map((asset) => ({
       id: asset.id,
       uri: asset.uri,

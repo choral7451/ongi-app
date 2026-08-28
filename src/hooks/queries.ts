@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { albumsApi, familyApi, groupsApi, photosApi, profileApi, reportsApi } from '../api';
 import type { UploadPayload } from '../api/photos';
@@ -130,8 +130,27 @@ export function useComments(photoId: string) {
 }
 
 /** 기기 사진 보관함 — queryFn 이 권한을 요청하므로 사용자가 실제로 사진을 고르려 할 때만 enabled 로 켠다 */
+/** 기기 갤러리 사진 — 60장씩 무한 스크롤. data 는 지금까지 불러온 페이지를 합친 모양 */
 export function useLocalPhotos(enabled = true) {
-  return useQuery({ queryKey: queryKeys.localPhotos, queryFn: photosApi.getLocalPhotos, enabled });
+  const query = useInfiniteQuery({
+    queryKey: queryKeys.localPhotos,
+    queryFn: ({ pageParam }) => photosApi.getLocalPhotos(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => (last.hasNextPage ? last.endCursor : undefined),
+    enabled,
+  });
+  const pages = query.data?.pages;
+  const data = pages
+    ? { photos: pages.flatMap((p) => p.photos), limited: pages[0]?.limited ?? false }
+    : undefined;
+  return {
+    data,
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+    fetchNextPage: query.fetchNextPage,
+    hasNextPage: query.hasNextPage,
+    isFetchingNextPage: query.isFetchingNextPage,
+  };
 }
 
 export function useAlbums() {

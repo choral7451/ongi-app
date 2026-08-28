@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Check, Image as ImageIcon, X } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  PanResponder,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -105,6 +106,68 @@ export default function UploadScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const pageWidth = windowWidth - 40; // content 좌우 패딩 20씩 제외
   const [previewIndex, setPreviewIndex] = useState(0);
+
+  // ── 드래그 선택: 그리드 위에서 가로로 끌기 시작하면 지나간 칸을 선택(첫 칸이 이미 선택돼 있었으면 해제) ──
+  const GRID_COLUMNS = 4;
+  const GRID_GAP = 6;
+  const gridRef = useRef<View>(null);
+  const gridOrigin = useRef({ x: 0, y: 0, width: 0 });
+  const dragMode = useRef<'select' | 'deselect' | null>(null);
+  const dragVisited = useRef(new Set<string>());
+  const [dragging, setDragging] = useState(false);
+  const photosRef = useRef<{ id: string }[]>([]);
+  photosRef.current = localPhotos.data?.photos ?? [];
+
+  const cellAt = (pageX: number, pageY: number): string | null => {
+    const { x, y, width } = gridOrigin.current;
+    if (width <= 0) return null;
+    const cellW = (width - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
+    const col = Math.floor((pageX - x) / (cellW + GRID_GAP));
+    const row = Math.floor((pageY - y) / (cellW + GRID_GAP));
+    if (col < 0 || col >= GRID_COLUMNS || row < 0) return null;
+    return photosRef.current[row * GRID_COLUMNS + col]?.id ?? null;
+  };
+  const applyDrag = (id: string) => {
+    if (dragVisited.current.has(id)) return;
+    dragVisited.current.add(id);
+    setSelectedIds((prev) => {
+      const has = prev.includes(id);
+      if (dragMode.current === 'select') return has || prev.length >= UPLOAD_MAX_SELECT ? prev : [...prev, id];
+      return has ? prev.filter((x) => x !== id) : prev;
+    });
+  };
+  const panResponder = useRef(
+    PanResponder.create({
+      // 가로로 먼저 움직이면 드래그 선택 시작 (세로는 스크롤에 양보)
+      onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderGrant: (e) => {
+        gridRef.current?.measureInWindow((x, y, width) => {
+          gridOrigin.current = { x, y, width };
+          const id = cellAt(e.nativeEvent.pageX, e.nativeEvent.pageY);
+          dragVisited.current = new Set();
+          dragMode.current = id && selectedIdsRef.current.includes(id) ? 'deselect' : 'select';
+          setDragging(true);
+          if (id) applyDrag(id);
+        });
+      },
+      onPanResponderMove: (e) => {
+        if (!dragMode.current) return;
+        const id = cellAt(e.nativeEvent.pageX, e.nativeEvent.pageY);
+        if (id) applyDrag(id);
+      },
+      onPanResponderRelease: () => {
+        dragMode.current = null;
+        setDragging(false);
+      },
+      onPanResponderTerminate: () => {
+        dragMode.current = null;
+        setDragging(false);
+      },
+      onPanResponderTerminationRequest: () => false,
+    }),
+  ).current;
+  const selectedIdsRef = useRef<string[]>([]);
+  selectedIdsRef.current = selectedIds;
   const shownIndex = Math.min(previewIndex, Math.max(selectedPhotos.length - 1, 0));
 
   const toggleSelect = (id: string) =>
@@ -203,7 +266,18 @@ export default function UploadScreen() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        scrollEnabled={!dragging}
+        scrollEventThrottle={200}
+        onScroll={(e) => {
+          // 갤러리 그리드 끝 근처에서 다음 60장 자동 로드
+          const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+          if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 600 && localPhotos.hasNextPage && !localPhotos.isFetchingNextPage) {
+            void localPhotos.fetchNextPage();
+          }
+        }}
+      >
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>올릴 공간</Text>
           {noGroup ? (
@@ -290,7 +364,7 @@ export default function UploadScreen() {
           size="sm"
           meta={selectedIds.length > 0 ? `${selectedIds.length}장 선택됨` : undefined}
         />
-        <View style={styles.grid}>
+        <View ref={gridRef} style={styles.grid} {...panResponder.panHandlers}>
           {localPhotos.data?.photos.map((photo) => {
             const order = selectedIds.indexOf(photo.id);
             const selected = order >= 0;
@@ -310,6 +384,11 @@ export default function UploadScreen() {
             );
           })}
         </View>
+        {localPhotos.hasNextPage ? (
+          <Pressable onPress={() => void localPhotos.fetchNextPage()} disabled={localPhotos.isFetchingNextPage} style={styles.libraryButton}>
+            <Text style={styles.libraryButtonText}>{localPhotos.isFetchingNextPage ? '불러오는 중…' : '사진 더 보기'}</Text>
+          </Pressable>
+        ) : null}
         {localPhotos.data && !localPhotos.isLoading && localPhotos.data.photos.length === 0 ? (
           <Text style={styles.libraryHint}>사진 보관함에 사진이 없거나 접근 권한이 없어요. 설정에서 온기의 사진 접근을 허용해 주세요.</Text>
         ) : null}
