@@ -2,7 +2,7 @@ import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClie
 import { useEffect } from 'react';
 import { albumsApi, familyApi, groupsApi, photosApi, profileApi, reportsApi } from '../api';
 import type { UploadPayload } from '../api/photos';
-import type { Photo } from '../types';
+import type { Comment, Photo } from '../types';
 import { useActiveGroupId, useSession } from '../store/session';
 
 /**
@@ -440,7 +440,9 @@ export function useAddComment(photoId: string) {
   return useMutation({
     mutationFn: (params: { authorId: string; text: string }) =>
       photosApi.addComment({ photoId, ...params }),
-    onSuccess: () => {
+    onSuccess: (comment) => {
+      // 리페치를 기다리지 않고 바로 목록에 붙여 방금 쓴 댓글이 즉시 보이게
+      queryClient.setQueryData<Comment[]>(queryKeys.comments(photoId), (old) => (old && !old.some((c) => c.id === comment.id) ? [...old, comment] : old));
       queryClient.invalidateQueries({ queryKey: queryKeys.comments(photoId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.photo(photoId) });
       // 댓글 수(commentCount)가 모든 사진 목록 캐시에 복사돼 있으므로 전부 무효화

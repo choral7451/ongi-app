@@ -54,6 +54,7 @@ export default function PhotoDetailScreen() {
 
   // 탭 안에 있어 화면이 언마운트되지 않는다 — 다른 사진으로 다시 들어오면 상태·스크롤을 재동기화
   const pagerRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useEffect(() => {
     setCurrentId(id);
     const index = ctxPhotos?.findIndex((p) => p.id === id) ?? -1;
@@ -161,7 +162,13 @@ export default function PhotoDetailScreen() {
     if (!text) return;
     addComment.mutate(
       { authorId: session.currentUserId, text },
-      { onSuccess: () => setDraft('') },
+      {
+        onSuccess: () => {
+          setDraft('');
+          // 방금 쓴 댓글이 목록 맨 아래에 붙으므로 그쪽으로 스크롤
+          setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+        },
+      },
     );
   };
 
@@ -202,7 +209,7 @@ export default function PhotoDetailScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {ctxPhotos && ctxPhotos.length > 1 ? (
           <ScrollView
             ref={pagerRef}
