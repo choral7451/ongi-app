@@ -56,6 +56,11 @@ export default function PhotoDetailScreen() {
   // 탭 안에 있어 화면이 언마운트되지 않는다 — 다른 사진으로 다시 들어오면 상태·스크롤을 재동기화
   const pagerRef = useRef<ScrollView>(null);
   const scrollRef = useRef<ScrollView>(null);
+  // 상세에 들어올 때 입력창에 포커스가 남아 키보드가 올라오지 않도록
+  useEffect(() => {
+    Keyboard.dismiss();
+  }, [id]);
+
   useEffect(() => {
     setCurrentId(id);
     const index = ctxPhotos?.findIndex((p) => p.id === id) ?? -1;
