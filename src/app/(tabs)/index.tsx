@@ -145,13 +145,14 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   title: {
-    fontFamily: fonts.heading,
-    // 세로는 낮게, 가로는 넓게 — 글자 간격 + 가로 확대
-    fontSize: 30,
-    lineHeight: 34,
-    letterSpacing: 5,
+    fontFamily: fonts.logo,
+    // 세로는 낮게, 가로는 넓고 굵게 — 글자 간격 + 가로 확대. 왼쪽 여백은 확대 기준점(왼쪽)에 맞춰 살짝 띄운다
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: 6,
     color: colors.text,
-    transform: [{ scaleX: 1.25 }],
+    marginLeft: 6,
+    transform: [{ scaleX: 1.4 }],
     transformOrigin: 'left',
   },
   list: {

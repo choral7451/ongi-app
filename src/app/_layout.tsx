@@ -1,6 +1,7 @@
 import {
   NotoSerifKR_400Regular,
   NotoSerifKR_600SemiBold,
+  NotoSerifKR_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/noto-serif-kr';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -35,6 +36,7 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     NotoSerifKR_400Regular,
     NotoSerifKR_600SemiBold,
+    NotoSerifKR_800ExtraBold,
   });
   // 폰트 로드에 실패해도 시스템 폰트로 진행 — 스플래시에 갇히지 않게
   const fontsReady = fontsLoaded || !!fontError;

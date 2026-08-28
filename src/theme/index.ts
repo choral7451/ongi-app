@@ -52,6 +52,8 @@ export const radius = {
 /** 세리프 헤딩 폰트 패밀리 (NotoSerifKR — 앱 로드시 등록) */
 export const fonts = {
   heading: 'NotoSerifKR_600SemiBold',
+  /** 로고 전용 — 굵고 넓게 */
+  logo: 'NotoSerifKR_800ExtraBold',
   headingRegular: 'NotoSerifKR_400Regular',
 } as const;
 
