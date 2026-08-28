@@ -220,11 +220,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   logo: {
-    fontFamily: fonts.heading,
-    fontSize: 64,
-    lineHeight: 76,
-    letterSpacing: 6,
+    fontFamily: fonts.logo,
+    fontSize: 60,
+    lineHeight: 70,
+    letterSpacing: 4,
     color: colors.text,
+    transform: [{ scaleX: 1.15 }],
   },
   logoRule: {
     width: 56,
