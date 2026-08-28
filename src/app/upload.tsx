@@ -115,6 +115,8 @@ export default function UploadScreen() {
   const GRID_GAP = 6;
   const gridRef = useRef<View>(null);
   const gridOrigin = useRef({ x: 0, y: 0, width: 0 });
+  /** 실제 렌더된 셀 한 변 — 셀 폭이 % 라 계산값과 어긋나므로 첫 셀의 onLayout 으로 측정 */
+  const cellSize = useRef(0);
   const dragMode = useRef<'select' | 'deselect' | null>(null);
   const dragVisited = useRef(new Set<string>());
   const [dragging, setDragging] = useState(false);
@@ -123,11 +125,15 @@ export default function UploadScreen() {
 
   const cellAt = (pageX: number, pageY: number): string | null => {
     const { x, y, width } = gridOrigin.current;
-    if (width <= 0) return null;
-    const cellW = (width - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
-    const col = Math.floor((pageX - x) / (cellW + GRID_GAP));
-    const row = Math.floor((pageY - y) / (cellW + GRID_GAP));
-    if (col < 0 || col >= GRID_COLUMNS || row < 0) return null;
+    const cellW = cellSize.current || (width - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
+    if (width <= 0 || cellW <= 0) return null;
+    const relX = pageX - x;
+    const relY = pageY - y;
+    if (relX < 0 || relY < 0) return null;
+    const col = Math.floor(relX / (cellW + GRID_GAP));
+    const row = Math.floor(relY / (cellW + GRID_GAP));
+    // 셀과 셀 사이 간격 위에 있으면 무시하지 않고 가까운 셀로 취급 (col 은 범위만 제한)
+    if (col >= GRID_COLUMNS) return null;
     return photosRef.current[row * GRID_COLUMNS + col]?.id ?? null;
   };
   const applyDrag = (id: string) => {
@@ -421,6 +427,9 @@ export default function UploadScreen() {
                 key={photo.id}
                 style={[styles.cell, selected && styles.cellSelected]}
                 onPress={() => toggleSelect(photo.id)}
+                onLayout={(e) => {
+                  if (!cellSize.current) cellSize.current = e.nativeEvent.layout.width;
+                }}
               >
                 <Image source={{ uri: photo.uri }} style={styles.cellImage} />
                 {selected ? (
