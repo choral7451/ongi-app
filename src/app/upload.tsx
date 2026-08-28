@@ -144,10 +144,23 @@ export default function UploadScreen() {
       gridOrigin.current = { x, y, width };
     });
   };
+  /** 터치 시작 시각 — 잠깐(HOLD_MS) 누른 뒤 끌면 방향과 상관없이 드래그 선택 */
+  const touchStartedAt = useRef(0);
+  const HOLD_MS = 180;
   const panResponder = useRef(
     PanResponder.create({
-      // 가로로 먼저 움직이면 드래그 선택 시작 (세로로 먼저 움직이면 스크롤에 양보)
-      onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 4 && Math.abs(g.dx) >= Math.abs(g.dy),
+      // 터치 시작만 기록하고 responder 는 가져가지 않는다 (탭은 그대로 Pressable 이 처리)
+      onStartShouldSetPanResponderCapture: () => {
+        touchStartedAt.current = Date.now();
+        return false;
+      },
+      // ① 잠깐 누른 뒤 끌면 어느 방향이든 드래그 선택  ② 바로 끌 땐 가로 방향일 때만 (세로는 스크롤에 양보)
+      onMoveShouldSetPanResponderCapture: (_e, g) => {
+        const moved = Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4;
+        if (!moved) return false;
+        const held = Date.now() - touchStartedAt.current >= HOLD_MS;
+        return held || Math.abs(g.dx) >= Math.abs(g.dy);
+      },
       onPanResponderGrant: (e) => {
         // 원점은 onLayout/스크롤 때 미리 측정해 둔 값으로 즉시 계산 (measure 콜백을 기다리면 첫 칸을 놓친다)
         measureGrid();
