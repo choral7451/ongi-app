@@ -53,7 +53,7 @@ export const radius = {
 export const fonts = {
   heading: 'NotoSerifKR_600SemiBold',
   /** 로고 전용 — 굵고 넓게 */
-  logo: 'NotoSerifKR_800ExtraBold',
+  logo: 'Fredoka_700Bold',
   headingRegular: 'NotoSerifKR_400Regular',
 } as const;
 

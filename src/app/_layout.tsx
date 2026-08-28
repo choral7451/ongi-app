@@ -1,3 +1,4 @@
+import { Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import {
   NotoSerifKR_400Regular,
   NotoSerifKR_600SemiBold,
@@ -37,6 +38,7 @@ export default function RootLayout() {
     NotoSerifKR_400Regular,
     NotoSerifKR_600SemiBold,
     NotoSerifKR_800ExtraBold,
+    Fredoka_700Bold,
   });
   // 폰트 로드에 실패해도 시스템 폰트로 진행 — 스플래시에 갇히지 않게
   const fontsReady = fontsLoaded || !!fontError;
