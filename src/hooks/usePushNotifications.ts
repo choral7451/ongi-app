@@ -1,11 +1,8 @@
-import Constants from 'expo-constants';
-import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
-import { registerPushToken } from '../api/push';
-import { getRegisteredPushToken, setRegisteredPushToken } from '../push/token';
+import { useEffect } from 'react';
+import { AppState } from 'react-native';
+import { usePushStore } from '../store/push';
 import { useSession } from '../store/session';
 
 // 앱이 켜져 있을 때도 배너로 보여준다
@@ -18,44 +15,26 @@ Notifications.setNotificationHandler({
   }),
 });
 
-async function fetchExpoPushToken(): Promise<string | null> {
-  // 시뮬레이터는 푸시 토큰을 받을 수 없다
-  if (!Device.isDevice) return null;
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  const status = existing === 'granted' ? existing : (await Notifications.requestPermissionsAsync()).status;
-  if (status !== 'granted') return null;
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
-  const { data } = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
-  return data;
-}
-
 /**
- * 로그인 상태가 되면 권한을 묻고 푸시 토큰을 서버에 등록한다.
+ * 로그인 상태가 되면 (앱 내 스위치가 켜져 있을 때) 권한을 묻고 푸시 토큰을 서버에 등록한다.
+ * 앱이 다시 활성화될 때도 동기화해, iOS 설정에서 알림을 켜고 돌아온 경우를 잡는다.
  * 알림을 탭하면 페이로드(groupId, photoId)로 해당 사진 상세로 이동.
  */
 export function usePushNotifications() {
   const isAuthenticated = useSession((s) => s.isAuthenticated);
   const setActiveGroup = useSession((s) => s.setActiveGroup);
+  const hydrate = usePushStore((s) => s.hydrate);
+  const sync = usePushStore((s) => s.sync);
   const router = useRouter();
-  const registering = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated || registering.current) return;
-    registering.current = true;
-    (async () => {
-      try {
-        const token = await fetchExpoPushToken();
-        if (token && token !== getRegisteredPushToken()) {
-          await registerPushToken(token, Platform.OS === 'android' ? 'android' : 'ios');
-          setRegisteredPushToken(token);
-        }
-      } catch {
-        // 권한 거부·네트워크 실패는 조용히 무시 — 다음 로그인 때 다시 시도
-      } finally {
-        registering.current = false;
-      }
-    })();
-  }, [isAuthenticated]);
+    if (!isAuthenticated) return;
+    void hydrate().then(() => sync());
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void sync();
+    });
+    return () => sub.remove();
+  }, [isAuthenticated, hydrate, sync]);
 
   useEffect(() => {
     const open = (data: Record<string, unknown> | undefined) => {

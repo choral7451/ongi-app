@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Camera, ChevronRight, FileText, Mail, Pencil, ShieldCheck, Users, X } from 'lucide-react-native';
+import { Bell, Camera, ChevronRight, FileText, Mail, Pencil, ShieldCheck, Users, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
@@ -12,6 +12,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -28,6 +29,7 @@ import {
   useUploadAvatar,
 } from '../../hooks/queries';
 import { useSession } from '../../store/session';
+import { usePushStore } from '../../store/push';
 import { colors, fonts, iconStroke } from '../../theme';
 
 /** Alert는 웹에서 동작하지 않아 웹은 window.confirm으로 대체 */
@@ -78,6 +80,9 @@ function SettingRow({ icon, label, trailing, divider = true, onPress }: SettingR
 
 /** 1f — 프로필 / 설정 */
 export default function ProfileScreen() {
+  const pushEnabled = usePushStore((s) => s.enabled);
+  const pushStatus = usePushStore((s) => s.status);
+  const setPushEnabled = usePushStore((s) => s.setEnabled);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const session = useSession();
@@ -180,7 +185,47 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <SectionHeader title="가족 공간" size="sm" />
+        <SectionHeader title="알림" size="sm" />
+        <SettingRow
+          icon={<Bell size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
+          label="푸시 알림"
+          divider={false}
+          trailing={
+            <View style={styles.pushTrailing}>
+              <Text style={styles.pushStatus}>
+                {!pushEnabled
+                  ? '꺼짐'
+                  : pushStatus === 'registered'
+                    ? '켜짐'
+                    : pushStatus === 'denied'
+                      ? 'iOS 설정에서 꺼짐'
+                      : pushStatus === 'unavailable'
+                        ? '이 기기에서 지원 안 함'
+                        : pushStatus === 'error'
+                          ? '등록 실패'
+                          : ''}
+              </Text>
+              <Switch
+                value={pushEnabled}
+                onValueChange={(v) =>
+                  void setPushEnabled(v).then((status) => {
+                    if (v && status === 'denied') {
+                      Alert.alert('알림이 꺼져 있어요', 'iOS 설정에서 온기의 알림을 허용해 주세요.', [
+                        { text: '나중에', style: 'cancel' },
+                        { text: '설정 열기', onPress: () => void Linking.openSettings() },
+                      ]);
+                    }
+                  })
+                }
+                trackColor={{ true: colors.accent }}
+              />
+            </View>
+          }
+        />
+
+        <View style={styles.sectionGap}>
+          <SectionHeader title="가족 공간" size="sm" />
+        </View>
         <SettingRow
           icon={<Users size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
           label="가족 공간 만들기 · 참여 · 전환"
@@ -381,6 +426,15 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: colors.accent700,
+  },
+  pushTrailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pushStatus: {
+    fontSize: 11,
+    color: colors.textMuted,
   },
   sectionGap: {
     marginTop: 24,
