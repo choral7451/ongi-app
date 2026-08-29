@@ -62,7 +62,10 @@ export default function HomeScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>ONGI</Text>
+        {/* scaleX 는 Text 가 아니라 View 에 — Text 에 직접 걸면 transformOrigin 이 무시돼 왼쪽 라인이 어긋난다 */}
+        <View style={styles.titleWrap}>
+          <Text style={styles.title}>ONGI</Text>
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="가족 공간 전환"
@@ -144,15 +147,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     color: colors.accent,
   },
+  titleWrap: {
+    // 가로로 살짝 넓게 — 왼쪽 끝을 기준으로 늘려 콘텐츠 왼쪽 라인(헤더 padding 20)과 맞춘다
+    alignSelf: 'flex-start',
+    transform: [{ scaleX: 1.15 }],
+    transformOrigin: 'left center',
+  },
   title: {
-    // 둥글고 귀여운 로고체(Fredoka) — 가로로 살짝 넓게, 콘텐츠 왼쪽 라인(헤더 padding)에 맞춘다
+    // 둥글고 귀여운 로고체(Fredoka)
     fontFamily: fonts.logo,
     fontSize: 30,
     lineHeight: 34,
     letterSpacing: 3,
     color: colors.text,
-    transform: [{ scaleX: 1.15 }],
-    transformOrigin: 'left',
   },
   list: {
     paddingHorizontal: 20,
