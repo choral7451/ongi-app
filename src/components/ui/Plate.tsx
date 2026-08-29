@@ -12,10 +12,7 @@ interface PlateProps {
   contentFit?: 'cover' | 'contain';
 }
 
-/**
- * 디자인 시스템 .plate — 매트 처리된 사진.
- * 6px 표면색 매트 + 1px 헤어라인 외곽선으로 액자 느낌을 냅니다.
- */
+/** 사진 표시 — 매트·테두리 없이 사진만 (웹과 동일) */
 export function Plate({ uri, height, aspectRatio, style, contentFit = 'cover' }: PlateProps) {
   return (
     <View style={[styles.frame, height != null ? { height } : { aspectRatio }, style]}>
@@ -26,10 +23,7 @@ export function Plate({ uri, height, aspectRatio, style, contentFit = 'cover' }:
 
 const styles = StyleSheet.create({
   frame: {
-    padding: 6,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.divider,
+    overflow: 'hidden',
   },
   image: {
     flex: 1,
