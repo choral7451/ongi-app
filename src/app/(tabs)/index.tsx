@@ -145,13 +145,12 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   title: {
-    // 둥글고 귀여운 로고체(Fredoka) — 가로로 살짝 넓게, 왼쪽에서 띄워서
+    // 둥글고 귀여운 로고체(Fredoka) — 가로로 살짝 넓게, 콘텐츠 왼쪽 라인(헤더 padding)에 맞춘다
     fontFamily: fonts.logo,
     fontSize: 30,
     lineHeight: 34,
     letterSpacing: 3,
     color: colors.text,
-    marginLeft: 14,
     transform: [{ scaleX: 1.15 }],
     transformOrigin: 'left',
   },
