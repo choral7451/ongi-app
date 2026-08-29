@@ -52,6 +52,11 @@ export default function RootLayout() {
     if (fontsReady && !isHydrating) SplashScreen.hideAsync().catch(() => {});
   }, [fontsReady, isHydrating]);
 
+  // 로그아웃 시 이전 계정의 캐시(me·그룹·피드 등)를 비워 다음 계정에 섞이지 않게
+  useEffect(() => {
+    if (!isHydrating && !isAuthenticated) queryClient.clear();
+  }, [isHydrating, isAuthenticated]);
+
   if (!fontsReady || isHydrating) return null;
 
   return (
