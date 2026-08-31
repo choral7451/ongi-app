@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { Copy, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { AppHeader } from '../../components/AppHeader';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoGroupState } from '../../components/NoGroupState';
@@ -121,6 +122,7 @@ export default function FamilyScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <AppHeader />
       <View style={styles.header}>
         {family.data ? (
           <Text style={styles.headerMeta}>

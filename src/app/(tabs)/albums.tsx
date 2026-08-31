@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppHeader } from '../../components/AppHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoGroupState } from '../../components/NoGroupState';
 import { Button } from '../../components/ui/Button';
@@ -94,6 +95,7 @@ export default function AlbumsScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <AppHeader />
       <View style={styles.header}>
         <View />
         {hasNoGroup || !isAdmin ? null : (
