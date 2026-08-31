@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppHeader } from '../../components/AppHeader';
 import { IconButton } from '../../components/ui/Button';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import {
@@ -142,6 +143,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <AppHeader />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileHead}>
           <Pressable onPress={() => setPickerVisible(true)} accessibilityLabel="프로필 이미지 변경">
