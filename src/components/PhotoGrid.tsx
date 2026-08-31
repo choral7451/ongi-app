@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import type { ReactElement } from 'react';
 import { Check } from 'lucide-react-native';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
 import type { Photo } from '../types';
 
@@ -21,6 +21,10 @@ interface PhotoGridProps {
   selectedIds?: Set<string>;
   onToggleSelect?: (photo: Photo) => void;
   canSelect?: (photo: Photo) => boolean;
+  /** 스크롤이 끝에 가까워지면 호출 — 무한 스크롤 다음 페이지 로드 */
+  onEndReached?: () => void;
+  /** 다음 페이지 로딩 중 — 그리드 아래 작은 스피너 */
+  loadingMore?: boolean;
 }
 
 /** 3열 정사각 사진 그리드 — 탭하면 사진 상세로 */
@@ -36,6 +40,8 @@ export function PhotoGrid({
   selectedIds,
   onToggleSelect,
   canSelect,
+  onEndReached,
+  loadingMore = false,
 }: PhotoGridProps) {
   const router = useRouter();
   return (
@@ -46,6 +52,9 @@ export function PhotoGrid({
       columnWrapperStyle={styles.row}
       contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 24 }]}
       ListHeaderComponent={ListHeaderComponent}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerLoading} color={colors.textMuted} /> : null}
       extraData={selectedIds}
       renderItem={({ item }) => {
         const allowed = !selectable || (canSelect?.(item) ?? true);
@@ -89,6 +98,9 @@ export function PhotoGrid({
 }
 
 const styles = StyleSheet.create({
+  footerLoading: {
+    paddingVertical: 16,
+  },
   errorBox: {
     alignItems: 'center',
     gap: 8,

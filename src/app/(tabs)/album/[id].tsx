@@ -157,6 +157,8 @@ export default function AlbumDetailScreen() {
         selectedIds={selectedIds}
         onToggleSelect={toggleSelect}
         canSelect={canDelete}
+        onEndReached={() => photos.hasNextPage && !photos.isFetchingNextPage && photos.fetchNextPage()}
+        loadingMore={photos.isFetchingNextPage}
         ListHeaderComponent={
           <View style={styles.albumHead}>
             {coverUrl ? <Plate uri={coverUrl} height={180} /> : null}

@@ -78,16 +78,17 @@ export default function PhotoDetailScreen() {
   const ctxPersonPhotos = usePersonPhotos(ctxPersonId);
   const ctxUnfiledPhotos = useUnfiledPhotos(ctx === 'unfiled' ? activeGroupId : '');
   // 홈 피드에서 들어온 경우(ctx=feed)는 넘김 없이 그 사진만 본다
-  const ctxPhotos =
+  const ctxQuery =
     ctx === 'all'
-      ? feedQuery.data
+      ? feedQuery
       : ctxAlbumId
-        ? ctxAlbumPhotos.data
+        ? ctxAlbumPhotos
         : ctxPersonId
-          ? ctxPersonPhotos.data
+          ? ctxPersonPhotos
           : ctx === 'unfiled'
-            ? ctxUnfiledPhotos.data
+            ? ctxUnfiledPhotos
             : undefined;
+  const ctxPhotos = ctxQuery?.data;
 
   const { width: windowWidth } = useWindowDimensions();
   const pageWidth = windowWidth - 40; // content 좌우 패딩 20씩 제외
@@ -228,6 +229,8 @@ export default function PhotoDetailScreen() {
               const page = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
               const next = ctxPhotos[page];
               if (next && next.id !== currentId) setCurrentId(next.id);
+              // 마지막으로 불러온 사진까지 넘겼으면 다음 페이지를 불러와 스와이프가 계속 이어지게
+              if (page >= ctxPhotos.length - 1 && ctxQuery?.hasNextPage && !ctxQuery.isFetchingNextPage) ctxQuery.fetchNextPage();
             }}
           >
             {ctxPhotos.map((item) => (

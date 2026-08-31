@@ -37,6 +37,8 @@ export default function PersonDetailScreen() {
         onRetry={() => photos.refetch()}
         bottomInset={insets.bottom}
         detailCtx={`person:${id}`}
+        onEndReached={() => photos.hasNextPage && !photos.isFetchingNextPage && photos.fetchNextPage()}
+        loadingMore={photos.isFetchingNextPage}
         ListHeaderComponent={
           <View style={styles.personHead}>
             <Image source={{ uri: person?.imageUrl }} style={styles.avatar} />

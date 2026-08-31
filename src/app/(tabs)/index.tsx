@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ChevronDown } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedPost } from '../../components/feed/FeedPost';
 import { NoGroupState } from '../../components/NoGroupState';
@@ -90,6 +90,11 @@ export default function HomeScreen() {
         stickySectionHeadersEnabled={false}
         refreshing={refreshing}
         onRefresh={onRefresh}
+        onEndReached={() => {
+          if (feed.hasNextPage && !feed.isFetchingNextPage) feed.fetchNextPage();
+        }}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={feed.isFetchingNextPage ? <ActivityIndicator style={styles.footerLoading} color={colors.textMuted} /> : null}
         renderItem={({ item }) => (
           <View style={styles.postWrap}>
             <FeedPost
@@ -167,6 +172,9 @@ const styles = StyleSheet.create({
   },
   postWrap: {
     marginBottom: 22,
+  },
+  footerLoading: {
+    paddingVertical: 16,
   },
   emptyBox: {
     alignItems: 'center',

@@ -4,29 +4,43 @@ import { Platform } from 'react-native';
 import type { Comment, LocalPhotos, Photo } from '../types';
 import { post, postForm, request } from './client';
 
-async function photoList(path: string): Promise<Photo[]> {
-  const result = await request<{ photos: Photo[] }>(path);
+/** 커서 페이지네이션 — after 는 직전 페이지 마지막 사진 id, 서버는 그보다 오래된 사진을 최신순으로 준다 */
+export interface PhotoListParams {
+  /** 페이지 크기 (1..100) */
+  limit?: number;
+  /** 직전 페이지 마지막 사진 id */
+  after?: string;
+}
+
+async function photoList(path: string, params?: PhotoListParams): Promise<Photo[]> {
+  const query = [
+    params?.limit != null ? `limit=${params.limit}` : '',
+    params?.after ? `after=${encodeURIComponent(params.after)}` : '',
+  ]
+    .filter(Boolean)
+    .join('&');
+  const result = await request<{ photos: Photo[] }>(query ? `${path}?${query}` : path);
   return result.photos;
 }
 
 /** 그룹의 날짜순 피드 (최신순 — 서버 정렬) */
-export function getFeed(groupId: string): Promise<Photo[]> {
-  return photoList(`/ongi/groups/${groupId}/photos`);
+export function getFeed(groupId: string, params?: PhotoListParams): Promise<Photo[]> {
+  return photoList(`/ongi/groups/${groupId}/photos`, params);
 }
 
 /** 앨범에 담긴 사진 (최신순) */
-export function getPhotosByAlbum(albumId: string): Promise<Photo[]> {
-  return photoList(`/ongi/albums/${albumId}/photos`);
+export function getPhotosByAlbum(albumId: string, params?: PhotoListParams): Promise<Photo[]> {
+  return photoList(`/ongi/albums/${albumId}/photos`, params);
 }
 
 /** 인물이 태그된 사진 (최신순) */
-export function getPhotosByPerson(personId: string): Promise<Photo[]> {
-  return photoList(`/ongi/people/${personId}/photos`);
+export function getPhotosByPerson(personId: string, params?: PhotoListParams): Promise<Photo[]> {
+  return photoList(`/ongi/people/${personId}/photos`, params);
 }
 
 /** 앨범에 담기지 않은 그룹 사진 — 앨범 탭의 "미분류" (최신순) */
-export function getUnfiledPhotos(groupId: string): Promise<Photo[]> {
-  return photoList(`/ongi/groups/${groupId}/photos/unfiled`);
+export function getUnfiledPhotos(groupId: string, params?: PhotoListParams): Promise<Photo[]> {
+  return photoList(`/ongi/groups/${groupId}/photos/unfiled`, params);
 }
 
 export function getPhoto(id: string): Promise<Photo> {
