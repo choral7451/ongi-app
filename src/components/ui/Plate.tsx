@@ -16,7 +16,7 @@ interface PlateProps {
 export function Plate({ uri, height, aspectRatio, style, contentFit = 'cover' }: PlateProps) {
   return (
     <View style={[styles.frame, height != null ? { height } : { aspectRatio }, style]}>
-      <Image source={{ uri }} style={styles.image} contentFit={contentFit} transition={200} />
+      <Image source={{ uri }} style={styles.image} contentFit={contentFit} transition={200} cachePolicy="memory-disk" recyclingKey={uri} />
     </View>
   );
 }

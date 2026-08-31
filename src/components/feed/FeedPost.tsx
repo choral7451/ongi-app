@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useRouter } from 'expo-router';
 import { Heart, MessageCircle, MoreHorizontal } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -18,7 +19,9 @@ interface FeedPostProps {
 }
 
 /** 홈 피드의 게시물 하나 — 사진 · 작성자 · 반응 · 캡션 */
-export function FeedPost({ photo, author, album, photoFirst = true }: FeedPostProps) {
+export const FeedPost = memo(FeedPostInner);
+
+function FeedPostInner({ photo, author, album, photoFirst = true }: FeedPostProps) {
   const router = useRouter();
   const toggleLike = useToggleLike();
   const openActions = usePhotoActions();

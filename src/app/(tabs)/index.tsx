@@ -38,6 +38,10 @@ export default function HomeScreen() {
     }
   };
 
+  // 게시물마다 find() 를 돌리지 않도록 맵으로 — 스크롤 중 renderItem 비용 절감
+  const memberById = useMemo(() => new Map((members.data ?? []).map((m) => [m.id, m])), [members.data]);
+  const albumById = useMemo(() => new Map((albums.data ?? []).map((a) => [a.id, a])), [albums.data]);
+
   const sections = useMemo<FeedSection[]>(() => {
     if (!feed.data) return [];
     // 로컬 타임존 기준 날짜로 그룹핑 (UTC/오프셋 혼재 대응)
@@ -94,13 +98,19 @@ export default function HomeScreen() {
           if (feed.hasNextPage && !feed.isFetchingNextPage) feed.fetchNextPage();
         }}
         onEndReachedThreshold={0.5}
+        // 스크롤 버벅임 방지 — 화면 밖 셀 분리, 배치 렌더 억제
+        removeClippedSubviews
+        initialNumToRender={6}
+        maxToRenderPerBatch={4}
+        updateCellsBatchingPeriod={50}
+        windowSize={7}
         ListFooterComponent={feed.isFetchingNextPage ? <ActivityIndicator style={styles.footerLoading} color={colors.textMuted} /> : null}
         renderItem={({ item }) => (
           <View style={styles.postWrap}>
             <FeedPost
               photo={item}
-              author={members.data?.find((m) => m.id === item.authorId)}
-              album={albums.data?.find((a) => a.id === item.albumId)}
+              author={memberById.get(item.authorId)}
+              album={item.albumId ? albumById.get(item.albumId) : undefined}
               photoFirst
             />
           </View>
