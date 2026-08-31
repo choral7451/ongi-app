@@ -73,7 +73,7 @@ export function PhotoGrid({
                   })
             }
           >
-            <Image source={{ uri: item.url }} style={[styles.image, selectable && !allowed && styles.imageDisabled]} transition={150} />
+            <Image source={{ uri: item.thumbUrl ?? item.url }} style={[styles.image, selectable && !allowed && styles.imageDisabled]} transition={150} />
             {selectable && allowed ? (
               <View style={[styles.checkBadge, selected && styles.checkBadgeOn]}>
                 {selected ? <Check size={12} color={colors.bg} strokeWidth={2.5} /> : null}

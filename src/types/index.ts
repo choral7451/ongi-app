@@ -56,6 +56,8 @@ export interface Photo {
   id: string;
   groupId: string;
   url: string;
+  /** 목록용 축소본 URL — 없으면(구버전 사진) url 사용 */
+  thumbUrl?: string;
   /** 세로 비율 힌트 (width/height) — 피드 레이아웃용 */
   aspectRatio: number;
   authorId: string;

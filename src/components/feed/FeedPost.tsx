@@ -30,7 +30,7 @@ function FeedPostInner({ photo, author, album, photoFirst = true }: FeedPostProp
 
   const authorRow = (
     <View style={styles.authorRow}>
-      <Avatar name={author?.name ?? '?'} />
+      <Avatar name={author?.name ?? '?'} uri={author?.avatarUrl} />
       <View style={styles.authorInfo}>
         <Text style={styles.authorName}>{author?.name}</Text>
         <Text style={styles.meta}>
@@ -68,7 +68,7 @@ function FeedPostInner({ photo, author, album, photoFirst = true }: FeedPostProp
       {photoFirst ? (
         <>
           <Pressable onPress={openDetail}>
-            <Plate uri={photo.url} aspectRatio={photo.aspectRatio} />
+            <Plate uri={photo.thumbUrl ?? photo.url} aspectRatio={photo.aspectRatio} />
           </Pressable>
           {authorRow}
         </>
@@ -76,7 +76,7 @@ function FeedPostInner({ photo, author, album, photoFirst = true }: FeedPostProp
         <>
           {authorRow}
           <Pressable onPress={openDetail}>
-            <Plate uri={photo.url} aspectRatio={photo.aspectRatio} />
+            <Plate uri={photo.thumbUrl ?? photo.url} aspectRatio={photo.aspectRatio} />
           </Pressable>
         </>
       )}

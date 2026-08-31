@@ -149,7 +149,7 @@ export default function FamilyScreen() {
                 i < (members.data?.length ?? 0) - 1 && styles.memberDivider,
               ]}
             >
-              <Avatar name={member.name} size={40} pending={member.role === 'pending'} />
+              <Avatar name={member.name} uri={member.avatarUrl} size={40} pending={member.role === 'pending'} />
               <View style={styles.memberInfo}>
                 <Text style={styles.memberName}>
                   {member.name}

@@ -184,10 +184,10 @@ async function uploadChunk(ids: string[], payload: UploadPayload, withCaption: b
       type: 'image/jpeg',
     } as unknown as Blob);
   });
-  const uploaded = await postForm<{ urls: string[] }>('/ongi/photos/files', form);
+  const uploaded = await postForm<{ urls: string[]; thumbUrls?: (string | null)[] }>('/ongi/photos/files', form);
 
   const result = await post<{ photos: Photo[] }>('/ongi/photos', {
-    photos: uploaded.urls.map((url, index) => ({ url, aspectRatio: prepared[index].aspectRatio })),
+    photos: uploaded.urls.map((url, index) => ({ url, thumbUrl: uploaded.thumbUrls?.[index] ?? undefined, aspectRatio: prepared[index].aspectRatio })),
     caption: withCaption ? payload.caption : undefined,
     targets: payload.targets.map((target) => ({
       groupId: target.groupId,

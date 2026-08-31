@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { ChevronDown } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -7,14 +8,21 @@ import { colors, fonts, iconStroke } from '../theme';
 /** 모든 탭 상단에 고정되는 ONGI 로고 + 가족 공간 선택 헤더 */
 export function AppHeader() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const group = useFamily();
+
+  // 로고 탭 → 홈으로 + 피드 새로고침
+  const goHome = () => {
+    queryClient.invalidateQueries({ queryKey: ['feed'] });
+    router.navigate('/');
+  };
 
   return (
     <View style={styles.header}>
       {/* scaleX 는 Text 가 아니라 View 에 — Text 에 직접 걸면 transformOrigin 이 무시돼 왼쪽 라인이 어긋난다 */}
-      <View style={styles.titleWrap}>
+      <Pressable onPress={goHome} accessibilityRole="button" accessibilityLabel="홈으로" hitSlop={8} style={styles.titleWrap}>
         <Text style={styles.title}>ONGI</Text>
-      </View>
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="가족 공간 전환"

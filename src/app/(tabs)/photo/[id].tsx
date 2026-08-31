@@ -253,7 +253,7 @@ export default function PhotoDetailScreen() {
           <>
 
             <View style={styles.authorRow}>
-              <Avatar name={author?.name ?? '?'} />
+              <Avatar name={author?.name ?? '?'} uri={author?.avatarUrl} />
               <View style={styles.authorInfo}>
                 <Text style={styles.authorName}>{author?.name}</Text>
                 <Text style={styles.authorMeta}>
@@ -298,7 +298,7 @@ export default function PhotoDetailScreen() {
                     delayLongPress={350}
                     accessibilityHint="길게 누르면 삭제·신고 메뉴가 열려요"
                   >
-                    <Avatar name={commentAuthor?.name ?? '?'} size={30} />
+                    <Avatar name={commentAuthor?.name ?? '?'} uri={commentAuthor?.avatarUrl} size={30} />
                     <View style={styles.commentBody}>
                       <Text style={styles.commentHead}>
                         <Text style={styles.commentAuthor}>{commentAuthor?.name}</Text>

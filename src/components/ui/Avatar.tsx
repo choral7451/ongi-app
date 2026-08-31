@@ -1,9 +1,12 @@
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, View, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, fonts } from '../../theme';
 
 interface AvatarProps {
   /** 원 안에 보여줄 이름 — 첫 글자만 사용 */
   name: string;
+  /** 프로필 이미지 URL — 있으면 이니셜 대신 이미지 */
+  uri?: string | null;
   size?: number;
   /** 초대 대기 중 스타일 (점선 테두리, 무채색) */
   pending?: boolean;
@@ -11,7 +14,18 @@ interface AvatarProps {
 }
 
 /** 이니셜 아바타 — 세리프 첫 글자, 은은한 파란 배경 */
-export function Avatar({ name, size = 34, pending = false, style }: AvatarProps) {
+export function Avatar({ name, uri, size = 34, pending = false, style }: AvatarProps) {
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }, style] as StyleProp<ImageStyle>}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        recyclingKey={uri}
+      />
+    );
+  }
   return (
     <View
       style={[
