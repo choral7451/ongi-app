@@ -235,12 +235,17 @@ export default function PhotoDetailScreen() {
               if (page >= ctxPhotos.length - 1 && ctxQuery?.hasNextPage && !ctxQuery.isFetchingNextPage) ctxQuery.fetchNextPage();
             }}
           >
-            {ctxPhotos.map((item) => (
-              <View key={item.id} style={{ width: pageWidth }}>
-                {/* 이웃 사진이 더 길면 스와이프 중에만 아래가 잘려 보이고, 넘기고 나면 높이가 맞춰진다 */}
-                <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} />
-              </View>
-            ))}
+            {ctxPhotos.map((item, index) => {
+              // 현재 사진 ±1 장만 실제로 그린다 — 목록 전체(30장+)를 마운트하면 이미지가 전부 로드된다
+              const currentIndex = ctxPhotos.findIndex((p) => p.id === currentId);
+              const near = Math.abs(index - currentIndex) <= 1;
+              return (
+                <View key={item.id} style={{ width: pageWidth }}>
+                  {/* 이웃 사진이 더 길면 스와이프 중에만 아래가 잘려 보이고, 넘기고 나면 높이가 맞춰진다 */}
+                  {near ? <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} /> : null}
+                </View>
+              );
+            })}
           </ScrollView>
         ) : photo.data ? (
           <Plate uri={photo.data.url} aspectRatio={photo.data.aspectRatio || 1} />
