@@ -224,6 +224,8 @@ export default function PhotoDetailScreen() {
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            // 페이저 높이는 '지금 보는 사진' 비율로 — 목록에서 가장 긴 사진 높이로 잡히면 가로 사진 밑에 빈 공간이 생겨 작성자·댓글이 밀려 내려간다
+            style={{ height: pageWidth / ((ctxPhotos.find((p) => p.id === currentId) ?? photo.data)?.aspectRatio || 1) }}
             contentOffset={{ x: Math.max(ctxPhotos.findIndex((p) => p.id === id), 0) * pageWidth, y: 0 }}
             onMomentumScrollEnd={(e) => {
               const page = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
@@ -235,6 +237,7 @@ export default function PhotoDetailScreen() {
           >
             {ctxPhotos.map((item) => (
               <View key={item.id} style={{ width: pageWidth }}>
+                {/* 이웃 사진이 더 길면 스와이프 중에만 아래가 잘려 보이고, 넘기고 나면 높이가 맞춰진다 */}
                 <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} />
               </View>
             ))}
