@@ -13,6 +13,8 @@
       "buildNumber": "1",
       "supportsTablet": false,
       "infoPlist": {
+        "CFBundleDevelopmentRegion": "ko",
+        "CFBundleLocalizations": ["ko"],
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "온기",
         "NSAppTransportSecurity": {
