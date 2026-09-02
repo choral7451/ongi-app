@@ -6,9 +6,12 @@ import {
   useFonts,
 } from '@expo-google-fonts/noto-serif-kr';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Constants from 'expo-constants';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { compareVersions, getAppConfig } from '../api/config';
+import { ForceUpdateScreen } from '../components/ForceUpdateScreen';
 import { useSession } from '../store/session';
 import { colors } from '../theme';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -48,6 +51,17 @@ export default function RootLayout() {
     void restore();
   }, [restore]);
 
+  // 최소 지원 버전 확인 — 조회 실패 시엔 그냥 통과 (네트워크 문제로 앱이 잠기면 안 됨)
+  const [forceUpdateUrl, setForceUpdateUrl] = useState<string | null>(null);
+  useEffect(() => {
+    getAppConfig()
+      .then((config) => {
+        const current = Constants.expoConfig?.version ?? '0.0.0';
+        if (compareVersions(current, config.minIosVersion) < 0) setForceUpdateUrl(config.storeUrl);
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (fontsReady && !isHydrating) SplashScreen.hideAsync().catch(() => {});
   }, [fontsReady, isHydrating]);
@@ -58,6 +72,15 @@ export default function RootLayout() {
   }, [isHydrating, isAuthenticated]);
 
   if (!fontsReady || isHydrating) return null;
+
+  if (forceUpdateUrl) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <ForceUpdateScreen storeUrl={forceUpdateUrl} />
+      </>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
