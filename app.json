@@ -83,7 +83,7 @@
       [
         "@react-native-seoul/kakao-login",
         {
-          "kakaoAppKey": "679aa9bef3ae9c39d8670f12930cefef"
+          "kakaoAppKey": "192ed4743b2231b4497d471d24109438"
         }
       ],
       "expo-apple-authentication",
