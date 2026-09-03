@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { Copy, Share as ShareIcon } from 'lucide-react-native';
+import { ChevronRight, Copy, Hash, LogOut, Plus, Share as ShareIcon } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../../components/AppHeader';
 import { useRouter } from 'expo-router';
@@ -223,18 +223,30 @@ export default function FamilyScreen() {
         </View>
         ) : null}
 
-        {/* 헤더 드롭다운은 전환 전용 — 만들기·참여는 여기서 */}
-        <View style={styles.manageCard}>
-          <Text style={styles.manageKicker}>다른 가족 공간</Text>
-          <View style={styles.manageActions}>
-            <Button variant="secondary" label="새 공간 만들기" onPress={promptCreate} />
-            <Button variant="secondary" label="초대 코드로 참여" onPress={promptJoin} />
+        {/* 헤더 드롭다운은 전환 전용 — 공간 관리는 설정 리스트 카드로 */}
+        <View style={styles.manageSection}>
+          <Text style={styles.manageKicker}>공간 관리</Text>
+          <View style={styles.settingsCard}>
+            <Pressable style={styles.settingRow} onPress={promptCreate} accessibilityRole="button">
+              <Plus size={16} color={colors.textMuted} strokeWidth={iconStroke} />
+              <Text style={styles.settingLabel}>새 공간 만들기</Text>
+              <ChevronRight size={15} color={colors.neutral400 ?? colors.textMuted} strokeWidth={iconStroke} />
+            </Pressable>
+            <View style={styles.settingDivider} />
+            <Pressable style={styles.settingRow} onPress={promptJoin} accessibilityRole="button">
+              <Hash size={16} color={colors.textMuted} strokeWidth={iconStroke} />
+              <Text style={styles.settingLabel}>초대 코드로 참여</Text>
+              <ChevronRight size={15} color={colors.neutral400 ?? colors.textMuted} strokeWidth={iconStroke} />
+            </Pressable>
+            <View style={styles.settingDivider} />
+            <Pressable style={styles.settingRow} onPress={confirmLeave} disabled={leave.isPending} accessibilityRole="button">
+              <LogOut size={16} color={colors.danger} strokeWidth={iconStroke} />
+              <Text style={[styles.settingLabel, styles.settingDanger]}>
+                {leave.isPending ? '나가는 중…' : '가족 공간 나가기'}
+              </Text>
+            </Pressable>
           </View>
         </View>
-
-        <Pressable onPress={confirmLeave} disabled={leave.isPending} style={styles.leaveRow} accessibilityRole="button">
-          <Text style={styles.leaveText}>{leave.isPending ? '나가는 중…' : '가족 공간 나가기'}</Text>
-        </Pressable>
       </ScrollView>
       )}
     </View>
@@ -242,8 +254,8 @@ export default function FamilyScreen() {
 }
 
 const styles = StyleSheet.create({
-  manageCard: {
-    marginTop: 22,
+  manageSection: {
+    marginTop: 26,
     gap: 9,
   },
   manageKicker: {
@@ -251,19 +263,30 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: colors.accent,
   },
-  manageActions: {
+  settingsCard: {
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+  },
+  settingRow: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  leaveRow: {
-    marginTop: 28,
     alignItems: 'center',
-    paddingVertical: 12,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
   },
-  leaveText: {
-    fontSize: 13,
+  settingLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+  },
+  settingDanger: {
     color: colors.danger,
-    textDecorationLine: 'underline',
+  },
+  settingDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
   },
   screen: {
     flex: 1,
