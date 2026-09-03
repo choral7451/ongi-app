@@ -10,7 +10,9 @@ import { Button } from '../../components/ui/Button';
 import { Tag } from '../../components/ui/Tag';
 import {
   useBlockMember,
+  useCreateGroup,
   useFamily,
+  useJoinGroup,
   useLeaveGroup,
   useMembers,
   useMyGroups,
@@ -19,7 +21,7 @@ import {
   useUnblockMember,
 } from '../../hooks/queries';
 import { alertError, confirm, promptReason, REPORT_DONE_MESSAGE, showActions } from '../../utils/dialogs';
-import { useActiveGroupId } from '../../store/session';
+import { useActiveGroupId, useSession } from '../../store/session';
 import { colors, fonts, iconStroke, radius } from '../../theme';
 import type { Member } from '../../types';
 import { buildInviteMessage } from '../../utils/invite';
@@ -54,6 +56,27 @@ export default function FamilyScreen() {
   const me = members.data?.find((m) => m.isMe);
   const activeGroupId = useActiveGroupId();
   const leave = useLeaveGroup();
+  const createGroup = useCreateGroup();
+  const joinGroup = useJoinGroup();
+  const setActiveGroup = useSession((st) => st.setActiveGroup);
+
+  const promptCreate = () =>
+    Alert.prompt('새 공간 만들기', '가족 공간 이름을 입력해 주세요.', (name) => {
+      if (!name?.trim()) return;
+      createGroup.mutate(name.trim(), {
+        onSuccess: (created) => setActiveGroup(created.id),
+        onError: alertError('공간 만들기 실패'),
+      });
+    });
+
+  const promptJoin = () =>
+    Alert.prompt('초대 코드로 참여', '받은 초대 코드(ONGI-XXXX)를 입력해 주세요.', (code) => {
+      if (!code?.trim()) return;
+      joinGroup.mutate(code.trim(), {
+        onSuccess: (joined) => setActiveGroup(joined.id),
+        onError: alertError('참여 실패'),
+      });
+    });
   const isSoleAdmin = me?.role === 'admin' && !members.data?.some((m) => m.id !== me.id && m.role === 'admin');
   const othersCount = (members.data?.length ?? 1) - 1;
   const confirmLeave = () =>
@@ -203,6 +226,15 @@ export default function FamilyScreen() {
         </View>
         ) : null}
 
+        {/* 헤더 드롭다운은 전환 전용 — 만들기·참여는 여기서 */}
+        <View style={styles.manageCard}>
+          <Text style={styles.manageKicker}>다른 가족 공간</Text>
+          <View style={styles.manageActions}>
+            <Button variant="secondary" label="새 공간 만들기" onPress={promptCreate} />
+            <Button variant="secondary" label="초대 코드로 참여" onPress={promptJoin} />
+          </View>
+        </View>
+
         <Pressable onPress={confirmLeave} disabled={leave.isPending} style={styles.leaveRow} accessibilityRole="button">
           <Text style={styles.leaveText}>{leave.isPending ? '나가는 중…' : '가족 공간 나가기'}</Text>
         </Pressable>
@@ -213,6 +245,19 @@ export default function FamilyScreen() {
 }
 
 const styles = StyleSheet.create({
+  manageCard: {
+    marginTop: 22,
+    gap: 9,
+  },
+  manageKicker: {
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.accent,
+  },
+  manageActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   leaveRow: {
     marginTop: 28,
     alignItems: 'center',
