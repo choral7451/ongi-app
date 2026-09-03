@@ -42,6 +42,7 @@ export function usePushNotifications() {
       const photoId = typeof data?.photoId === 'string' ? data.photoId : '';
       if (groupId) setActiveGroup(groupId);
       if (photoId) router.push({ pathname: '/photo/[id]', params: { id: photoId, ctx: 'feed' } });
+      else if (data?.type === 'member_joined') router.push('/family');
       else router.push('/');
     };
     // 종료 상태에서 알림으로 켜진 경우
