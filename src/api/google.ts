@@ -14,6 +14,12 @@ const GOOGLE_IOS_CLIENT_ID = '446390529009-4v2v53ig6830u7h6splbi79r34uaj3n7.apps
  * Android 에서 로그인이 되려면 같은 Google Cloud 프로젝트에 "Android" 유형 클라이언트(패키지명 + 서명 키 SHA-1)도 등록돼 있어야 한다.
  */
 const GOOGLE_WEB_CLIENT_ID = '446390529009-mmvlcfo00f04nvt1uloi0glg00np6o4m.apps.googleusercontent.com';
+/**
+ * (기록) Android OAuth 클라이언트 — 코드에서 쓰지 않지만 콘솔 등록 완료 (2026-09-03).
+ * 446390529009-fm7h7koggffc351a267mur2f5egkn25i.apps.googleusercontent.com
+ * 패키지 com.ongifamily.app + EAS 서명키 SHA-1 (2F:06:...:C8:61) 로 검증된다.
+ * Play App Signing 도입 시 Play Console 의 새 SHA-1 을 구글·카카오에 추가 등록할 것.
+ */
 
 /** Expo Go(스토어 클라이언트)에서는 네이티브 모듈이 없으므로 require 자체를 건너뛴다 */
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
