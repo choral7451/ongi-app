@@ -20,7 +20,8 @@ const GOOGLE_WEB_CLIENT_ID = '446390529009-mmvlcfo00f04nvt1uloi0glg00np6o4m.apps
  * 패키지 com.ongifamily.app + EAS 서명키 SHA-1 (2F:06:...:C8:61) 로 검증된다.
  * Play App Signing 키 (스토어 배포용, 2026-09-03 등록):
  *   SHA-1 FF:59:F2:FC:91:46:8E:C1:D4:D1:70:44:6A:E3:5A:4B:63:F5:60:E9
- *   카카오 키 해시 /1ny/JFGjsHU0XBEauNaS2P1YOk=
+ *   카카오 키 해시 /1ny/JFGjsHU0XBEauNaS2P1YOk= (카카오 콘솔 등록 완료)
+ *   Play용 Android OAuth 클라이언트: 446390529009-v85f48tuojt9j7531o700edm8vt8avhj.apps.googleusercontent.com
  */
 
 /** Expo Go(스토어 클라이언트)에서는 네이티브 모듈이 없으므로 require 자체를 건너뛴다 */
