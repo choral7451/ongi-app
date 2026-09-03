@@ -138,7 +138,7 @@ export default function GroupsScreen() {
               setInviteCode(v);
               setJoinError(null);
             }}
-            placeholder="예: ONGI-1234"
+            placeholder="예: 483920"
             placeholderTextColor={colors.neutral500}
             autoCapitalize="characters"
           />
