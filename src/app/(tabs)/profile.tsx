@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Bell, Camera, ChevronRight, FileText, Mail, Pencil, ShieldCheck, Users, X } from 'lucide-react-native';
+import { Bell, Camera, ChevronRight, FileText, Mail, Pencil, ShieldCheck, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
@@ -223,16 +223,6 @@ export default function ProfileScreen() {
               />
             </View>
           }
-        />
-
-        <View style={styles.sectionGap}>
-          <SectionHeader title="가족 공간" size="sm" />
-        </View>
-        <SettingRow
-          icon={<Users size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
-          label="가족 공간 만들기 · 참여 · 전환"
-          divider={false}
-          onPress={() => router.push('/groups')}
         />
 
         <View style={styles.sectionGap}>
