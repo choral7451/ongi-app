@@ -53,6 +53,17 @@ export function useCreateGroup() {
   });
 }
 
+export function useRenameGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: groupsApi.renameGroup,
+    onSuccess: (_group, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
+    },
+  });
+}
+
 export function useJoinGroup() {
   const queryClient = useQueryClient();
   return useMutation({

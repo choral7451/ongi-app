@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { ChevronRight, Copy, Hash, LogOut, Plus, Share as ShareIcon } from 'lucide-react-native';
+import { ChevronRight, Copy, Hash, LogOut, Pencil, Plus, Share as ShareIcon } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../../components/AppHeader';
 import { useRouter } from 'expo-router';
@@ -17,6 +17,7 @@ import {
   useMembers,
   useMyGroups,
   useRemoveMember,
+  useRenameGroup,
   useReport,
   useUnblockMember,
 } from '../../hooks/queries';
@@ -59,6 +60,19 @@ export default function FamilyScreen() {
   const createGroup = useCreateGroup();
   const joinGroup = useJoinGroup();
   const setActiveGroup = useSession((st) => st.setActiveGroup);
+
+  const renameGroup = useRenameGroup();
+  const promptRename = () =>
+    Alert.prompt(
+      '공간 이름 바꾸기',
+      '가족 모두에게 새 이름으로 보여요.',
+      (name) => {
+        if (!name?.trim()) return;
+        renameGroup.mutate({ groupId: activeGroupId, name: name.trim() }, { onError: alertError('이름 변경 실패') });
+      },
+      'plain-text',
+      family.data?.name ?? '',
+    );
 
   const promptCreate = () =>
     Alert.prompt('새 공간 만들기', '가족 공간 이름을 입력해 주세요.', (name) => {
@@ -227,6 +241,16 @@ export default function FamilyScreen() {
         <View style={styles.manageSection}>
           <Text style={styles.manageKicker}>공간 관리</Text>
           <View style={styles.settingsCard}>
+            {me?.role === 'admin' ? (
+              <>
+                <Pressable style={styles.settingRow} onPress={promptRename} accessibilityRole="button">
+                  <Pencil size={16} color={colors.textMuted} strokeWidth={iconStroke} />
+                  <Text style={styles.settingLabel}>공간 이름 바꾸기</Text>
+                  <ChevronRight size={15} color={colors.neutral400 ?? colors.textMuted} strokeWidth={iconStroke} />
+                </Pressable>
+                <View style={styles.settingDivider} />
+              </>
+            ) : null}
             <Pressable style={styles.settingRow} onPress={promptCreate} accessibilityRole="button">
               <Plus size={16} color={colors.textMuted} strokeWidth={iconStroke} />
               <Text style={styles.settingLabel}>새 공간 만들기</Text>
