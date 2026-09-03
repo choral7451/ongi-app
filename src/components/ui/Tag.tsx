@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: radius.md * 0.75,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
   },
   label: {
     fontSize: 11,

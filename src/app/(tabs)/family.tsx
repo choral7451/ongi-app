@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { Copy, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
+import { Copy, Share as ShareIcon } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../../components/AppHeader';
 import { useRouter } from 'expo-router';
@@ -187,9 +187,6 @@ export default function FamilyScreen() {
                 </Text>
               </View>
               {roleTag(member)}
-              {member.isMe ? null : (
-                <MoreHorizontal size={16} color={colors.neutral500} strokeWidth={iconStroke} />
-              )}
             </Pressable>
           ))}
         </View>
