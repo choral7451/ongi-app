@@ -28,6 +28,7 @@
     },
     "android": {
       "package": "com.ongifamily.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

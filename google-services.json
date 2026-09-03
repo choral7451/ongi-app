@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "667150501134",
+    "project_id": "ongi-family",
+    "storage_bucket": "ongi-family.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667150501134:android:c6e2217eb07cc54378435f",
+        "android_client_info": {
+          "package_name": "com.ongifamily.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBd_Rpuv0pkRPEuORcsVsdiB5-uK4yIdY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
