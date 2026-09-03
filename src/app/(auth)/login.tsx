@@ -7,6 +7,7 @@ import { DEFAULT_USER_NAME, signInWithProvider, type SocialProvider } from '../.
 import { profileApi } from '../../api';
 import { AppleSignInCancelled, isAppleSignInAvailable } from '../../api/apple';
 import { GoogleSignInCancelled } from '../../api/google';
+import { KakaoSignInCancelled } from '../../api/kakao';
 import { useSession } from '../../store/session';
 import { colors, fonts } from '../../theme';
 
@@ -63,7 +64,25 @@ const APPLE_BUTTON: SocialButtonSpec = {
   icon: <AppleLogo />,
 };
 
+function KakaoLogo({ size = 18 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        fill="#191919"
+        d="M12 3C6.48 3 2 6.58 2 10.95c0 2.84 1.9 5.33 4.75 6.73l-.97 3.62c-.09.33.29.6.58.4l4.29-2.86c.44.04.89.07 1.35.07 5.52 0 10-3.58 10-7.96C22 6.58 17.52 3 12 3z"
+      />
+    </Svg>
+  );
+}
+
 const SOCIAL_BUTTONS: SocialButtonSpec[] = [
+  {
+    provider: 'kakao',
+    label: '카카오로 시작하기',
+    bg: '#FEE500',
+    fg: '#191919',
+    icon: <KakaoLogo />,
+  },
   {
     provider: 'google',
     label: 'Google로 시작하기',
@@ -128,7 +147,7 @@ export default function LoginScreen() {
       if (user.name === DEFAULT_USER_NAME && Platform.OS === 'ios') askDisplayName();
     } catch (e) {
       // 사용자가 로그인 창을 닫은 경우는 조용히 무시
-      if (!(e instanceof GoogleSignInCancelled) && !(e instanceof AppleSignInCancelled)) {
+      if (!(e instanceof GoogleSignInCancelled) && !(e instanceof AppleSignInCancelled) && !(e instanceof KakaoSignInCancelled)) {
         Alert.alert('로그인 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
       }
     } finally {

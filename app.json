@@ -14,7 +14,9 @@
       "supportsTablet": false,
       "infoPlist": {
         "CFBundleDevelopmentRegion": "ko",
-        "CFBundleLocalizations": ["ko"],
+        "CFBundleLocalizations": [
+          "ko"
+        ],
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "온기",
         "NSAppTransportSecurity": {
@@ -78,8 +80,15 @@
           "isAccessMediaLocationEnabled": false
         }
       ],
+      [
+        "@react-native-seoul/kakao-login",
+        {
+          "kakaoAppKey": "679aa9bef3ae9c39d8670f12930cefef"
+        }
+      ],
       "expo-apple-authentication",
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-seoul/kakao-login"
     ],
     "experiments": {
       "typedRoutes": true,

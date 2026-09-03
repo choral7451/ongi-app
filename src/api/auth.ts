@@ -1,6 +1,7 @@
 import { post, request } from './client';
 import { getAppleCredential } from './apple';
 import { getGoogleAccessToken } from './google';
+import { getKakaoAccessToken } from './kakao';
 import { clearTokens, saveTokens } from './token';
 
 export type SocialProvider = 'kakao' | 'naver' | 'google' | 'apple';
@@ -33,6 +34,8 @@ export async function signInWithProvider(provider: SocialProvider): Promise<Auth
   let name: string | null = null;
   if (provider === 'google') {
     token = await getGoogleAccessToken();
+  } else if (provider === 'kakao') {
+    token = await getKakaoAccessToken();
   } else if (provider === 'apple') {
     const credential = await getAppleCredential();
     token = credential.identityToken;
