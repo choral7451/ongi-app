@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Button, IconButton } from '../../../components/ui/Button';
+import { PhotoZoomViewer } from '../../../components/PhotoZoomViewer';
 import { Plate } from '../../../components/ui/Plate';
 import { Tag } from '../../../components/ui/Tag';
 import {
@@ -105,6 +106,7 @@ export default function PhotoDetailScreen() {
   const me = members.data?.find((m) => m.isMe);
 
   const [draft, setDraft] = useState('');
+  const [zoomUri, setZoomUri] = useState<string | null>(null);
 
   const author = members.data?.find((m) => m.id === photo.data?.authorId);
   const album = albums.data?.find((a) => a.id === photo.data?.albumId);
@@ -242,13 +244,19 @@ export default function PhotoDetailScreen() {
               return (
                 <View key={item.id} style={{ width: pageWidth }}>
                   {/* 이웃 사진이 더 길면 스와이프 중에만 아래가 잘려 보이고, 넘기고 나면 높이가 맞춰진다 */}
-                  {near ? <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} /> : null}
+                  {near ? (
+                    <Pressable onPress={() => setZoomUri(item.url)} accessibilityLabel="사진 크게 보기">
+                      <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} />
+                    </Pressable>
+                  ) : null}
                 </View>
               );
             })}
           </ScrollView>
         ) : photo.data ? (
-          <Plate uri={photo.data.url} aspectRatio={photo.data.aspectRatio || 1} />
+          <Pressable onPress={() => setZoomUri(photo.data!.url)} accessibilityLabel="사진 크게 보기">
+            <Plate uri={photo.data.url} aspectRatio={photo.data.aspectRatio || 1} />
+          </Pressable>
         ) : photo.isError ? (
           <Pressable onPress={() => photo.refetch()} style={styles.errorBox}>
             <Text style={styles.errorText}>사진을 불러오지 못했어요.</Text>
@@ -350,6 +358,7 @@ export default function PhotoDetailScreen() {
           disabled={draft.trim().length === 0 || addComment.isPending}
         />
       </View>
+      <PhotoZoomViewer uri={zoomUri} onClose={() => setZoomUri(null)} />
     </KeyboardAvoidingView>
   );
 }

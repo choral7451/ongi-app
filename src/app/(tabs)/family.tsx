@@ -70,7 +70,7 @@ export default function FamilyScreen() {
     });
 
   const promptJoin = () =>
-    Alert.prompt('초대 코드로 참여', '받은 초대 코드(ONGI-XXXX)를 입력해 주세요.', (code) => {
+    Alert.prompt('초대 코드로 참여', '받은 6자리 초대 코드를 입력해 주세요.', (code) => {
       if (!code?.trim()) return;
       joinGroup.mutate(code.trim(), {
         onSuccess: (joined) => setActiveGroup(joined.id),
