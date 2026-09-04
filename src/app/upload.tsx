@@ -20,6 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UPLOAD_MAX_SELECT } from '../api/photos';
 import { Button, IconButton } from '../components/ui/Button';
+import { PhotoZoomViewer } from '../components/PhotoZoomViewer';
 import { Plate } from '../components/ui/Plate';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { photosApi } from '../api';
@@ -53,30 +54,34 @@ function GroupTargetFields({ groupId, draft, onChange }: GroupTargetFieldsProps)
   return (
     <>
       <View style={styles.field}>
-        <Text style={styles.fieldLabel}>앨범 (선택)</Text>
+        <Text style={styles.fieldLabel}>어느 앨범에 담을까요?</Text>
         <View style={styles.chips}>
           {albums.data?.map((album) => {
             const selected = draft.albumId === album.id;
             return (
               <Pressable
                 key={album.id}
-                style={[styles.chip, selected ? styles.chipOutline : styles.chipNeutral]}
+                style={[styles.albumChip, selected && styles.albumChipSelected]}
                 onPress={() => toggleAlbum(album.id)}
               >
-                <Text style={selected ? styles.chipOutlineText : styles.chipNeutralText}>
+                {selected ? <Check size={13} color={colors.accent} strokeWidth={2.2} /> : null}
+                <Text style={selected ? styles.albumChipTextSelected : styles.albumChipText}>
                   {album.title}
                 </Text>
               </Pressable>
             );
           })}
         </View>
+        {draft.albumId == null ? (
+          <Text style={styles.hint}>앨범을 고르지 않으면 미분류에 올라가요</Text>
+        ) : null}
       </View>
     </>
   );
 }
 
 /** 미리보기 높이 — 선택 여부·비율과 무관하게 고정해 그리드 위치가 흔들리지 않게 */
-const PREVIEW_HEIGHT = 240;
+const PREVIEW_HEIGHT = 340;
 
 /** 1c — 사진 올리기: 사진·설명은 공통, 앨범·인물은 그룹별로 지정 */
 export default function UploadScreen() {
@@ -90,6 +95,7 @@ export default function UploadScreen() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [caption, setCaption] = useState('');
+  const [zoomUri, setZoomUri] = useState<string | null>(null);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([activeGroupId]);
   const [drafts, setDrafts] = useState<Record<string, TargetDraft>>({});
 
@@ -111,7 +117,7 @@ export default function UploadScreen() {
   const [previewIndex, setPreviewIndex] = useState(0);
 
   // ── 드래그 선택: 그리드 위에서 가로로 끌기 시작하면 지나간 칸을 선택(첫 칸이 이미 선택돼 있었으면 해제) ──
-  const GRID_COLUMNS = 4;
+  const GRID_COLUMNS = 3;
   const GRID_GAP = 6;
   const gridRef = useRef<View>(null);
   const gridOrigin = useRef({ x: 0, y: 0, width: 0 });
@@ -305,41 +311,6 @@ export default function UploadScreen() {
           }
         }}
       >
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>올릴 공간</Text>
-          {noGroup ? (
-            <Text style={styles.hint}>
-              아직 가족 공간이 없어요. 홈에서 공간을 만들거나 초대 코드로 참여한 뒤 올릴 수 있어요.
-            </Text>
-          ) : null}
-          <View style={styles.chips}>
-            {myGroups.data?.map((group) => {
-              const selected = selectedGroupIds.includes(group.id);
-              return (
-                <Pressable
-                  key={group.id}
-                  style={[styles.groupChip, selected && styles.groupChipSelected]}
-                  onPress={() => toggleGroup(group.id)}
-                >
-                  {selected ? (
-                    <Check size={13} color={colors.accent} strokeWidth={2.2} />
-                  ) : null}
-                  <Text
-                    style={selected ? styles.groupChipTextSelected : styles.groupChipText}
-                  >
-                    {group.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {multiGroup ? (
-            <Text style={styles.hint}>
-              선택한 공간마다 따로 게시돼요. 좋아요·댓글도 공간별로 분리됩니다.
-            </Text>
-          ) : null}
-        </View>
-
         {selectedPhotos.length > 0 ? (
           <View style={styles.previewBox}>
             {/* 원본 비율 그대로 미리보기 — 여러 장이면 좌우로 넘겨본다.
@@ -351,9 +322,9 @@ export default function UploadScreen() {
               data={selectedPhotos}
               keyExtractor={(photo) => photo.id}
               renderItem={({ item }) => (
-                <View style={{ width: pageWidth }}>
+                <Pressable style={{ width: pageWidth }} onPress={() => setZoomUri(item.uri)} accessibilityLabel="사진 크게 보기">
                   <Plate uri={item.uri} height={PREVIEW_HEIGHT} contentFit="contain" />
-                </View>
+                </Pressable>
               )}
               getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
               initialNumToRender={1}
@@ -388,6 +359,41 @@ export default function UploadScreen() {
             <Text style={styles.previewEmptyText}>아래에서 사진을 선택해 주세요</Text>
           </View>
         )}
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>올릴 공간</Text>
+          {noGroup ? (
+            <Text style={styles.hint}>
+              아직 가족 공간이 없어요. 홈에서 공간을 만들거나 초대 코드로 참여한 뒤 올릴 수 있어요.
+            </Text>
+          ) : null}
+          <View style={styles.chips}>
+            {myGroups.data?.map((group) => {
+              const selected = selectedGroupIds.includes(group.id);
+              return (
+                <Pressable
+                  key={group.id}
+                  style={[styles.groupChip, selected && styles.groupChipSelected]}
+                  onPress={() => toggleGroup(group.id)}
+                >
+                  {selected ? (
+                    <Check size={13} color={colors.accent} strokeWidth={2.2} />
+                  ) : null}
+                  <Text
+                    style={selected ? styles.groupChipTextSelected : styles.groupChipText}
+                  >
+                    {group.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {multiGroup ? (
+            <Text style={styles.hint}>
+              선택한 공간마다 따로 게시돼요. 좋아요·댓글도 공간별로 분리됩니다.
+            </Text>
+          ) : null}
+        </View>
 
         {/* 공간 1개든 여러 개든 같은 카드 UI — 공간 이름 + 그 공간의 앨범 칩 */}
         {selectedGroupIds.map((groupId) => {
@@ -459,6 +465,7 @@ export default function UploadScreen() {
         ) : null}
 
       </ScrollView>
+      <PhotoZoomViewer uri={zoomUri} onClose={() => setZoomUri(null)} />
       {upload.isPending ? (
         <View style={styles.overlay} pointerEvents="auto" accessibilityViewIsModal accessibilityLabel="사진 올리는 중">
           <View style={styles.overlayCard}>
@@ -615,7 +622,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   cell: {
-    width: '23.5%',
+    width: '32.1%',
     aspectRatio: 1,
     backgroundColor: colors.neutral200,
   },
@@ -628,17 +635,17 @@ const styles = StyleSheet.create({
   },
   orderBadge: {
     position: 'absolute',
-    top: 5,
-    right: 5,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   orderText: {
-    fontSize: 10,
+    fontSize: 12,
     color: colors.white,
     fontVariant: ['tabular-nums'],
   },
@@ -681,6 +688,28 @@ const styles = StyleSheet.create({
   chipOutlineText: {
     fontSize: 11,
     color: colors.accent,
+  },
+  albumChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.divider,
+  },
+  albumChipSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accent100,
+  },
+  albumChipText: {
+    fontSize: 12,
+    color: colors.neutral700,
+  },
+  albumChipTextSelected: {
+    fontSize: 12,
+    color: colors.accent800,
   },
   groupChip: {
     flexDirection: 'row',
