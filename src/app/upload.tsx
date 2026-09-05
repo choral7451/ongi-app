@@ -1,93 +1,161 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Check, Image as ImageIcon, X } from 'lucide-react-native';
-import { useMemo, useRef, useState } from 'react';
+import { Check, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react-native';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
-  PanResponder,
   KeyboardAvoidingView,
+  Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UPLOAD_MAX_SELECT } from '../api/photos';
-import { Button, IconButton } from '../components/ui/Button';
-import { PhotoZoomViewer } from '../components/PhotoZoomViewer';
-import { Plate } from '../components/ui/Plate';
+import { IconButton } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
-import { photosApi } from '../api';
-import {
-  useAlbumsOf,
-  useLocalPhotos,
-  useMyGroups,
-  useUploadPhotos,
-} from '../hooks/queries';
-import { useSession } from '../store/session';
+import { albumsApi, photosApi } from '../api';
+import { useAlbumsOf, useLocalPhotos, useMyGroups, useUploadPhotos } from '../hooks/queries';
 import { colors, fonts, iconStroke, radius } from '../theme';
+import type { Group } from '../types';
 
-/** 그룹별 앨범·인물 선택 상태 */
-interface TargetDraft {
-  albumId?: string;
-  personIds: string[];
+/** 그룹별 업로드 대상 — 키가 있으면 그 가족에 올린다 (albumId 없으면 미분류) */
+type Targets = Record<string, { albumId?: string }>;
+
+/** 이번 앱 세션의 마지막 업로드 대상 — 다음 업로드 때 기본값으로 미리 채운다 */
+let lastTargets: Targets | null = null;
+
+/** 허브 시트의 가족 한 줄 — 선택되면 담을 앨범 이름을 보여준다 */
+function HubRow({
+  group,
+  target,
+  onPress,
+  onClear,
+}: {
+  group: Group;
+  target: { albumId?: string } | undefined;
+  onPress: () => void;
+  onClear: () => void;
+}) {
+  const albums = useAlbumsOf(group.id);
+  const selected = target != null;
+  const albumName =
+    target?.albumId != null ? albums.data?.find((a) => a.id === target.albumId)?.title : undefined;
+
+  return (
+    <Pressable accessibilityRole="button" style={styles.hubRow} onPress={onPress}>
+      <View style={[styles.avatar, selected && styles.avatarSelected]}>
+        <Text style={[styles.avatarText, selected && styles.avatarTextSelected]}>
+          {group.name.slice(0, 1)}
+        </Text>
+      </View>
+      <View style={styles.hubRowInfo}>
+        <Text style={[styles.hubRowName, selected && styles.hubRowNameSelected]} numberOfLines={1}>
+          {group.name}
+        </Text>
+        <Text style={[styles.hubRowSub, selected && styles.hubRowSubSelected]} numberOfLines={1}>
+          {selected ? `${albumName ?? '미분류'} 앨범에 담아요` : '누르면 앨범을 골라요'}
+        </Text>
+      </View>
+      {selected ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${group.name} 선택 해제`}
+          hitSlop={10}
+          onPress={onClear}
+          style={styles.checkCircle}
+        >
+          <Check size={13} color={colors.white} strokeWidth={2.5} />
+        </Pressable>
+      ) : (
+        <ChevronRight size={15} color={colors.neutral500} strokeWidth={iconStroke} />
+      )}
+    </Pressable>
+  );
 }
 
-interface GroupTargetFieldsProps {
-  groupId: string;
-  draft: TargetDraft;
-  onChange: (next: TargetDraft) => void;
+/** 앨범 한 줄 — 라디오 + 이름 */
+function AlbumRowItem({ label, picked, onPress }: { label: string; picked: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" style={styles.albumRow} onPress={onPress}>
+      <View style={[styles.radio, picked && styles.radioSelected]} />
+      <Text style={[styles.albumRowText, picked && styles.albumRowTextSelected]}>{label}</Text>
+    </Pressable>
+  );
 }
 
-/** 한 그룹의 앨범 칩 — 단일/멀티 그룹 모두에서 재사용 (인물 태그는 인물 UI 가 생기면 다시 추가) */
-function GroupTargetFields({ groupId, draft, onChange }: GroupTargetFieldsProps) {
-  const albums = useAlbumsOf(groupId);
-  const toggleAlbum = (albumId: string) =>
-    onChange({ ...draft, albumId: draft.albumId === albumId ? undefined : albumId });
+/** 앨범 선택 창 — 가족 하나의 앨범 목록. 고르면 즉시 허브로 돌아간다 */
+function AlbumSheet({
+  group,
+  current,
+  onPick,
+  onBack,
+  onUnselect,
+}: {
+  group: Group;
+  current: { albumId?: string } | undefined;
+  onPick: (albumId: string | undefined) => void;
+  onBack: () => void;
+  onUnselect: () => void;
+}) {
+  const albums = useAlbumsOf(group.id);
+  const queryClient = useQueryClient();
+
+  const createAlbum = () => {
+    Alert.prompt('새 앨범 만들기', '앨범 이름을 입력해 주세요.', async (title) => {
+      const name = title?.trim();
+      if (!name) return;
+      try {
+        const album = await albumsApi.createAlbum(group.id, name);
+        await queryClient.invalidateQueries({ queryKey: ['albums', group.id] });
+        onPick(album.id);
+      } catch (e) {
+        Alert.alert('앨범 만들기 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
+      }
+    });
+  };
 
   return (
     <>
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>어느 앨범에 담을까요?</Text>
-        <View style={styles.chips}>
-          {albums.data?.map((album) => {
-            const selected = draft.albumId === album.id;
-            return (
-              <Pressable
-                key={album.id}
-                style={[styles.albumChip, selected && styles.albumChipSelected]}
-                onPress={() => toggleAlbum(album.id)}
-              >
-                {selected ? <Check size={13} color={colors.accent} strokeWidth={2.2} /> : null}
-                <Text style={selected ? styles.albumChipTextSelected : styles.albumChipText}>
-                  {album.title}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        {draft.albumId == null ? (
-          <Text style={styles.hint}>앨범을 고르지 않으면 미분류에 올라가요</Text>
+      <Pressable accessibilityRole="button" style={styles.sheetBackRow} onPress={onBack}>
+        <ChevronLeft size={16} color={colors.text} strokeWidth={iconStroke} />
+        <Text style={styles.sheetTitle} numberOfLines={1}>
+          {group.name} · 어느 앨범에 담을까요?
+        </Text>
+      </Pressable>
+      <Text style={styles.sheetSub}>앨범을 고르면 이전 화면으로 돌아가요</Text>
+      <ScrollView style={styles.albumList} bounces={false}>
+        <AlbumRowItem label="미분류" picked={current != null && current.albumId == null} onPress={() => onPick(undefined)} />
+        {albums.data?.map((album) => (
+          <AlbumRowItem key={album.id} label={album.title} picked={current?.albumId === album.id} onPress={() => onPick(album.id)} />
+        ))}
+        {Platform.OS === 'ios' ? (
+          <Pressable accessibilityRole="button" style={styles.albumRow} onPress={createAlbum}>
+            <Plus size={16} color={colors.accent} strokeWidth={iconStroke} />
+            <Text style={styles.albumCreateText}>새 앨범 만들기</Text>
+          </Pressable>
         ) : null}
-      </View>
+        {current != null ? (
+          <Pressable accessibilityRole="button" style={styles.albumRow} onPress={onUnselect}>
+            <Text style={styles.albumUnselectText}>이 가족에는 올리지 않기</Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
     </>
   );
 }
 
-/** 미리보기 높이 — 선택 여부·비율과 무관하게 고정해 그리드 위치가 흔들리지 않게 */
-const PREVIEW_HEIGHT = 340;
-
-/** 1c — 사진 올리기: 사진·설명은 공통, 앨범·인물은 그룹별로 지정 */
+/** 1c — 사진 올리기: 화면은 사진 고르기에 집중, 올리기를 누르면 "어디에 올릴까요?" 허브에서 가족·앨범을 고른다 */
 export default function UploadScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const activeGroupId = useSession((s) => s.activeGroupId);
   const myGroups = useMyGroups();
   const localPhotos = useLocalPhotos();
   const upload = useUploadPhotos();
@@ -95,26 +163,8 @@ export default function UploadScreen() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [caption, setCaption] = useState('');
-  const [zoomUri, setZoomUri] = useState<string | null>(null);
-  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([activeGroupId]);
-  const [drafts, setDrafts] = useState<Record<string, TargetDraft>>({});
-
-  const draftOf = (groupId: string): TargetDraft => drafts[groupId] ?? { personIds: [] };
-  const setDraftOf = (groupId: string) => (next: TargetDraft) =>
-    setDrafts((prev) => ({ ...prev, [groupId]: next }));
-
-  // 선택 순서 그대로의 사진 목록 — 미리보기에서 좌우로 넘겨본다
-  const selectedPhotos = useMemo(
-    () =>
-      selectedIds
-        .map((id) => localPhotos.data?.photos.find((p) => p.id === id))
-        .filter((p): p is NonNullable<typeof p> => p != null),
-    [selectedIds, localPhotos.data],
-  );
-
-  const { width: windowWidth } = useWindowDimensions();
-  const pageWidth = windowWidth - 40; // content 좌우 패딩 20씩 제외
-  const [previewIndex, setPreviewIndex] = useState(0);
+  const [targets, setTargets] = useState<Targets>({});
+  const [sheet, setSheet] = useState<null | { step: 'hub' } | { step: 'album'; groupId: string }>(null);
 
   // ── 드래그 선택: 그리드 위에서 가로로 끌기 시작하면 지나간 칸을 선택(첫 칸이 이미 선택돼 있었으면 해제) ──
   const GRID_COLUMNS = 3;
@@ -200,7 +250,6 @@ export default function UploadScreen() {
   ).current;
   const selectedIdsRef = useRef<string[]>([]);
   selectedIdsRef.current = selectedIds;
-  const shownIndex = Math.min(previewIndex, Math.max(selectedPhotos.length - 1, 0));
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => {
@@ -212,25 +261,33 @@ export default function UploadScreen() {
       return [...prev, id];
     });
 
-  const toggleGroup = (groupId: string) =>
-    setSelectedGroupIds((prev) => {
-      if (prev.includes(groupId)) {
-        // 최소 1개 그룹은 유지
-        return prev.length > 1 ? prev.filter((g) => g !== groupId) : prev;
-      }
-      return [...prev, groupId];
-    });
+  // 가족 공간이 없으면 게시 대상이 없어 업로드 자체가 불가능
+  const noGroup = !myGroups.isPending && (myGroups.data?.length ?? 0) === 0;
 
-  const submit = () => {
-    // 가족 공간이 없으면 업로드 대신 공간 만들기로 안내
-    if (!validGroupSelected) {
+  /** 올리기 버튼 → 허브 시트 열기 (이번 세션의 지난 선택을 기본값으로) */
+  const openTargetSheet = () => {
+    if (noGroup) {
       Alert.alert('가족 공간이 필요해요', '사진은 가족 공간에 올라가요. 먼저 공간을 만들거나 초대 코드로 참여해 주세요.', [
         { text: '나중에', style: 'cancel' },
         { text: '공간 만들기', onPress: () => router.push('/groups') },
       ]);
       return;
     }
+    if (Object.keys(targets).length === 0 && lastTargets) {
+      const valid = Object.fromEntries(
+        Object.entries(lastTargets).filter(([groupId]) => myGroups.data?.some((g) => g.id === groupId)),
+      );
+      if (Object.keys(valid).length > 0) setTargets(valid);
+    }
+    setSheet({ step: 'hub' });
+  };
 
+  const targetCount = Object.keys(targets).length;
+
+  const submit = () => {
+    if (targetCount === 0) return;
+    lastTargets = targets;
+    setSheet(null);
     runUpload(selectedIds);
   };
 
@@ -241,10 +298,10 @@ export default function UploadScreen() {
         localPhotoIds: ids,
         // 문구는 첫 업로드에만 — 재시도 때 또 붙이면 중복된다
         caption: ids === selectedIds ? caption.trim() || undefined : undefined,
-        targets: selectedGroupIds.map((groupId) => ({
+        targets: Object.entries(targets).map(([groupId, target]) => ({
           groupId,
-          albumId: draftOf(groupId).albumId,
-          personIds: draftOf(groupId).personIds,
+          albumId: target.albumId,
+          personIds: [],
         })),
         onProgress: (done, total) => setProgress({ done, total }),
       },
@@ -271,10 +328,8 @@ export default function UploadScreen() {
     );
   };
 
-  const multiGroup = selectedGroupIds.length > 1;
-  // 가족 공간이 없으면 게시 대상이 없어 업로드 자체가 불가능
-  const noGroup = !myGroups.isPending && (myGroups.data?.length ?? 0) === 0;
-  const validGroupSelected = selectedGroupIds.some((id) => id !== '');
+  const sheetGroup =
+    sheet?.step === 'album' ? myGroups.data?.find((g) => g.id === sheet.groupId) : undefined;
 
   return (
     <KeyboardAvoidingView
@@ -282,7 +337,6 @@ export default function UploadScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 6) }]}>
-        {/* 타이틀은 절대 중앙 고정 — 버튼 라벨("올리기"→"올리는 중…") 폭 변화에 밀리지 않게 */}
         <View style={[styles.titleWrap, { paddingTop: Math.max(insets.top, 6) }]} pointerEvents="none">
           <Text style={styles.title}>사진 올리기</Text>
         </View>
@@ -290,11 +344,6 @@ export default function UploadScreen() {
           accessibilityLabel="닫기"
           onPress={() => router.back()}
           icon={<X size={18} color={colors.text} strokeWidth={iconStroke} />}
-        />
-        <Button
-          label={upload.isPending ? (progress ? `올리는 중 ${progress.done}/${progress.total}` : '올리는 중…') : '올리기'}
-          onPress={submit}
-          disabled={selectedIds.length === 0 || upload.isPending}
         />
       </View>
 
@@ -311,104 +360,6 @@ export default function UploadScreen() {
           }
         }}
       >
-        {selectedPhotos.length > 0 ? (
-          <View style={styles.previewBox}>
-            {/* 원본 비율 그대로 미리보기 — 여러 장이면 좌우로 넘겨본다.
-                수백 장을 골라도 화면 근처 페이지만 렌더링하도록 FlatList 윈도잉 (전부 그리면 선택 직후 멈춘 것처럼 보임) */}
-            <FlatList
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              data={selectedPhotos}
-              keyExtractor={(photo) => photo.id}
-              renderItem={({ item }) => (
-                <Pressable style={{ width: pageWidth }} onPress={() => setZoomUri(item.uri)} accessibilityLabel="사진 크게 보기">
-                  <Plate uri={item.uri} height={PREVIEW_HEIGHT} contentFit="contain" />
-                </Pressable>
-              )}
-              getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
-              initialNumToRender={1}
-              maxToRenderPerBatch={2}
-              windowSize={3}
-              removeClippedSubviews
-              onMomentumScrollEnd={(e) =>
-                setPreviewIndex(Math.round(e.nativeEvent.contentOffset.x / pageWidth))
-              }
-            />
-            {/* 인디케이터 영역은 항상 같은 높이 — 장수에 따라 레이아웃이 튀지 않게 */}
-            {selectedPhotos.length > 1 && selectedPhotos.length <= 12 ? (
-              <View style={styles.dots}>
-                {selectedPhotos.map((photo, index) => (
-                  <View
-                    key={photo.id}
-                    style={[styles.dot, index === shownIndex && styles.dotActive]}
-                  />
-                ))}
-              </View>
-            ) : selectedPhotos.length > 12 ? (
-              <Text style={styles.pageCounter}>
-                {shownIndex + 1} / {selectedPhotos.length}
-              </Text>
-            ) : (
-              <View style={styles.dots} />
-            )}
-          </View>
-        ) : (
-          <View style={styles.previewEmpty}>
-            <ImageIcon size={28} color={colors.neutral500} strokeWidth={iconStroke} />
-            <Text style={styles.previewEmptyText}>아래에서 사진을 선택해 주세요</Text>
-          </View>
-        )}
-
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>올릴 공간</Text>
-          {noGroup ? (
-            <Text style={styles.hint}>
-              아직 가족 공간이 없어요. 홈에서 공간을 만들거나 초대 코드로 참여한 뒤 올릴 수 있어요.
-            </Text>
-          ) : null}
-          <View style={styles.chips}>
-            {myGroups.data?.map((group) => {
-              const selected = selectedGroupIds.includes(group.id);
-              return (
-                <Pressable
-                  key={group.id}
-                  style={[styles.groupChip, selected && styles.groupChipSelected]}
-                  onPress={() => toggleGroup(group.id)}
-                >
-                  {selected ? (
-                    <Check size={13} color={colors.accent} strokeWidth={2.2} />
-                  ) : null}
-                  <Text
-                    style={selected ? styles.groupChipTextSelected : styles.groupChipText}
-                  >
-                    {group.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {multiGroup ? (
-            <Text style={styles.hint}>
-              선택한 공간마다 따로 게시돼요. 좋아요·댓글도 공간별로 분리됩니다.
-            </Text>
-          ) : null}
-        </View>
-
-        {/* 공간 1개든 여러 개든 같은 카드 UI — 공간 이름 + 그 공간의 앨범 칩 */}
-        {selectedGroupIds.map((groupId) => {
-          const group = myGroups.data?.find((g) => g.id === groupId);
-          return (
-            <View key={groupId} style={styles.groupCard}>
-              <View style={styles.groupCardHead}>
-                <Text style={styles.groupCardTitle}>{group?.name ?? ''}</Text>
-                <View style={styles.groupCardRule} />
-              </View>
-              <GroupTargetFields groupId={groupId} draft={draftOf(groupId)} onChange={setDraftOf(groupId)} />
-            </View>
-          );
-        })}
-
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>설명</Text>
           <TextInput
@@ -420,7 +371,7 @@ export default function UploadScreen() {
           />
         </View>
         <SectionHeader
-          title="최근 사진"
+          title="올릴 사진을 골라주세요"
           size="sm"
           meta={selectedIds.length > 0 ? `${selectedIds.length}장 선택됨` : undefined}
         />
@@ -463,9 +414,87 @@ export default function UploadScreen() {
             <Text style={styles.libraryButtonText}>접근 가능한 사진 더 고르기</Text>
           </Pressable>
         ) : null}
-
       </ScrollView>
-      <PhotoZoomViewer uri={zoomUri} onClose={() => setZoomUri(null)} />
+
+      {/* 하단 고정 올리기 버튼 — 누르면 "어디에 올릴까요?" 허브가 열린다 */}
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={selectedIds.length === 0 || upload.isPending}
+          onPress={openTargetSheet}
+          style={[styles.bigButton, (selectedIds.length === 0 || upload.isPending) && styles.bigButtonDisabled]}
+        >
+          <Text style={[styles.bigButtonText, selectedIds.length === 0 && styles.bigButtonTextDisabled]}>
+            {selectedIds.length > 0 ? `${selectedIds.length}장 올리기` : '사진을 골라주세요'}
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* 어디에 올릴까요 — 허브 시트(가족 목록) ↔ 가족별 앨범 창 */}
+      <Modal visible={sheet != null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setSheet(null)}>
+          <View
+            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.sheetHandle} />
+            {sheet?.step === 'hub' ? (
+              <>
+                <Text style={styles.sheetTitle}>어디에 올릴까요?</Text>
+                <Text style={styles.sheetSub}>가족을 누르면 담을 앨범을 골라요 · 여러 곳 선택 가능</Text>
+                <ScrollView style={styles.hubList} bounces={false}>
+                  {myGroups.data?.map((group) => (
+                    <HubRow
+                      key={group.id}
+                      group={group}
+                      target={targets[group.id]}
+                      onPress={() => setSheet({ step: 'album', groupId: group.id })}
+                      onClear={() =>
+                        setTargets((prev) => {
+                          const next = { ...prev };
+                          delete next[group.id];
+                          return next;
+                        })
+                      }
+                    />
+                  ))}
+                </ScrollView>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={targetCount === 0}
+                  onPress={submit}
+                  style={[styles.bigButton, targetCount === 0 && styles.bigButtonDisabled]}
+                >
+                  <Text style={[styles.bigButtonText, targetCount === 0 && styles.bigButtonTextDisabled]}>
+                    {targetCount === 0
+                      ? '올릴 곳을 골라주세요'
+                      : `${targetCount}개 공간에 ${selectedIds.length}장 올리기`}
+                  </Text>
+                </Pressable>
+              </>
+            ) : sheet?.step === 'album' && sheetGroup ? (
+              <AlbumSheet
+                group={sheetGroup}
+                current={targets[sheetGroup.id]}
+                onPick={(albumId) => {
+                  setTargets((prev) => ({ ...prev, [sheetGroup.id]: { albumId } }));
+                  setSheet({ step: 'hub' });
+                }}
+                onBack={() => setSheet({ step: 'hub' })}
+                onUnselect={() => {
+                  setTargets((prev) => {
+                    const next = { ...prev };
+                    delete next[sheetGroup.id];
+                    return next;
+                  });
+                  setSheet({ step: 'hub' });
+                }}
+              />
+            ) : null}
+          </View>
+        </Pressable>
+      </Modal>
+
       {upload.isPending ? (
         <View style={styles.overlay} pointerEvents="auto" accessibilityViewIsModal accessibilityLabel="사진 올리는 중">
           <View style={styles.overlayCard}>
@@ -556,7 +585,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
     paddingBottom: 10,
   },
@@ -573,48 +602,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingBottom: 24,
     gap: 16,
-  },
-  previewBox: {
-    gap: 8,
-  },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 5,
-    height: 14,
-    alignItems: 'center',
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.neutral200,
-  },
-  dotActive: {
-    backgroundColor: colors.accent,
-  },
-  pageCounter: {
-    height: 14,
-    lineHeight: 14,
-    textAlign: 'center',
-    fontSize: 11,
-    color: colors.textMuted,
-    fontVariant: ['tabular-nums'],
-  },
-  previewEmpty: {
-    height: PREVIEW_HEIGHT + 8 + 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.divider,
-  },
-  previewEmptyText: {
-    fontSize: 12,
-    color: colors.textMuted,
   },
   grid: {
     flexDirection: 'row',
@@ -656,110 +645,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(16,17,20,0.7)',
   },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: radius.md * 0.75,
-  },
-  chipNeutral: {
-    backgroundColor: colors.neutral200,
-  },
-  chipNeutralText: {
-    fontSize: 11,
-    color: colors.neutral800,
-  },
-  chipAccent: {
-    backgroundColor: colors.accent100,
-  },
-  chipAccentText: {
-    fontSize: 11,
-    color: colors.accent800,
-  },
-  chipOutline: {
-    borderWidth: 1,
-    borderColor: colors.accent,
-    paddingVertical: 2,
-  },
-  chipOutlineText: {
-    fontSize: 11,
-    color: colors.accent,
-  },
-  albumChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.divider,
-  },
-  albumChipSelected: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accent100,
-  },
-  albumChipText: {
-    fontSize: 12,
-    color: colors.neutral700,
-  },
-  albumChipTextSelected: {
-    fontSize: 12,
-    color: colors.accent800,
-  },
-  groupChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.divider,
-  },
-  groupChipSelected: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accent100,
-  },
-  groupChipText: {
-    fontSize: 12,
-    color: colors.neutral700,
-  },
-  groupChipTextSelected: {
-    fontSize: 12,
-    color: colors.accent800,
-  },
-  hint: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
-  groupCard: {
-    gap: 14,
-    padding: 14,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.divider,
-  },
-  groupCardHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  groupCardTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 15,
-    color: colors.text,
-  },
-  groupCardRule: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.accent300,
-  },
   input: {
     minHeight: 36,
     paddingHorizontal: 10,
@@ -769,5 +654,164 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.divider,
     borderRadius: radius.md,
+  },
+  bottomBar: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+    backgroundColor: colors.bg,
+  },
+  bigButton: {
+    height: 50,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bigButtonDisabled: {
+    backgroundColor: 'rgba(16,17,20,0.08)',
+  },
+  bigButtonText: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    color: colors.white,
+  },
+  bigButtonTextDisabled: {
+    color: 'rgba(16,17,20,0.35)',
+  },
+  sheetBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(16,17,20,0.4)',
+  },
+  sheet: {
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(16,17,20,0.18)',
+    marginBottom: 14,
+  },
+  sheetTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.text,
+    flexShrink: 1,
+  },
+  sheetSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  sheetBackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  hubList: {
+    maxHeight: 320,
+  },
+  hubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  hubRowInfo: {
+    flex: 1,
+    gap: 1,
+  },
+  hubRowName: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  hubRowNameSelected: {
+    color: colors.accent,
+  },
+  hubRowSub: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  hubRowSubSelected: {
+    color: colors.accent,
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    backgroundColor: colors.neutral100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarSelected: {
+    backgroundColor: colors.accent100,
+  },
+  avatarText: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    color: colors.neutral700,
+  },
+  avatarTextSelected: {
+    color: colors.accent800,
+  },
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  albumList: {
+    maxHeight: 320,
+    marginTop: 6,
+  },
+  albumRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(16,17,20,0.3)',
+  },
+  radioSelected: {
+    borderWidth: 6,
+    borderColor: colors.accent,
+  },
+  albumRowText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+  },
+  albumRowTextSelected: {
+    color: colors.accent,
+  },
+  albumCreateText: {
+    fontSize: 14,
+    color: colors.accent,
+  },
+  albumUnselectText: {
+    fontSize: 13,
+    color: colors.danger,
   },
 });
