@@ -360,16 +360,6 @@ export default function UploadScreen() {
           }
         }}
       >
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>설명</Text>
-          <TextInput
-            style={styles.input}
-            value={caption}
-            onChangeText={setCaption}
-            placeholder="사진에 담긴 이야기를 적어보세요"
-            placeholderTextColor={colors.neutral500}
-          />
-        </View>
         <SectionHeader
           title="올릴 사진을 골라주세요"
           size="sm"
@@ -432,6 +422,7 @@ export default function UploadScreen() {
 
       {/* 어디에 올릴까요 — 허브 시트(가족 목록) ↔ 가족별 앨범 창 */}
       <Modal visible={sheet != null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
+        <KeyboardAvoidingView style={styles.sheetFlex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setSheet(null)}>
           <View
             style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}
@@ -459,6 +450,18 @@ export default function UploadScreen() {
                     />
                   ))}
                 </ScrollView>
+                <View style={styles.captionField}>
+                  <Text style={styles.fieldLabel}>
+                    설명 <Text style={styles.fieldLabelMuted}>(선택)</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={caption}
+                    onChangeText={setCaption}
+                    placeholder="사진에 담긴 이야기를 적어보세요"
+                    placeholderTextColor={colors.neutral500}
+                  />
+                </View>
                 <Pressable
                   accessibilityRole="button"
                   disabled={targetCount === 0}
@@ -493,6 +496,7 @@ export default function UploadScreen() {
             ) : null}
           </View>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {upload.isPending ? (
@@ -679,6 +683,17 @@ const styles = StyleSheet.create({
   },
   bigButtonTextDisabled: {
     color: 'rgba(16,17,20,0.35)',
+  },
+  sheetFlex: {
+    flex: 1,
+  },
+  captionField: {
+    gap: 5,
+    marginTop: 12,
+    marginBottom: 14,
+  },
+  fieldLabelMuted: {
+    color: colors.textMuted,
   },
   sheetBackdrop: {
     flex: 1,
