@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { ChevronRight, Copy, Hash, LogOut, Pencil, Plus, Share as ShareIcon } from 'lucide-react-native';
+import { CalendarDays, ChevronRight, Copy, Hash, LogOut, Pencil, Plus, Share as ShareIcon } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '../../components/AppHeader';
 import { useRouter } from 'expo-router';
@@ -173,6 +173,13 @@ export default function FamilyScreen() {
         <NoGroupState compact />
       ) : (
       <ScrollView contentContainerStyle={styles.content}>
+        {/* 가족 일정 — 일정은 가족 공간의 것이라 진입점도 가족 탭에 */}
+        <Pressable style={styles.scheduleRow} onPress={() => router.push('/schedule')} accessibilityRole="button" accessibilityLabel="가족 일정">
+          <CalendarDays size={17} color={colors.accent} strokeWidth={iconStroke} />
+          <Text style={styles.scheduleLabel}>가족 일정</Text>
+          <ChevronRight size={15} color={colors.neutral400} strokeWidth={iconStroke} />
+        </Pressable>
+
         <View>
           {members.data?.map((member, i) => (
             <Pressable
@@ -278,6 +285,21 @@ export default function FamilyScreen() {
 }
 
 const styles = StyleSheet.create({
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: radius.lg,
+  },
+  scheduleLabel: {
+    flex: 1,
+    fontSize: 14.5,
+    color: colors.text,
+  },
   manageSection: {
     marginTop: 26,
     gap: 9,
