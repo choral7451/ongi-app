@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { CalendarPlus, Home, Image as ImageIcon, Plus, User, Users } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMyGroups } from '../hooks/queries';
 import { colors, fonts, iconStroke } from '../theme';
@@ -71,9 +72,10 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       })}
 
       {/* (+) 선택 시트 — 사진 올리기 / 일정 만들기 */}
-      <Modal visible={sheetOpen} transparent animationType="slide" onRequestClose={() => setSheetOpen(false)}>
+      {/* 배경은 페이드로 깔리고 시트만 아래서 올라온다 — 딤이 통째로 밀려 올라오는 어색함 방지 */}
+      <Modal visible={sheetOpen} transparent animationType="fade" onRequestClose={() => setSheetOpen(false)}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setSheetOpen(false)}>
-          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]} onStartShouldSetResponder={() => true}>
+          <Animated.View entering={SlideInDown.duration(260)} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]} onStartShouldSetResponder={() => true}>
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>무엇을 함께할까요?</Text>
             <Pressable accessibilityRole="button" style={styles.sheetRow} onPress={() => requireGroup(() => router.push('/upload'))}>
@@ -94,7 +96,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 <Text style={styles.sheetRowSub}>생신·모임을 등록하고 함께 챙겨요</Text>
               </View>
             </Pressable>
-          </View>
+          </Animated.View>
         </Pressable>
       </Modal>
     </View>

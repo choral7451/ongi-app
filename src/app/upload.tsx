@@ -17,6 +17,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UPLOAD_MAX_SELECT } from '../api/photos';
 import { IconButton } from '../components/ui/Button';
@@ -421,10 +422,11 @@ export default function UploadScreen() {
       </View>
 
       {/* 어디에 올릴까요 — 허브 시트(가족 목록) ↔ 가족별 앨범 창 */}
-      <Modal visible={sheet != null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
+      <Modal visible={sheet != null} transparent animationType="fade" onRequestClose={() => setSheet(null)}>
         <KeyboardAvoidingView style={styles.sheetFlex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setSheet(null)}>
-          <View
+          <Animated.View
+            entering={SlideInDown.duration(260)}
             style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}
             onStartShouldSetResponder={() => true}
           >
@@ -494,7 +496,7 @@ export default function UploadScreen() {
                 }}
               />
             ) : null}
-          </View>
+          </Animated.View>
         </Pressable>
         </KeyboardAvoidingView>
       </Modal>

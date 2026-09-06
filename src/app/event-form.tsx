@@ -14,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonthCalendar } from '../components/MonthCalendar';
 import { useCreateEvent, useMembers, useUpdateEvent } from '../hooks/queries';
@@ -219,9 +220,9 @@ export default function EventFormScreen() {
       </ScrollView>
 
       {/* 반복 / 시간 / 알림 대상 선택 시트 */}
-      <Modal visible={sheet != null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
+      <Modal visible={sheet != null} transparent animationType="fade" onRequestClose={() => setSheet(null)}>
         <Pressable style={styles.sheetBackdrop} onPress={() => setSheet(null)}>
-          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]} onStartShouldSetResponder={() => true}>
+          <Animated.View entering={SlideInDown.duration(260)} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]} onStartShouldSetResponder={() => true}>
             <View style={styles.sheetHandle} />
 
             {sheet === 'repeat' ? (
@@ -315,7 +316,7 @@ export default function EventFormScreen() {
                 </Pressable>
               </>
             ) : null}
-          </View>
+          </Animated.View>
         </Pressable>
       </Modal>
     </KeyboardAvoidingView>
