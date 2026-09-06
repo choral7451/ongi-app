@@ -80,6 +80,8 @@ export default function HomeScreen() {
         <AppHeader />
         <EventBanner />
       </Animated.View>
+      {/* 상태바 커버 — 접히며 올라가는 헤더가 시계 위로 비치지 않게 위 레이어에서 가린다 */}
+      <View style={[styles.statusCover, { height: insets.top }]} pointerEvents="none" />
 
       {hasNoGroup ? (
         <View style={{ paddingTop: headerHeight }}>
@@ -143,6 +145,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
+    backgroundColor: colors.bg,
+  },
+  statusCover: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 11,
     backgroundColor: colors.bg,
   },
   list: {
