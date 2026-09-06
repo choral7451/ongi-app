@@ -29,7 +29,6 @@ export default function ScheduleScreen() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
     setMonth(monthOf(date));
     setSelected(date);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.ts, params.date]);
 
   const events = useEventsRange(`${month}-01`, lastDayOf(month));
