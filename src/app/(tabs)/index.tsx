@@ -1,5 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '../../components/AppHeader';
 import { EventBanner } from '../../components/EventBanner';
@@ -16,6 +22,8 @@ interface FeedSection {
   data: Photo[];
 }
 
+const AnimatedSectionList = Animated.createAnimatedComponent(SectionList) as unknown as typeof SectionList;
+
 /** 1a — 홈 / 피드: 날짜순으로 가족의 오늘. 스크롤을 내리면 헤더·일정 배너가 접히고, 올리면 다시 나타난다 */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -25,19 +33,39 @@ export default function HomeScreen() {
   const myGroups = useMyGroups();
   const hasNoGroup = myGroups.isSuccess && myGroups.data.length === 0;
 
-  // ── 접히는 헤더: 스크롤 오프셋을 diffClamp 로 눌러 내릴 땐 위로 숨기고 올리면 바로 보여준다 ──
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // ── 접히는 헤더 — 이동량 기반이지만 최상단(y≤0)에선 무조건 펼친다 (당겨서 새로고침 등으로 오프셋이 튀어도 안 숨게) ──
   const [headerHeight, setHeaderHeight] = useState(0);
-  const clampRange = Math.max(headerHeight, 1);
-  const translateY = Animated.diffClamp(scrollY, 0, clampRange).interpolate({
-    inputRange: [0, clampRange],
-    outputRange: [0, -clampRange],
+  const headerH = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const lastY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const y = event.contentOffset.y;
+      const dy = y - lastY.value;
+      lastY.value = y;
+      if (y <= 0) {
+        translateY.value = 0;
+        return;
+      }
+      translateY.value = Math.min(0, Math.max(-headerH.value, translateY.value - dy));
+    },
+    // 손을 떼면 어중간한 위치에 걸치지 않게 가까운 쪽으로 스냅
+    onEndDrag: () => {
+      if (lastY.value <= headerH.value || translateY.value > -headerH.value / 2) translateY.value = withTiming(0, { duration: 160 });
+      else translateY.value = withTiming(-headerH.value, { duration: 160 });
+    },
+    onMomentumEnd: () => {
+      if (lastY.value <= 0) translateY.value = withTiming(0, { duration: 120 });
+    },
   });
+  const headerStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
 
   // 당겨서 새로고침 스피너는 사용자가 직접 당겼을 때만 — feed.isRefetching 은 백그라운드 갱신에도 true 가 되어 스피너가 수시로 뜬다
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
+    translateY.value = 0; // 새로고침 후 헤더는 항상 펼친 상태로
     try {
       await feed.refetch();
     } finally {
@@ -74,8 +102,12 @@ export default function HomeScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* 헤더 + 일정 배너 — 스크롤 방향에 따라 접히는 한 덩어리 */}
       <Animated.View
-        style={[styles.headerWrap, { top: insets.top, transform: [{ translateY }] }]}
-        onLayout={(e) => setHeaderHeight(Math.round(e.nativeEvent.layout.height))}
+        style={[styles.headerWrap, { top: insets.top }, headerStyle]}
+        onLayout={(e) => {
+          const height = Math.round(e.nativeEvent.layout.height);
+          setHeaderHeight(height);
+          headerH.value = height;
+        }}
       >
         <AppHeader />
         <EventBanner />
@@ -88,26 +120,30 @@ export default function HomeScreen() {
           <NoGroupState />
         </View>
       ) : (
-      <Animated.SectionList
+      <AnimatedSectionList
         sections={sections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingTop: headerHeight }]}
         stickySectionHeadersEnabled={false}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        onScroll={scrollHandler}
         scrollEventThrottle={16}
         onEndReached={() => {
           if (feed.hasNextPage && !feed.isFetchingNextPage) feed.fetchNextPage();
         }}
-        onEndReachedThreshold={0.5}
+        // 다음 페이지를 더 일찍 불러와 붙는 순간이 화면 밖에서 일어나게 (중간 덜컹 방지)
+        onEndReachedThreshold={1.5}
         // 스크롤 버벅임 방지 — 화면 밖 셀 분리, 배치 렌더 억제
         removeClippedSubviews
         initialNumToRender={6}
         maxToRenderPerBatch={4}
         updateCellsBatchingPeriod={50}
         windowSize={7}
-        ListFooterComponent={feed.isFetchingNextPage ? <ActivityIndicator style={styles.footerLoading} color={colors.textMuted} /> : null}
+        // 푸터 높이 고정 — 로딩 스피너가 나타났다 사라질 때 목록이 튀지 않게
+        ListFooterComponent={
+          <View style={styles.footer}>{feed.isFetchingNextPage ? <ActivityIndicator color={colors.textMuted} /> : null}</View>
+        }
         renderItem={({ item }) => (
           <View style={styles.postWrap}>
             <FeedPost
@@ -162,8 +198,10 @@ const styles = StyleSheet.create({
   postWrap: {
     marginBottom: 22,
   },
-  footerLoading: {
-    paddingVertical: 16,
+  footer: {
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyBox: {
     alignItems: 'center',

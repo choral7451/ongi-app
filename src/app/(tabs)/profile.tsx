@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Bell, Camera, ChevronRight, FileText, Mail, Pencil, ShieldCheck, X } from 'lucide-react-native';
+import { Bell, CalendarDays, Camera, ChevronRight, FileText, Mail, Pencil, ShieldCheck, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
@@ -186,6 +186,14 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+
+        <SectionHeader title="가족" size="sm" />
+        <SettingRow
+          icon={<CalendarDays size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
+          label="가족 일정"
+          divider={false}
+          onPress={() => router.push('/schedule')}
+        />
 
         <SectionHeader title="알림" size="sm" />
         <SettingRow
