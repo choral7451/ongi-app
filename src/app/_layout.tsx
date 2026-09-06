@@ -95,6 +95,8 @@ export default function RootLayout() {
         <Stack.Protected guard={isAuthenticated}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="upload" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="event-form" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="event-detail" />
           <Stack.Screen name="groups" options={{ presentation: 'modal' }} />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>

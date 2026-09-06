@@ -1,8 +1,8 @@
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '../../components/AppHeader';
+import { EventBanner } from '../../components/EventBanner';
 import { FeedPost } from '../../components/feed/FeedPost';
 import { NoGroupState } from '../../components/NoGroupState';
 import { useAlbums, useFeed, useMembers, useMyGroups } from '../../hooks/queries';
@@ -16,15 +16,23 @@ interface FeedSection {
   data: Photo[];
 }
 
-/** 1a — 홈 / 피드: 날짜순으로 가족의 오늘 */
+/** 1a — 홈 / 피드: 날짜순으로 가족의 오늘. 스크롤을 내리면 헤더·일정 배너가 접히고, 올리면 다시 나타난다 */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const feed = useFeed();
   const members = useMembers();
   const albums = useAlbums();
   const myGroups = useMyGroups();
   const hasNoGroup = myGroups.isSuccess && myGroups.data.length === 0;
+
+  // ── 접히는 헤더: 스크롤 오프셋을 diffClamp 로 눌러 내릴 땐 위로 숨기고 올리면 바로 보여준다 ──
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const clampRange = Math.max(headerHeight, 1);
+  const translateY = Animated.diffClamp(scrollY, 0, clampRange).interpolate({
+    inputRange: [0, clampRange],
+    outputRange: [0, -clampRange],
+  });
 
   // 당겨서 새로고침 스피너는 사용자가 직접 당겼을 때만 — feed.isRefetching 은 백그라운드 갱신에도 true 가 되어 스피너가 수시로 뜬다
   const [refreshing, setRefreshing] = useState(false);
@@ -64,18 +72,29 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <AppHeader />
+      {/* 헤더 + 일정 배너 — 스크롤 방향에 따라 접히는 한 덩어리 */}
+      <Animated.View
+        style={[styles.headerWrap, { transform: [{ translateY }] }]}
+        onLayout={(e) => setHeaderHeight(Math.round(e.nativeEvent.layout.height))}
+      >
+        <AppHeader />
+        <EventBanner />
+      </Animated.View>
 
       {hasNoGroup ? (
-        <NoGroupState />
+        <View style={{ paddingTop: headerHeight }}>
+          <NoGroupState />
+        </View>
       ) : (
-      <SectionList
+      <Animated.SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingTop: headerHeight }]}
         stickySectionHeadersEnabled={false}
         refreshing={refreshing}
         onRefresh={onRefresh}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
         onEndReached={() => {
           if (feed.hasNextPage && !feed.isFetchingNextPage) feed.fetchNextPage();
         }}
@@ -118,11 +137,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  titleWrap: {
-    // 가로로 살짝 넓게 — 왼쪽 끝을 기준으로 늘려 콘텐츠 왼쪽 라인(헤더 padding 20)과 맞춘다
-    alignSelf: 'flex-start',
-    transform: [{ scaleX: 1.15 }],
-    transformOrigin: 'left center',
+  headerWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: colors.bg,
   },
   list: {
     paddingHorizontal: 20,

@@ -20,6 +20,8 @@ export interface Group {
 export interface Member {
   id: string;
   groupId: string;
+  /** 연결된 사용자 id — 일정 알림 대상 지정 등에 사용 */
+  userId: string;
   /** 이 그룹 안에서 부르는 이름 (예: 엄마) */
   name: string;
   /** 실명 (예: 수진) */
@@ -104,6 +106,29 @@ export interface LocalPhoto {
   uri: string;
   /** width/height — 게시 시 서버에 전달하는 비율 힌트 */
   aspectRatio: number;
+}
+
+/** 가족 일정 — date 는 이 발생일(양력). 반복 일정은 발생일마다 한 건씩 내려온다 */
+export interface FamilyEvent {
+  id: string;
+  groupId: string;
+  title: string;
+  /** 발생일 (양력) YYYY-MM-DD */
+  date: string;
+  /** HH:MM — null 이면 하루 종일 */
+  time: string | null;
+  calendarType: 'solar' | 'lunar';
+  repeatType: 'none' | 'weekly' | 'monthly' | 'yearly';
+  memo: string | null;
+  /** 알림 받을 사용자 id 목록 */
+  notifyUserIds: string[];
+  creatorUserId: string;
+  creatorName: string | null;
+  /** 음력 일정이면 이 발생일의 음력 표기 ("음력 8월 1일") */
+  lunarLabel: string | null;
+  /** 입력 원본 날짜 (calendarType 기준) — 수정 폼 초기값 */
+  sourceDate: string;
+  createdAt: string;
 }
 
 /** 약관·정책 문서 */
