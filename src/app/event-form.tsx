@@ -141,7 +141,10 @@ export default function EventFormScreen() {
         <Pressable accessibilityLabel="닫기" hitSlop={10} onPress={() => router.back()}>
           <X size={18} color={colors.text} strokeWidth={iconStroke} />
         </Pressable>
-        <Text style={styles.headerTitle}>{editing ? '일정 수정' : '일정 만들기'}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {family.data?.name ? <Text style={styles.headerTitleGroup}>{family.data.name} </Text> : null}
+          {editing ? '일정 수정' : '일정 만들기'}
+        </Text>
         <Pressable accessibilityLabel="저장" style={styles.saveButton} onPress={submit} disabled={saving}>
           <Text style={styles.saveButtonText}>{saving ? '저장 중…' : '저장'}</Text>
         </Pressable>
@@ -149,10 +152,7 @@ export default function EventFormScreen() {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.field}>
-          <View style={styles.fieldLabelRow}>
-            <Text style={styles.fieldLabel}>무슨 일정인가요?</Text>
-            {family.data?.name ? <Text style={styles.groupBadge}>{family.data.name}</Text> : null}
-          </View>
+          <Text style={styles.fieldLabel}>무슨 일정인가요?</Text>
           <TextInput
             style={styles.input}
             value={title}
@@ -384,19 +384,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 16,
     color: colors.text,
+    maxWidth: 240,
   },
-  fieldLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  groupBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: colors.accent100,
-    fontSize: 11,
-    color: colors.accent800,
+  headerTitleGroup: {
+    color: colors.accent,
   },
   saveButton: {
     paddingHorizontal: 14,
