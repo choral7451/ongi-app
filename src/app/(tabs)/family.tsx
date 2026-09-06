@@ -1,6 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
 import { CalendarDays, ChevronRight, Copy, Hash, LogOut, Pencil, Plus, Share as ShareIcon } from 'lucide-react-native';
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 import { AppHeader } from '../../components/AppHeader';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +13,7 @@ import { Tag } from '../../components/ui/Tag';
 import {
   useBlockMember,
   useCreateGroup,
+  useEventsRange,
   useFamily,
   useJoinGroup,
   useLeaveGroup,
@@ -26,6 +29,7 @@ import { useActiveGroupId, useSession } from '../../store/session';
 import { colors, fonts, iconStroke, radius } from '../../theme';
 import type { Member } from '../../types';
 import { buildInviteMessage } from '../../utils/invite';
+import { addDaysStr, ddayLabel, todayStr } from '../../utils/calendar';
 
 function roleTag(member: Member) {
   switch (member.role) {
@@ -55,6 +59,11 @@ export default function FamilyScreen() {
 
   const inviteCode = family.data?.inviteCode ?? '';
   const me = members.data?.find((m) => m.isMe);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  // 가족 일정 카드의 다가오는 일정 미리보기
+  const today = todayStr();
+  const upcomingEvents = useEventsRange(today, addDaysStr(today, 30));
+  const nextEvent = upcomingEvents.data?.[0];
   const activeGroupId = useActiveGroupId();
   const leave = useLeaveGroup();
   const createGroup = useCreateGroup();
@@ -177,21 +186,24 @@ export default function FamilyScreen() {
         <Pressable style={styles.scheduleRow} onPress={() => router.push('/schedule')} accessibilityRole="button" accessibilityLabel="가족 일정">
           <CalendarDays size={17} color={colors.accent} strokeWidth={iconStroke} />
           <Text style={styles.scheduleLabel}>가족 일정</Text>
+          {nextEvent ? (
+            <Text style={styles.scheduleMeta} numberOfLines={1}>
+              {nextEvent.title} {ddayLabel(nextEvent.date)}
+            </Text>
+          ) : null}
           <ChevronRight size={15} color={colors.neutral400} strokeWidth={iconStroke} />
         </Pressable>
 
-        <View>
-          {members.data?.map((member, i) => (
+        <Text style={styles.sectionKicker}>구성원 {members.data?.length ?? 0}</Text>
+        <View style={styles.membersCard}>
+          {members.data?.map((member) => (
             <Pressable
               key={member.id}
               onPress={() => openMemberActions(member)}
               onLongPress={() => openMemberActions(member)}
               disabled={member.isMe}
               accessibilityLabel={`${member.name} 옵션`}
-              style={[
-                styles.memberRow,
-                i < (members.data?.length ?? 0) - 1 && styles.memberDivider,
-              ]}
+              style={[styles.memberRow, styles.memberDivider]}
             >
               <Avatar name={member.name} uri={member.avatarUrl} size={40} pending={member.role === 'pending'} />
               <View style={styles.memberInfo}>
@@ -210,9 +222,17 @@ export default function FamilyScreen() {
               {roleTag(member)}
             </Pressable>
           ))}
+          <Pressable style={styles.inviteRow} onPress={() => setInviteOpen(true)} accessibilityRole="button" accessibilityLabel="가족 초대하기">
+            <View style={styles.inviteAvatar}>
+              <Plus size={17} color={colors.accent} strokeWidth={iconStroke} />
+            </View>
+            <Text style={styles.inviteRowLabel}>가족 초대하기</Text>
+            <ChevronRight size={15} color={colors.neutral400} strokeWidth={iconStroke} />
+          </Pressable>
         </View>
 
-        {inviteCode ? (
+        {/* 혼자인 새 공간은 초대가 다음 할 일 — 카드를 바로 펼쳐 보여준다 (그 외엔 시트로) */}
+        {inviteCode && othersCount === 0 ? (
         <View style={styles.inviteCard}>
           <Text style={styles.inviteKicker}>가족 초대하기</Text>
           <Text style={styles.inviteCode}>{inviteCode}</Text>
@@ -280,11 +300,126 @@ export default function FamilyScreen() {
         </View>
       </ScrollView>
       )}
+
+      {/* 가족 초대하기 시트 — 배경은 페이드, 시트만 슬라이드 */}
+      <Modal visible={inviteOpen} transparent animationType="fade" onRequestClose={() => setInviteOpen(false)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setInviteOpen(false)}>
+          <Animated.View
+            entering={SlideInDown.duration(260)}
+            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 12 }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.sheetHandle} />
+            <Text style={styles.inviteKicker}>가족 초대하기</Text>
+            <Text style={styles.inviteCodeBig}>{inviteCode}</Text>
+            <Text style={styles.inviteSheetBody}>
+              초대 코드는 {family.data?.inviteExpiresInDays ?? 7}일간 유효해요.{'\n'}가족이 앱에서 코드를 입력하면 바로 함께할 수 있어요.
+            </Text>
+            <View style={styles.inviteActions}>
+              <Button
+                variant="secondary"
+                label="코드 복사"
+                icon={<Copy size={15} color={colors.text} strokeWidth={iconStroke} />}
+                onPress={() => Clipboard.setStringAsync(inviteCode)}
+              />
+              <Button
+                label="초대 코드 공유"
+                icon={<ShareIcon size={15} color={colors.accent} strokeWidth={iconStroke} />}
+                onPress={() =>
+                  Share.share({
+                    message: buildInviteMessage({
+                      groupName: family.data?.name,
+                      inviteCode,
+                      expiresInDays: family.data?.inviteExpiresInDays,
+                    }),
+                  })
+                }
+              />
+            </View>
+          </Animated.View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  sectionKicker: {
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.accent,
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  membersCard: {
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  inviteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  inviteAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.accent300,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inviteRowLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.accent,
+  },
+  scheduleMeta: {
+    maxWidth: 150,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(16,17,20,0.4)',
+  },
+  sheet: {
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    alignItems: 'center',
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(16,17,20,0.18)',
+    marginBottom: 16,
+  },
+  inviteCodeBig: {
+    fontFamily: fonts.headingRegular,
+    fontSize: 40,
+    letterSpacing: 3,
+    color: colors.text,
+    fontVariant: ['tabular-nums'],
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  inviteSheetBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: 'rgba(16,17,20,0.8)',
+    textAlign: 'center',
+    paddingBottom: 16,
+  },
   scheduleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -370,6 +505,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    paddingHorizontal: 14,
     paddingVertical: 12,
   },
   memberDivider: {
