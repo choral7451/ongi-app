@@ -3,6 +3,7 @@ import { Bell, Calendar, Check, ChevronRight, Clock, RotateCw, X } from 'lucide-
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -60,6 +61,12 @@ export default function EventFormScreen() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [month, setMonth] = useState(monthOf(params.sourceDate ?? params.date ?? todayStr()));
   const [sheet, setSheet] = useState<SheetMode>(null);
+
+  /** 인풋에 쓰다가 다른 항목을 누르면 키보드부터 내린다 */
+  const openSheet = (mode: SheetMode) => {
+    Keyboard.dismiss();
+    setSheet(mode);
+  };
 
   // 알림 받을 사람 — 기본값 모두. 사용자가 손대기 전엔 null 로 두고 구성원이 로드되면 전체로 간주
   const [pickedNotify, setPickedNotify] = useState<string[] | null>(
@@ -155,7 +162,13 @@ export default function EventFormScreen() {
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>언제인가요?</Text>
 
-          <Pressable style={[styles.rowBox, calendarOpen && styles.rowBoxActive]} onPress={() => setCalendarOpen((v) => !v)}>
+          <Pressable
+            style={[styles.rowBox, calendarOpen && styles.rowBoxActive]}
+            onPress={() => {
+              Keyboard.dismiss();
+              setCalendarOpen((v) => !v);
+            }}
+          >
             <Calendar size={15} color={calendarOpen ? colors.accent : colors.neutral600} strokeWidth={iconStroke} />
             <Text style={styles.rowMain}>{formatShortDate(date)}</Text>
             <View style={styles.segment}>
@@ -163,7 +176,10 @@ export default function EventFormScreen() {
                 <Pressable
                   key={type}
                   style={[styles.segmentItem, calendarType === type && styles.segmentItemActive]}
-                  onPress={() => setCalendarType(type)}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setCalendarType(type);
+                  }}
                 >
                   <Text style={calendarType === type ? styles.segmentTextActive : styles.segmentText}>
                     {type === 'solar' ? '양력' : '음력'}
@@ -190,10 +206,17 @@ export default function EventFormScreen() {
           <View style={styles.rowBox}>
             <Clock size={15} color={colors.neutral600} strokeWidth={iconStroke} />
             <Text style={styles.rowMain}>하루 종일</Text>
-            <Switch value={allDay} onValueChange={setAllDay} trackColor={{ true: colors.accent }} />
+            <Switch
+              value={allDay}
+              onValueChange={(value) => {
+                Keyboard.dismiss();
+                setAllDay(value);
+              }}
+              trackColor={{ true: colors.accent }}
+            />
           </View>
           {!allDay ? (
-            <Pressable style={styles.rowBox} onPress={() => setSheet('time')}>
+            <Pressable style={styles.rowBox} onPress={() => openSheet('time')}>
               <Clock size={15} color={colors.neutral600} strokeWidth={iconStroke} />
               <Text style={styles.rowMain}>시간</Text>
               <Text style={styles.rowValue}>{formatKoreanTime(time)}</Text>
@@ -201,14 +224,14 @@ export default function EventFormScreen() {
             </Pressable>
           ) : null}
 
-          <Pressable style={styles.rowBox} onPress={() => setSheet('repeat')}>
+          <Pressable style={styles.rowBox} onPress={() => openSheet('repeat')}>
             <RotateCw size={15} color={colors.neutral600} strokeWidth={iconStroke} />
             <Text style={styles.rowMain}>반복</Text>
             <Text style={styles.rowValue}>{repeatType === 'none' ? '없음' : REPEAT_LABELS[repeatType]}</Text>
             <ChevronRight size={15} color={colors.neutral400} strokeWidth={iconStroke} />
           </Pressable>
 
-          <Pressable style={styles.rowBox} onPress={() => setSheet('notify')}>
+          <Pressable style={styles.rowBox} onPress={() => openSheet('notify')}>
             <Bell size={15} color={colors.neutral600} strokeWidth={iconStroke} />
             <Text style={styles.rowMain}>알림 받을 사람</Text>
             <Text style={styles.rowValue}>{notifyAll ? '모두' : `${notifyUserIds.length}명`}</Text>
