@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMyGroups } from '../hooks/queries';
-import { colors, fonts, iconStroke } from '../theme';
+import { colors, iconStroke } from '../theme';
 
 const TABS = [
   { name: 'index', label: '홈', Icon: Home },
@@ -70,28 +70,26 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         );
       })}
 
-      {/* (+) 선택 시트 — 사진 올리기 / 일정 만들기 */}
-      <Modal visible={sheetOpen} transparent animationType="slide" onRequestClose={() => setSheetOpen(false)}>
-        <Pressable style={styles.sheetBackdrop} onPress={() => setSheetOpen(false)}>
-          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]} onStartShouldSetResponder={() => true}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>무엇을 함께할까요?</Text>
-            <Pressable accessibilityRole="button" style={styles.sheetRow} onPress={() => requireGroup(() => router.push('/upload'))}>
-              <View style={styles.sheetIcon}>
-                <ImageIcon size={18} color={colors.accent} strokeWidth={iconStroke} />
+      {/* (+) 팝오버 메뉴 — 어두운 딤 없이 버튼 위로 살짝 떠오른다 (가족 전환 드롭다운과 같은 문법) */}
+      <Modal visible={sheetOpen} transparent animationType="fade" onRequestClose={() => setSheetOpen(false)}>
+        <Pressable style={[styles.menuBackdrop, { paddingBottom: insets.bottom + 74 + 10 }]} onPress={() => setSheetOpen(false)}>
+          <View style={styles.menuCard} onStartShouldSetResponder={() => true}>
+            <Pressable accessibilityRole="button" style={[styles.menuRow, styles.menuRowDivider]} onPress={() => requireGroup(() => router.push('/upload'))}>
+              <View style={styles.menuIcon}>
+                <ImageIcon size={17} color={colors.accent} strokeWidth={iconStroke} />
               </View>
-              <View style={styles.sheetRowInfo}>
-                <Text style={styles.sheetRowTitle}>사진 올리기</Text>
-                <Text style={styles.sheetRowSub}>오늘의 순간을 가족과 나눠요</Text>
+              <View style={styles.menuRowInfo}>
+                <Text style={styles.menuRowTitle}>사진 올리기</Text>
+                <Text style={styles.menuRowSub}>오늘의 순간을 가족과 나눠요</Text>
               </View>
             </Pressable>
-            <Pressable accessibilityRole="button" style={[styles.sheetRow, styles.sheetRowLast]} onPress={() => requireGroup(() => router.push('/event-form'))}>
-              <View style={styles.sheetIcon}>
-                <CalendarPlus size={18} color={colors.accent} strokeWidth={iconStroke} />
+            <Pressable accessibilityRole="button" style={styles.menuRow} onPress={() => requireGroup(() => router.push('/event-form'))}>
+              <View style={styles.menuIcon}>
+                <CalendarPlus size={17} color={colors.accent} strokeWidth={iconStroke} />
               </View>
-              <View style={styles.sheetRowInfo}>
-                <Text style={styles.sheetRowTitle}>일정 만들기</Text>
-                <Text style={styles.sheetRowSub}>생신·모임을 등록하고 함께 챙겨요</Text>
+              <View style={styles.menuRowInfo}>
+                <Text style={styles.menuRowTitle}>일정 만들기</Text>
+                <Text style={styles.menuRowSub}>생신·모임을 등록하고 함께 챙겨요</Text>
               </View>
             </Pressable>
           </View>
@@ -134,60 +132,51 @@ const styles = StyleSheet.create({
     marginTop: -22,
     backgroundColor: colors.bg,
   },
-  sheetBackdrop: {
+  menuBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(16,17,20,0.4)',
+    alignItems: 'center',
   },
-  sheet: {
+  menuCard: {
+    width: 250,
     backgroundColor: colors.bg,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.divider,
+    paddingHorizontal: 14,
+    shadowColor: '#101114',
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
-  sheetHandle: {
-    alignSelf: 'center',
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(16,17,20,0.18)',
-    marginBottom: 14,
-  },
-  sheetTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    color: colors.text,
-    paddingBottom: 4,
-  },
-  sheetRow: {
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
+    gap: 11,
+    paddingVertical: 13,
+  },
+  menuRowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.divider,
   },
-  sheetRowLast: {
-    borderBottomWidth: 0,
-  },
-  sheetIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  menuIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: colors.accent100,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sheetRowInfo: {
+  menuRowInfo: {
     flex: 1,
     gap: 1,
   },
-  sheetRowTitle: {
+  menuRowTitle: {
     fontSize: 14.5,
     color: colors.text,
   },
-  sheetRowSub: {
+  menuRowSub: {
     fontSize: 11,
     color: colors.textMuted,
   },
