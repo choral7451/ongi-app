@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
@@ -26,6 +27,14 @@ export function usePushNotifications() {
   const hydrate = usePushStore((s) => s.hydrate);
   const sync = usePushStore((s) => s.sync);
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  /** 푸시가 알린 새 소식이 화면에 바로 보이게 — 사진·댓글·일정 관련 캐시를 통째로 stale 처리 */
+  const invalidateForPush = () => {
+    for (const key of ['feed', 'albums', 'albumPhotos', 'unfiledPhotos', 'personPhotos', 'comments', 'events', 'members', 'photo']) {
+      void queryClient.invalidateQueries({ queryKey: [key] });
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -38,11 +47,14 @@ export function usePushNotifications() {
 
   useEffect(() => {
     const open = (data: Record<string, unknown> | undefined) => {
+      invalidateForPush();
       const groupId = typeof data?.groupId === 'string' ? data.groupId : '';
       const photoId = typeof data?.photoId === 'string' ? data.photoId : '';
+      const type = typeof data?.type === 'string' ? data.type : '';
       if (groupId) setActiveGroup(groupId);
       if (photoId) router.push({ pathname: '/photo/[id]', params: { id: photoId, ctx: 'feed' } });
-      else if (data?.type === 'member_joined') router.push('/family');
+      else if (type === 'member_joined') router.push('/family');
+      else if (type.startsWith('event_')) router.push('/schedule');
       else router.push('/');
     };
     // 종료 상태에서 알림으로 켜진 경우
@@ -52,6 +64,12 @@ export function usePushNotifications() {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       open(response.notification.request.content.data as Record<string, unknown>);
     });
-    return () => sub.remove();
+    // 앱이 켜져 있는 동안 배너로 도착한 푸시 — 탭하지 않아도 관련 목록이 새 소식으로 갱신되게
+    const receivedSub = Notifications.addNotificationReceivedListener(() => invalidateForPush());
+    return () => {
+      sub.remove();
+      receivedSub.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, setActiveGroup]);
 }

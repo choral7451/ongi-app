@@ -5,7 +5,8 @@ import {
   NotoSerifKR_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/noto-serif-kr';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AppState } from 'react-native';
 import Constants from 'expo-constants';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -50,6 +51,13 @@ export default function RootLayout() {
   useEffect(() => {
     void restore();
   }, [restore]);
+
+  // 앱이 다시 활성화되면 stale 쿼리를 재조회 — RN 은 웹과 달리 포커스 신호를 직접 연결해야 한다
+  // (푸시를 보고 들어왔을 때 피드·앨범이 옛 캐시로 보이던 문제)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (status) => focusManager.setFocused(status === 'active'));
+    return () => sub.remove();
+  }, []);
 
   // 최소 지원 버전 확인 — 조회 실패 시엔 그냥 통과 (네트워크 문제로 앱이 잠기면 안 됨)
   const [forceUpdateUrl, setForceUpdateUrl] = useState<string | null>(null);
