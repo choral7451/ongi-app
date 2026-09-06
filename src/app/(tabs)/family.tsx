@@ -183,7 +183,12 @@ export default function FamilyScreen() {
       ) : (
       <ScrollView contentContainerStyle={styles.content}>
         {/* 가족 일정 — 일정은 가족 공간의 것이라 진입점도 가족 탭에 */}
-        <Pressable style={styles.scheduleRow} onPress={() => router.push('/schedule')} accessibilityRole="button" accessibilityLabel="가족 일정">
+        <Pressable
+          style={styles.scheduleRow}
+          onPress={() => router.push({ pathname: '/schedule', params: { date: today, ts: String(Date.now()) } })}
+          accessibilityRole="button"
+          accessibilityLabel="가족 일정"
+        >
           <CalendarDays size={17} color={colors.accent} strokeWidth={iconStroke} />
           <Text style={styles.scheduleLabel}>가족 일정</Text>
           {nextEvent ? (

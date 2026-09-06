@@ -17,7 +17,13 @@ export function EventBanner() {
   const rest = upcoming.length - 1;
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="가족 일정 보기" style={styles.banner} onPress={() => router.push('/schedule')}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="가족 일정 보기"
+      style={styles.banner}
+      // 배너의 그 일정 날짜로 바로 이동 — 일정 화면이 이전에 보던 달에 머물지 않게
+      onPress={() => router.push({ pathname: '/schedule', params: { date: first.date, ts: String(Date.now()) } })}
+    >
       <CalendarDays size={15} color={colors.accent700} strokeWidth={iconStroke} />
       <Text style={styles.text} numberOfLines={1}>
         <Text style={styles.title}>{first.title}</Text> {ddayLabel(first.date)}

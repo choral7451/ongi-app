@@ -18,6 +18,7 @@ import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonthCalendar } from '../components/MonthCalendar';
 import { useCreateEvent, useMembers, useUpdateEvent } from '../hooks/queries';
+import { useUi } from '../store/ui';
 import { colors, fonts, iconStroke, radius } from '../theme';
 import { REPEAT_LABELS, formatKoreanTime, formatShortDate, monthOf, todayStr } from '../utils/calendar';
 
@@ -96,12 +97,29 @@ export default function EventFormScreen() {
       memo: memo.trim() || null,
       notifyUserIds,
     };
-    const options = {
-      onSuccess: () => router.back(),
-      onError: (e: unknown) => Alert.alert('저장 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
-    };
-    if (editing) updateEvent.mutate({ eventId: String(params.eventId), payload }, options);
-    else createEvent.mutate(payload, options);
+    const onError = (e: unknown) => Alert.alert('저장 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
+    if (editing) {
+      updateEvent.mutate(
+        { eventId: String(params.eventId), payload },
+        {
+          // 저장 결과를 공유해 상세 화면이 이전 스냅샷 대신 새 값으로 바로 갱신되게
+          onSuccess: (updated) => {
+            useUi.getState().setSavedEvent(updated);
+            router.back();
+          },
+          onError,
+        },
+      );
+    } else {
+      createEvent.mutate(payload, {
+        // 등록 후엔 그 일정이 보이는 일정 화면으로 — 뒤로 가도 폼이 다시 나오지 않게 replace
+        onSuccess: (created) => {
+          useUi.getState().setSavedEvent(created);
+          router.replace({ pathname: '/schedule', params: { date: created.date, ts: String(Date.now()) } });
+        },
+        onError,
+      });
+    }
   };
 
   const toggleNotify = (userId: string) => {

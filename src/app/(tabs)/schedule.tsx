@@ -1,6 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, Plus, RotateCw } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonthCalendar } from '../../components/MonthCalendar';
@@ -21,6 +21,16 @@ export default function ScheduleScreen() {
   const router = useRouter();
   const [month, setMonth] = useState(monthOf(todayStr()));
   const [selected, setSelected] = useState(todayStr());
+
+  // 배너·가족탭에서 넘어올 때 목적 날짜로 이동 — 탭 화면 상태가 남아 이전에 보던 달이 그대로 보이지 않게
+  const params = useLocalSearchParams<{ date?: string; ts?: string }>();
+  useEffect(() => {
+    const date = typeof params.date === 'string' ? params.date : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    setMonth(monthOf(date));
+    setSelected(date);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.ts, params.date]);
 
   const events = useEventsRange(`${month}-01`, lastDayOf(month));
   const marked = useMemo(() => new Set((events.data ?? []).map((e) => e.date)), [events.data]);

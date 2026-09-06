@@ -5,6 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDeleteEvent, useMembers } from '../hooks/queries';
 import { useSession } from '../store/session';
+import { useUi } from '../store/ui';
 import { colors, fonts, iconStroke, radius } from '../theme';
 import type { FamilyEvent } from '../types';
 import { REPEAT_LABELS, ddayLabel, daysUntil, formatKoreanDate, formatKoreanTime } from '../utils/calendar';
@@ -18,13 +19,16 @@ export default function EventDetailScreen() {
   const members = useMembers();
   const currentUserId = useSession((s) => s.currentUserId);
 
-  const event = useMemo<FamilyEvent | null>(() => {
+  const parsed = useMemo<FamilyEvent | null>(() => {
     try {
       return JSON.parse(String(params.event)) as FamilyEvent;
     } catch {
       return null;
     }
   }, [params.event]);
+  // 수정 폼이 저장한 최신 값이 있으면 그것으로 — 파라미터 스냅샷이 낡아 수정이 안 된 것처럼 보이지 않게
+  const savedEvent = useUi((s) => s.savedEvent);
+  const event = savedEvent && parsed && savedEvent.id === parsed.id ? savedEvent : parsed;
 
   if (!event) {
     router.back();
