@@ -74,7 +74,7 @@ export default function HomeScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* 헤더 + 일정 배너 — 스크롤 방향에 따라 접히는 한 덩어리 */}
       <Animated.View
-        style={[styles.headerWrap, { transform: [{ translateY }] }]}
+        style={[styles.headerWrap, { top: insets.top, transform: [{ translateY }] }]}
         onLayout={(e) => setHeaderHeight(Math.round(e.nativeEvent.layout.height))}
       >
         <AppHeader />
@@ -138,8 +138,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   headerWrap: {
+    // top 은 렌더 시 insets.top 으로 지정 — absolute 는 부모 paddingTop(상태바)을 무시한다
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
