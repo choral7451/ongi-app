@@ -6,6 +6,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFamily, useMyGroups } from '../hooks/queries';
 import { useSession } from '../store/session';
+import { useUi } from '../store/ui';
 import { colors, fonts, iconStroke, radius } from '../theme';
 
 /** 모든 탭 상단에 고정되는 ONGI 로고 + 가족 공간 드롭다운 (전환 전용 — 만들기·참여는 가족 탭) */
@@ -19,9 +20,11 @@ export function AppHeader() {
   const setActiveGroup = useSession((s) => s.setActiveGroup);
   const [open, setOpen] = useState(false);
 
-  // 로고 탭 → 홈으로 + 피드 새로고침
+  // 로고 탭 → 홈으로 + 피드·일정 새로고침 + 스크롤·헤더 처음 상태로
   const goHome = () => {
     queryClient.invalidateQueries({ queryKey: ['feed'] });
+    queryClient.invalidateQueries({ queryKey: ['events'] });
+    useUi.getState().requestHomeReset();
     router.navigate('/');
   };
 

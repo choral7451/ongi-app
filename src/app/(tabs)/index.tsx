@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
@@ -12,6 +12,7 @@ import { EventBanner } from '../../components/EventBanner';
 import { FeedPost } from '../../components/feed/FeedPost';
 import { NoGroupState } from '../../components/NoGroupState';
 import { useAlbums, useFeed, useMembers, useMyGroups } from '../../hooks/queries';
+import { useUi } from '../../store/ui';
 import { colors } from '../../theme';
 import type { Photo } from '../../types';
 import { formatFeedDate } from '../../utils/format';
@@ -60,6 +61,17 @@ export default function HomeScreen() {
     },
   });
   const headerStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+
+  // 로고 탭 → 스크롤 최상단 + 헤더 펼침 (피드·일정 새로고침은 AppHeader 가 invalidate)
+  const listRef = useRef<SectionList<Photo, FeedSection>>(null);
+  const homeResetTick = useUi((s) => s.homeResetTick);
+  useEffect(() => {
+    if (homeResetTick === 0) return;
+    translateY.value = 0;
+    lastY.value = 0;
+    listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeResetTick]);
 
   // 당겨서 새로고침 스피너는 사용자가 직접 당겼을 때만 — feed.isRefetching 은 백그라운드 갱신에도 true 가 되어 스피너가 수시로 뜬다
   const [refreshing, setRefreshing] = useState(false);
@@ -121,6 +133,7 @@ export default function HomeScreen() {
         </View>
       ) : (
       <AnimatedSectionList
+        ref={listRef}
         sections={sections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingTop: headerHeight }]}
