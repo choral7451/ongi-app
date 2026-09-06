@@ -18,7 +18,7 @@ import {
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonthCalendar } from '../components/MonthCalendar';
-import { useCreateEvent, useMembers, useUpdateEvent } from '../hooks/queries';
+import { useCreateEvent, useFamily, useMembers, useUpdateEvent } from '../hooks/queries';
 import { useUi } from '../store/ui';
 import { colors, fonts, iconStroke, radius } from '../theme';
 import { REPEAT_LABELS, formatKoreanTime, formatShortDate, monthOf, todayStr } from '../utils/calendar';
@@ -45,6 +45,7 @@ export default function EventFormScreen() {
     notifyUserIds?: string;
   }>();
   const editing = !!params.eventId;
+  const family = useFamily();
   const members = useMembers();
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
@@ -140,7 +141,10 @@ export default function EventFormScreen() {
         <Pressable accessibilityLabel="닫기" hitSlop={10} onPress={() => router.back()}>
           <X size={18} color={colors.text} strokeWidth={iconStroke} />
         </Pressable>
-        <Text style={styles.headerTitle}>{editing ? '일정 수정' : '일정 만들기'}</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerTitle}>{editing ? '일정 수정' : '일정 만들기'}</Text>
+          {family.data?.name ? <Text style={styles.headerGroup}>{family.data.name}</Text> : null}
+        </View>
         <Pressable accessibilityLabel="저장" style={styles.saveButton} onPress={submit} disabled={saving}>
           <Text style={styles.saveButtonText}>{saving ? '저장 중…' : '저장'}</Text>
         </Pressable>
@@ -376,10 +380,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 14,
   },
+  headerTitleWrap: {
+    alignItems: 'center',
+    gap: 1,
+  },
   headerTitle: {
     fontFamily: fonts.heading,
     fontSize: 16,
     color: colors.text,
+  },
+  headerGroup: {
+    fontSize: 11,
+    color: colors.accent,
   },
   saveButton: {
     paddingHorizontal: 14,
