@@ -2,7 +2,9 @@
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
 
-## AI 개발 프로세스 (온기)
+## AI 개발 프로세스 (온기) — 모든 작업은 이 순서를 따른다
+
+**흐름**: ① 요청(기대값 포함) → ② 테스트 먼저(서버 로직) → ③ 구현 → ④ PR(스펙 요약) → ⑤ AI 리뷰 → ⑥ 사람 리뷰(플래그·테스트 변경만) → ⑦ CI 통과 시 머지 → ⑧ 배포 후 확인. 브랜치 보호 전에는 main 직푸시 허용하되 게이트는 항상 통과 후 푸시.
 
 - 기능 수정 시 `../ongi-web` 도 항상 함께 반영한다 (타입·쿼리 키 동일 유지).
 - 요청에 기대 동작(기대값)을 함께 명시하고, 커밋 전 게이트: `npx tsc --noEmit` · `npx eslint src` 모두 통과 — CI 가 같은 검사를 강제한다.
