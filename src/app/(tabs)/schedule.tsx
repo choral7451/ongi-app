@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonthCalendar } from '../../components/MonthCalendar';
-import { useEventsRange } from '../../hooks/queries';
+import { useEventsRange, useHolidays } from '../../hooks/queries';
 import { colors, fonts, iconStroke, radius } from '../../theme';
 import type { FamilyEvent } from '../../types';
 import { REPEAT_LABELS, formatKoreanDate, formatKoreanTime, monthOf, todayStr } from '../../utils/calendar';
@@ -32,6 +32,9 @@ export default function ScheduleScreen() {
   }, [params.ts, params.date]);
 
   const events = useEventsRange(`${month}-01`, lastDayOf(month));
+  const holidays = useHolidays(Number(month.slice(0, 4)));
+  const holidayDates = useMemo(() => new Set((holidays.data ?? []).map((h) => h.date)), [holidays.data]);
+  const dayHolidays = useMemo(() => (holidays.data ?? []).filter((h) => h.date === selected), [holidays.data, selected]);
   const marked = useMemo(() => new Set((events.data ?? []).map((e) => e.date)), [events.data]);
   const dayEvents = useMemo(() => (events.data ?? []).filter((e) => e.date === selected), [events.data, selected]);
 
@@ -59,6 +62,7 @@ export default function ScheduleScreen() {
           month={month}
           selected={selected}
           marked={marked}
+          holidays={holidayDates}
           onSelect={setSelected}
           onChangeMonth={(next) => {
             setMonth(next);
@@ -70,7 +74,14 @@ export default function ScheduleScreen() {
 
         <Text style={styles.dateLabel}>{formatKoreanDate(selected)}</Text>
 
-        {dayEvents.length === 0 ? (
+        {dayHolidays.map((holiday) => (
+          <View key={`${holiday.date}-${holiday.name}`} style={styles.holidayRow}>
+            <View style={styles.holidayDot} />
+            <Text style={styles.holidayName}>{holiday.name}</Text>
+            <Text style={styles.holidayTag}>공휴일</Text>
+          </View>
+        ))}
+        {dayEvents.length === 0 && dayHolidays.length === 0 ? (
           <Text style={styles.empty}>이 날엔 일정이 없어요</Text>
         ) : (
           dayEvents.map((event) => (
@@ -136,6 +147,29 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     paddingVertical: 24,
     textAlign: 'center',
+  },
+  holidayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  holidayDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.danger,
+  },
+  holidayName: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+  },
+  holidayTag: {
+    fontSize: 11,
+    color: colors.danger,
   },
   row: {
     flexDirection: 'row',

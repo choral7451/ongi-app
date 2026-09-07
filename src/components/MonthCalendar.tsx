@@ -12,12 +12,14 @@ interface MonthCalendarProps {
   selected?: string;
   /** 점 표시할 날짜들 (일정 있는 날) */
   marked?: Set<string>;
+  /** 공휴일 날짜들 — 숫자를 일요일처럼 빨간색으로 */
+  holidays?: Set<string>;
   onSelect: (date: string) => void;
   onChangeMonth: (month: string) => void;
 }
 
 /** 월 달력 — 일정 화면과 일정 폼의 날짜 선택에 공용 */
-export const MonthCalendar = memo(function MonthCalendar({ month, selected, marked, onSelect, onChangeMonth }: MonthCalendarProps) {
+export const MonthCalendar = memo(function MonthCalendar({ month, selected, marked, holidays, onSelect, onChangeMonth }: MonthCalendarProps) {
   const [year, monthNo] = month.split('-').map(Number);
   const today = todayStr();
   const weeks = monthMatrix(month);
@@ -55,7 +57,7 @@ export const MonthCalendar = memo(function MonthCalendar({ month, selected, mark
                   <Text
                     style={[
                       styles.dayText,
-                      dayIndex === 0 && styles.sunday,
+                      (dayIndex === 0 || holidays?.has(date)) && styles.sunday,
                       date === selected && styles.selectedText,
                     ]}
                   >

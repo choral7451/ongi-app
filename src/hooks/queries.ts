@@ -508,6 +508,16 @@ export function useEventsRange(from: string, to: string) {
   });
 }
 
+/** 연도별 한국 공휴일 — 거의 변하지 않으므로 하루 동안 캐시 */
+export function useHolidays(year: number) {
+  return useQuery({
+    queryKey: ['holidays', year] as const,
+    queryFn: () => eventsApi.getHolidays(year),
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+  });
+}
+
 export function useCreateEvent() {
   const queryClient = useQueryClient();
   const groupId = useActiveGroupId();

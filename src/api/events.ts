@@ -1,4 +1,4 @@
-import type { FamilyEvent } from '../types';
+import type { FamilyEvent, Holiday } from '../types';
 import { post, request } from './client';
 
 export interface SaveEventPayload {
@@ -18,6 +18,12 @@ export interface SaveEventPayload {
 export async function getEvents(groupId: string, from: string, to: string): Promise<FamilyEvent[]> {
   const result = await request<{ events: FamilyEvent[] }>(`/ongi/groups/${groupId}/events?from=${from}&to=${to}`);
   return result.events;
+}
+
+/** 해당 연도 한국 공휴일 — 대체공휴일·임시공휴일 포함 */
+export async function getHolidays(year: number): Promise<Holiday[]> {
+  const result = await request<{ holidays: Holiday[] }>(`/ongi/holidays?year=${year}`);
+  return result.holidays;
 }
 
 export function createEvent(groupId: string, payload: SaveEventPayload): Promise<FamilyEvent> {
