@@ -110,6 +110,10 @@ export interface LocalPhoto {
   uri: string;
   /** width/height — 게시 시 서버에 전달하는 비율 힌트 */
   aspectRatio: number;
+  /** 갤러리 항목 종류 — 영상이면 셀에 ▶·길이 배지를 보여준다 */
+  mediaType: 'photo' | 'video';
+  /** 영상 길이(초) — video 만 */
+  durationSeconds?: number;
 }
 
 /** 가족 일정 — date 는 이 발생일(양력). 반복 일정은 발생일마다 한 건씩 내려온다 */

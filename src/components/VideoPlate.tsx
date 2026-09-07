@@ -10,7 +10,14 @@ export function VideoPlate({ uri, aspectRatio }: { uri: string; aspectRatio: num
 
   return (
     <View style={[styles.box, { aspectRatio: aspectRatio || 1 }]}>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="contain"
+        nativeControls
+        allowsFullscreen
+        allowsPictureInPicture
+      />
     </View>
   );
 }

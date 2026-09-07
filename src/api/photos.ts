@@ -1,7 +1,8 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as MediaLibrary from 'expo-media-library';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import { Platform } from 'react-native';
-import type { Comment, LocalPhotos, Photo } from '../types';
+import type { Comment, LocalPhoto, LocalPhotos, Photo } from '../types';
 import { post, postForm, request } from './client';
 
 /** 커서 페이지네이션 — after 는 직전 페이지 마지막 사진 id, 서버는 그보다 오래된 사진을 최신순으로 준다 */
@@ -93,14 +94,14 @@ export function addComment(params: {
 /** 한 번에 불러오는 갤러리 사진 수 — 스크롤 끝에서 이어서 불러온다 */
 export const LOCAL_PHOTOS_PAGE = 60;
 
-/** 업로드 화면 — 기기 갤러리 사진(최신순). after 커서로 다음 페이지. 권한이 거부되면 빈 목록 */
+/** 업로드 화면 — 기기 갤러리 사진·영상(최신순). after 커서로 다음 페이지. 권한이 거부되면 빈 목록 */
 export async function getLocalPhotos(after?: string): Promise<LocalPhotos> {
   const permission = await MediaLibrary.requestPermissionsAsync();
   if (!permission.granted) return { photos: [], limited: false, hasNextPage: false };
   const limited = permission.accessPrivileges === 'limited';
 
   const page = await MediaLibrary.getAssetsAsync({
-    mediaType: MediaLibrary.MediaType.photo,
+    mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
     sortBy: [[MediaLibrary.SortBy.creationTime, false]],
     first: LOCAL_PHOTOS_PAGE,
     ...(after ? { after } : {}),
@@ -114,6 +115,8 @@ export async function getLocalPhotos(after?: string): Promise<LocalPhotos> {
       id: asset.id,
       uri: asset.uri,
       aspectRatio: asset.height > 0 ? asset.width / asset.height : 1,
+      mediaType: asset.mediaType === 'video' ? ('video' as const) : ('photo' as const),
+      durationSeconds: asset.mediaType === 'video' ? Math.round(asset.duration) : undefined,
     })),
   };
 }
@@ -270,8 +273,31 @@ export async function uploadPhotos(payload: UploadPayload): Promise<UploadResult
 /** 영상 최대 길이(초) */
 export const VIDEO_MAX_DURATION = 300;
 
+/** 갤러리 영상 → 업로드 준비 — iCloud 원본 확보(필요시 다운로드) + 포스터 추출 */
+export async function prepareLocalVideo(local: LocalPhoto): Promise<{ uri: string; durationSeconds: number; aspectRatio: number; posterUri: string | null }> {
+  const info = await withTimeout(
+    MediaLibrary.getAssetInfoAsync(local.id),
+    120_000,
+    'iCloud 영상을 가져오는 데 너무 오래 걸려요. Wi-Fi 연결 후 다시 시도해 주세요.',
+  );
+  const uri = info.localUri ?? info.uri;
+  // 피드·목록용 포스터 — 실패해도 업로드는 가능
+  let posterUri: string | null = null;
+  try {
+    posterUri = (await VideoThumbnails.getThumbnailAsync(uri, { time: 500 })).uri;
+  } catch {
+    posterUri = null;
+  }
+  return {
+    uri,
+    durationSeconds: Math.max(local.durationSeconds ?? Math.round(info.duration), 1),
+    aspectRatio: local.aspectRatio || 16 / 9,
+    posterUri,
+  };
+}
+
 export interface VideoUploadPayload {
-  /** 시스템 피커가 내려준 로컬 mp4 uri (iOS 는 H.264 로 자동 변환됨) */
+  /** 로컬 영상 파일 uri (mp4/mov) */
   uri: string;
   durationSeconds: number;
   aspectRatio: number;
@@ -284,7 +310,9 @@ export interface VideoUploadPayload {
 /** 영상 1개 + 포스터를 올리고 게시한다 — 사진과 같은 엔드포인트, mediaType 'video' 로 구분 */
 export async function uploadVideo(payload: VideoUploadPayload): Promise<Photo[]> {
   const form = new FormData();
-  form.append('photoFiles', { uri: payload.uri, name: 'video-1.mp4', type: 'video/mp4' } as unknown as Blob);
+  const extension = payload.uri.split('.').pop()?.toLowerCase() ?? 'mp4';
+  const videoName = `video-1.${['mp4', 'mov', 'm4v'].includes(extension) ? extension : 'mp4'}`;
+  form.append('photoFiles', { uri: payload.uri, name: videoName, type: extension === 'mov' ? 'video/quicktime' : 'video/mp4' } as unknown as Blob);
   if (payload.posterUri) {
     form.append('photoFiles', { uri: payload.posterUri, name: 'poster-1.jpg', type: 'image/jpeg' } as unknown as Blob);
   }
