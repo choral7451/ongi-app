@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { Check, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react-native';
+import * as VideoThumbnails from 'expo-video-thumbnails';
+import { Check, ChevronLeft, ChevronRight, Play, Plus, Video as VideoIcon, X } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,7 +21,7 @@ import {
 } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { UPLOAD_MAX_SELECT } from '../api/photos';
+import { UPLOAD_MAX_SELECT, VIDEO_MAX_DURATION } from '../api/photos';
 import { IconButton } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { albumsApi, photosApi } from '../api';
@@ -166,6 +168,42 @@ export default function UploadScreen() {
   const [caption, setCaption] = useState('');
   const [targets, setTargets] = useState<Targets>({});
   const [sheet, setSheet] = useState<null | { step: 'hub' } | { step: 'album'; groupId: string }>(null);
+  const queryClient = useQueryClient();
+
+  // 영상은 한 번에 1개, 사진과 동시 게시 불가 (선택하면 서로 초기화)
+  const [video, setVideo] = useState<{ uri: string; durationSeconds: number; aspectRatio: number; posterUri: string | null } | null>(null);
+  const [videoUploading, setVideoUploading] = useState(false);
+
+  const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+
+  const pickVideo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+      quality: 1,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    const durationSeconds = Math.round((asset.duration ?? 0) / 1000);
+    if (durationSeconds > VIDEO_MAX_DURATION) {
+      Alert.alert('길이 제한', '영상은 최대 5분까지 올릴 수 있어요. 잘라서 올려주세요.');
+      return;
+    }
+    // 피드·목록용 포스터 — 실패해도 업로드는 가능
+    let posterUri: string | null = null;
+    try {
+      posterUri = (await VideoThumbnails.getThumbnailAsync(asset.uri, { time: 500 })).uri;
+    } catch {
+      posterUri = null;
+    }
+    setSelectedIds([]);
+    setVideo({
+      uri: asset.uri,
+      durationSeconds: Math.max(durationSeconds, 1),
+      aspectRatio: asset.width && asset.height ? asset.width / asset.height : 16 / 9,
+      posterUri,
+    });
+  };
 
   // ── 드래그 선택: 그리드 위에서 가로로 끌기 시작하면 지나간 칸을 선택(첫 칸이 이미 선택돼 있었으면 해제) ──
   const GRID_COLUMNS = 3;
@@ -252,7 +290,8 @@ export default function UploadScreen() {
   const selectedIdsRef = useRef<string[]>([]);
   selectedIdsRef.current = selectedIds;
 
-  const toggleSelect = (id: string) =>
+  const toggleSelect = (id: string) => {
+    if (video) setVideo(null);
     setSelectedIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       if (prev.length >= UPLOAD_MAX_SELECT) {
@@ -261,6 +300,7 @@ export default function UploadScreen() {
       }
       return [...prev, id];
     });
+  };
 
   // 가족 공간이 없으면 게시 대상이 없어 업로드 자체가 불가능
   const noGroup = !myGroups.isPending && (myGroups.data?.length ?? 0) === 0;
@@ -289,6 +329,22 @@ export default function UploadScreen() {
     if (targetCount === 0) return;
     lastTargets = targets;
     setSheet(null);
+    if (video) {
+      setVideoUploading(true);
+      photosApi
+        .uploadVideo({
+          ...video,
+          caption: caption.trim() || undefined,
+          targets: Object.entries(targets).map(([groupId, target]) => ({ groupId, albumId: target.albumId, personIds: [] })),
+        })
+        .then(() => {
+          for (const key of ['feed', 'albumPhotos', 'unfiledPhotos']) void queryClient.invalidateQueries({ queryKey: [key] });
+          router.back();
+        })
+        .catch((e) => Alert.alert('영상 올리기 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'))
+        .finally(() => setVideoUploading(false));
+      return;
+    }
     runUpload(selectedIds);
   };
 
@@ -361,6 +417,29 @@ export default function UploadScreen() {
           }
         }}
       >
+        {/* 동영상 — 시스템 피커로 1개 선택 (iOS 가 H.264 로 변환·iCloud 다운로드 처리) */}
+        {video ? (
+          <View style={styles.videoCard}>
+            {video.posterUri ? <Image source={{ uri: video.posterUri }} style={styles.videoPoster} /> : <View style={[styles.videoPoster, styles.videoPosterEmpty]} />}
+            <View style={styles.videoPlayBadge}>
+              <Play size={16} color={colors.white} fill={colors.white} strokeWidth={iconStroke} />
+            </View>
+            <View style={styles.videoInfo}>
+              <Text style={styles.videoInfoTitle}>동영상 1개</Text>
+              <Text style={styles.videoInfoMeta}>{formatDuration(video.durationSeconds)}</Text>
+            </View>
+            <Pressable accessibilityLabel="동영상 제외" hitSlop={8} onPress={() => setVideo(null)} style={styles.videoRemove}>
+              <X size={16} color={colors.text} strokeWidth={iconStroke} />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable accessibilityRole="button" style={styles.videoButton} onPress={pickVideo}>
+            <VideoIcon size={16} color={colors.accent} strokeWidth={iconStroke} />
+            <Text style={styles.videoButtonText}>동영상 올리기</Text>
+            <Text style={styles.videoButtonHint}>최대 5분 · 1개</Text>
+          </Pressable>
+        )}
+
         <SectionHeader
           title="올릴 사진을 골라주세요"
           size="sm"
@@ -411,12 +490,12 @@ export default function UploadScreen() {
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
         <Pressable
           accessibilityRole="button"
-          disabled={selectedIds.length === 0 || upload.isPending}
+          disabled={(selectedIds.length === 0 && !video) || upload.isPending || videoUploading}
           onPress={openTargetSheet}
-          style={[styles.bigButton, (selectedIds.length === 0 || upload.isPending) && styles.bigButtonDisabled]}
+          style={[styles.bigButton, ((selectedIds.length === 0 && !video) || upload.isPending || videoUploading) && styles.bigButtonDisabled]}
         >
-          <Text style={[styles.bigButtonText, selectedIds.length === 0 && styles.bigButtonTextDisabled]}>
-            {selectedIds.length > 0 ? `${selectedIds.length}장 올리기` : '사진을 골라주세요'}
+          <Text style={[styles.bigButtonText, selectedIds.length === 0 && !video && styles.bigButtonTextDisabled]}>
+            {video ? '영상 올리기' : selectedIds.length > 0 ? `${selectedIds.length}장 올리기` : '사진을 골라주세요'}
           </Text>
         </Pressable>
       </View>
@@ -473,7 +552,9 @@ export default function UploadScreen() {
                   <Text style={[styles.bigButtonText, targetCount === 0 && styles.bigButtonTextDisabled]}>
                     {targetCount === 0
                       ? '올릴 곳을 골라주세요'
-                      : `${targetCount}개 공간에 ${selectedIds.length}장 올리기`}
+                      : video
+                        ? `${targetCount}개 공간에 영상 올리기`
+                        : `${targetCount}개 공간에 ${selectedIds.length}장 올리기`}
                   </Text>
                 </Pressable>
               </>
@@ -501,11 +582,11 @@ export default function UploadScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {upload.isPending ? (
-        <View style={styles.overlay} pointerEvents="auto" accessibilityViewIsModal accessibilityLabel="사진 올리는 중">
+      {upload.isPending || videoUploading ? (
+        <View style={styles.overlay} pointerEvents="auto" accessibilityViewIsModal accessibilityLabel="올리는 중">
           <View style={styles.overlayCard}>
             <ActivityIndicator size="large" color={colors.accent} />
-            <Text style={styles.overlayTitle}>사진을 올리고 있어요</Text>
+            <Text style={styles.overlayTitle}>{videoUploading ? '영상을 올리고 있어요' : '사진을 올리고 있어요'}</Text>
             {progress ? (
               <>
                 <Text style={styles.overlayCount}>
@@ -660,6 +741,70 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.divider,
     borderRadius: radius.md,
+  },
+  videoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: radius.md,
+  },
+  videoButtonText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.accent,
+  },
+  videoButtonHint: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  videoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: radius.md,
+  },
+  videoPoster: {
+    width: 84,
+    height: 56,
+    borderRadius: radius.sm,
+    backgroundColor: colors.neutral200,
+  },
+  videoPosterEmpty: {
+    backgroundColor: colors.neutral300,
+  },
+  videoPlayBadge: {
+    position: 'absolute',
+    left: 10 + 42 - 14,
+    top: 10 + 28 - 14,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(16,17,20,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  videoInfoTitle: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  videoInfoMeta: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontVariant: ['tabular-nums'],
+  },
+  videoRemove: {
+    padding: 6,
   },
   bottomBar: {
     paddingHorizontal: 20,

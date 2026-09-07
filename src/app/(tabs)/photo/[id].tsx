@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Button, IconButton } from '../../../components/ui/Button';
 import { PhotoZoomViewer } from '../../../components/PhotoZoomViewer';
+import { VideoPlate } from '../../../components/VideoPlate';
 import { Plate } from '../../../components/ui/Plate';
 import { Tag } from '../../../components/ui/Tag';
 import {
@@ -245,18 +246,26 @@ export default function PhotoDetailScreen() {
                 <View key={item.id} style={{ width: pageWidth }}>
                   {/* 이웃 사진이 더 길면 스와이프 중에만 아래가 잘려 보이고, 넘기고 나면 높이가 맞춰진다 */}
                   {near ? (
-                    <Pressable onPress={() => setZoomUri(item.url)} accessibilityLabel="사진 크게 보기">
-                      <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} />
-                    </Pressable>
+                    item.mediaType === 'video' ? (
+                      <VideoPlate uri={item.url} aspectRatio={item.aspectRatio || 1} />
+                    ) : (
+                      <Pressable onPress={() => setZoomUri(item.url)} accessibilityLabel="사진 크게 보기">
+                        <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} />
+                      </Pressable>
+                    )
                   ) : null}
                 </View>
               );
             })}
           </ScrollView>
         ) : photo.data ? (
-          <Pressable onPress={() => setZoomUri(photo.data!.url)} accessibilityLabel="사진 크게 보기">
-            <Plate uri={photo.data.url} aspectRatio={photo.data.aspectRatio || 1} />
-          </Pressable>
+          photo.data.mediaType === 'video' ? (
+            <VideoPlate uri={photo.data.url} aspectRatio={photo.data.aspectRatio || 1} />
+          ) : (
+            <Pressable onPress={() => setZoomUri(photo.data!.url)} accessibilityLabel="사진 크게 보기">
+              <Plate uri={photo.data.url} aspectRatio={photo.data.aspectRatio || 1} />
+            </Pressable>
+          )
         ) : photo.isError ? (
           <Pressable onPress={() => photo.refetch()} style={styles.errorBox}>
             <Text style={styles.errorText}>사진을 불러오지 못했어요.</Text>

@@ -264,3 +264,52 @@ export async function uploadPhotos(payload: UploadPayload): Promise<UploadResult
 
   return { photos, failedIds, errorMessage };
 }
+
+// ── 영상 올리기 ─────────────────────────────────────────
+
+/** 영상 최대 길이(초) */
+export const VIDEO_MAX_DURATION = 300;
+
+export interface VideoUploadPayload {
+  /** 시스템 피커가 내려준 로컬 mp4 uri (iOS 는 H.264 로 자동 변환됨) */
+  uri: string;
+  durationSeconds: number;
+  aspectRatio: number;
+  /** 목록·피드용 포스터 이미지 — 클라이언트에서 추출 */
+  posterUri: string | null;
+  caption?: string;
+  targets: UploadTarget[];
+}
+
+/** 영상 1개 + 포스터를 올리고 게시한다 — 사진과 같은 엔드포인트, mediaType 'video' 로 구분 */
+export async function uploadVideo(payload: VideoUploadPayload): Promise<Photo[]> {
+  const form = new FormData();
+  form.append('photoFiles', { uri: payload.uri, name: 'video-1.mp4', type: 'video/mp4' } as unknown as Blob);
+  if (payload.posterUri) {
+    form.append('photoFiles', { uri: payload.posterUri, name: 'poster-1.jpg', type: 'image/jpeg' } as unknown as Blob);
+  }
+
+  const uploaded = await withTimeout(
+    postForm<{ urls: string[]; thumbUrls?: (string | null)[] }>('/ongi/photos/files', form),
+    900_000,
+    '영상 업로드가 너무 오래 걸려 중단했어요. Wi-Fi 연결 후 다시 시도해 주세요.',
+  );
+
+  const posterUrl = uploaded.urls[1] ?? undefined;
+  const posterThumb = uploaded.thumbUrls?.[1] ?? undefined;
+
+  const result = await post<{ photos: Photo[] }>('/ongi/photos', {
+    photos: [
+      {
+        url: uploaded.urls[0],
+        thumbUrl: posterThumb ?? posterUrl,
+        aspectRatio: payload.aspectRatio,
+        mediaType: 'video',
+        durationSeconds: Math.round(payload.durationSeconds),
+      },
+    ],
+    caption: payload.caption,
+    targets: payload.targets.map((target) => ({ groupId: target.groupId, albumId: target.albumId, personIds: target.personIds })),
+  });
+  return result.photos;
+}

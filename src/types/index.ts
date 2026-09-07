@@ -60,6 +60,10 @@ export interface Photo {
   url: string;
   /** 목록용 축소본 URL — 없으면(구버전 사진) url 사용 */
   thumbUrl?: string;
+  /** 'photo' | 'video' — 영상은 url 이 mp4, thumbUrl 이 포스터. 구버전 응답엔 없음 */
+  mediaType?: 'photo' | 'video';
+  /** 영상 길이(초) */
+  durationSeconds?: number;
   /** 세로 비율 힌트 (width/height) — 피드 레이아웃용 */
   aspectRatio: number;
   authorId: string;

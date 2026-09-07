@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useRouter } from 'expo-router';
-import { Heart, MessageCircle, MoreHorizontal } from 'lucide-react-native';
+import { Heart, MessageCircle, MoreHorizontal, Play } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useToggleLike } from '../../hooks/queries';
 import { usePhotoActions } from '../../hooks/usePhotoActions';
@@ -63,21 +63,36 @@ function FeedPostInner({ photo, author, album, photoFirst = true }: FeedPostProp
     </View>
   );
 
+  // 영상은 포스터 위에 ▶ 배지 + 길이 표시 — 재생은 상세에서
+  const media = (
+    <Pressable onPress={openDetail}>
+      <View>
+        <Plate uri={photo.thumbUrl ?? photo.url} aspectRatio={photo.aspectRatio} />
+        {photo.mediaType === 'video' ? (
+          <View style={styles.videoBadge}>
+            <Play size={11} color={colors.white} fill={colors.white} strokeWidth={iconStroke} />
+            {photo.durationSeconds ? (
+              <Text style={styles.videoBadgeText}>
+                {Math.floor(photo.durationSeconds / 60)}:{String(photo.durationSeconds % 60).padStart(2, '0')}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+
   return (
     <View style={styles.post}>
       {photoFirst ? (
         <>
-          <Pressable onPress={openDetail}>
-            <Plate uri={photo.thumbUrl ?? photo.url} aspectRatio={photo.aspectRatio} />
-          </Pressable>
+          {media}
           {authorRow}
         </>
       ) : (
         <>
           {authorRow}
-          <Pressable onPress={openDetail}>
-            <Plate uri={photo.thumbUrl ?? photo.url} aspectRatio={photo.aspectRatio} />
-          </Pressable>
+          {media}
         </>
       )}
       {photo.caption ? <Text style={styles.caption}>{photo.caption}</Text> : null}
@@ -88,6 +103,23 @@ function FeedPostInner({ photo, author, album, photoFirst = true }: FeedPostProp
 const styles = StyleSheet.create({
   post: {
     gap: 10,
+  },
+  videoBadge: {
+    position: 'absolute',
+    left: 8,
+    bottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(16,17,20,0.6)',
+  },
+  videoBadgeText: {
+    fontSize: 11,
+    color: colors.white,
+    fontVariant: ['tabular-nums'],
   },
   authorRow: {
     flexDirection: 'row',

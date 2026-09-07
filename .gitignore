@@ -48,3 +48,5 @@ example
 
 # FCM 서비스 계정 키 — 비밀, 절대 커밋 금지 (EAS 등록용 로컬 보관)
 fcm-service-account.json
+credentials.json
+credentials/
