@@ -247,7 +247,7 @@ export default function PhotoDetailScreen() {
                   {/* 이웃 사진이 더 길면 스와이프 중에만 아래가 잘려 보이고, 넘기고 나면 높이가 맞춰진다 */}
                   {near ? (
                     item.mediaType === 'video' ? (
-                      <VideoPlate uri={item.url} aspectRatio={item.aspectRatio || 1} />
+                      <VideoPlate uri={item.url} posterUri={item.thumbUrl ?? null} aspectRatio={item.aspectRatio || 1} />
                     ) : (
                       <Pressable onPress={() => setZoomUri(item.url)} accessibilityLabel="사진 크게 보기">
                         <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} />
@@ -260,7 +260,7 @@ export default function PhotoDetailScreen() {
           </ScrollView>
         ) : photo.data ? (
           photo.data.mediaType === 'video' ? (
-            <VideoPlate uri={photo.data.url} aspectRatio={photo.data.aspectRatio || 1} />
+            <VideoPlate uri={photo.data.url} posterUri={photo.data.thumbUrl ?? null} aspectRatio={photo.data.aspectRatio || 1} />
           ) : (
             <Pressable onPress={() => setZoomUri(photo.data!.url)} accessibilityLabel="사진 크게 보기">
               <Plate uri={photo.data.url} aspectRatio={photo.data.aspectRatio || 1} />
