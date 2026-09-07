@@ -158,16 +158,38 @@ export const UPLOAD_MAX_SELECT = 500;
 /** 긴 변 최대 픽셀 — 원본(12MP+)을 그대로 올리면 업로드·로딩 모두 느려진다 */
 const UPLOAD_MAX_EDGE = 2048;
 
-/** 원본 비율 유지 + 긴 변 2048 축소 + JPEG 통일 (HEIC 등 기기 포맷은 다른 플랫폼에서 안 보일 수 있음) */
+/** ms 안에 끝나지 않으면 실패 처리 — iCloud 다운로드·네트워크 정지로 스피너가 영원히 도는 것을 방지 */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/** 원본 비율 유지 + 긴 변 2048 축소 + JPEG 통일 (HEIC 등 기기 포맷은 다른 플랫폼에서 안 보일 수 있음)
+ *  저장 공간 최적화 기기에선 원본이 iCloud 에만 있어 다운로드가 낄 수 있다 — 단계마다 타임아웃 필수 */
 async function prepareAsset(assetId: string): Promise<{ uri: string; aspectRatio: number }> {
-  const info = await MediaLibrary.getAssetInfoAsync(assetId);
+  const info = await withTimeout(MediaLibrary.getAssetInfoAsync(assetId), 30_000, '사진 정보를 불러오지 못했어요. 네트워크 연결을 확인해 주세요.');
   const { width, height } = info;
   const aspectRatio = width > 0 && height > 0 ? width / height : 1;
   const resize = width >= height ? { width: Math.min(width, UPLOAD_MAX_EDGE) } : { height: Math.min(height, UPLOAD_MAX_EDGE) };
-  const jpeg = await ImageManipulator.manipulateAsync(info.localUri ?? info.uri, [{ resize }], {
-    compress: 0.85,
-    format: ImageManipulator.SaveFormat.JPEG,
-  });
+  const jpeg = await withTimeout(
+    ImageManipulator.manipulateAsync(info.localUri ?? info.uri, [{ resize }], {
+      compress: 0.85,
+      format: ImageManipulator.SaveFormat.JPEG,
+    }),
+    60_000,
+    'iCloud 사진을 내려받지 못했어요. Wi-Fi 연결 후 다시 시도해 주세요.',
+  );
   return { uri: jpeg.uri, aspectRatio };
 }
 
@@ -184,7 +206,11 @@ async function uploadChunk(ids: string[], payload: UploadPayload, withCaption: b
       type: 'image/jpeg',
     } as unknown as Blob);
   });
-  const uploaded = await postForm<{ urls: string[]; thumbUrls?: (string | null)[] }>('/ongi/photos/files', form);
+  const uploaded = await withTimeout(
+    postForm<{ urls: string[]; thumbUrls?: (string | null)[] }>('/ongi/photos/files', form),
+    300_000,
+    '업로드가 너무 오래 걸려 중단했어요. 네트워크 확인 후 다시 시도해 주세요.',
+  );
 
   const result = await post<{ photos: Photo[] }>('/ongi/photos', {
     photos: uploaded.urls.map((url, index) => ({ url, thumbUrl: uploaded.thumbUrls?.[index] ?? undefined, aspectRatio: prepared[index].aspectRatio })),
