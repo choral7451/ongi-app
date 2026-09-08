@@ -118,7 +118,7 @@ export default function AlbumsScreen() {
               style={styles.gridItem}
               onPress={() => router.push({ pathname: '/album/[id]', params: { id: 'all' } })}
             >
-              <Plate uri={allPhotos.data[0].url} height={108} />
+              <Plate uri={allPhotos.data[0].thumbUrl ?? allPhotos.data[0].url} height={108} />
               <View>
                 <Text style={styles.albumTitle}>전체 사진</Text>
                 <Text style={styles.albumMeta}>{allPhotos.data.length}장 · 이 공간의 모든 사진</Text>
@@ -130,7 +130,7 @@ export default function AlbumsScreen() {
               style={styles.gridItem}
               onPress={() => router.push({ pathname: '/album/[id]', params: { id: 'unfiled' } })}
             >
-              <Plate uri={unfiled.data[0].url} height={108} />
+              <Plate uri={unfiled.data[0].thumbUrl ?? unfiled.data[0].url} height={108} />
               <View>
                 <Text style={styles.albumTitle}>미분류</Text>
                 <Text style={styles.albumMeta}>{unfiled.data.length}장 · 앨범에 담기 전 사진</Text>
