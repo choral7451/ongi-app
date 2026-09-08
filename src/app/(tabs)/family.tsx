@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
-import { CalendarDays, ChevronRight, Copy, Hash, LogOut, Pencil, Plus, Share as ShareIcon } from 'lucide-react-native';
-import { useState } from 'react';
+import { CalendarDays, Check, ChevronRight, Copy, Hash, LogOut, Pencil, Plus, Share as ShareIcon } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { AppHeader } from '../../components/AppHeader';
@@ -40,6 +40,37 @@ function roleTag(member: Member) {
     default:
       return <Tag label="멤버" variant="neutral" />;
   }
+}
+
+/** 코드 복사 버튼 — 누르면 잠깐 '복사했어요'로 바뀌어 복사됐음을 알려준다 */
+function CopyCodeButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+  return (
+    <Button
+      variant="secondary"
+      label={copied ? '복사했어요' : '코드 복사'}
+      icon={
+        copied ? (
+          <Check size={15} color={colors.accent} strokeWidth={iconStroke} />
+        ) : (
+          <Copy size={15} color={colors.text} strokeWidth={iconStroke} />
+        )
+      }
+      onPress={async () => {
+        await Clipboard.setStringAsync(code);
+        setCopied(true);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => setCopied(false), 1600);
+      }}
+    />
+  );
 }
 
 /** 1d — 가족: 구성원 · 초대 */
@@ -246,12 +277,7 @@ export default function FamilyScreen() {
             코드를 입력하면 바로 함께할 수 있어요.
           </Text>
           <View style={styles.inviteActions}>
-            <Button
-              variant="secondary"
-              label="코드 복사"
-              icon={<Copy size={15} color={colors.text} strokeWidth={iconStroke} />}
-              onPress={() => Clipboard.setStringAsync(inviteCode)}
-            />
+            <CopyCodeButton code={inviteCode} />
             <Button
               label="초대 코드 공유"
               icon={<ShareIcon size={15} color={colors.accent} strokeWidth={iconStroke} />}
@@ -321,12 +347,7 @@ export default function FamilyScreen() {
               초대 코드는 {family.data?.inviteExpiresInDays ?? 7}일간 유효해요.{'\n'}가족이 앱에서 코드를 입력하면 바로 함께할 수 있어요.
             </Text>
             <View style={styles.inviteActions}>
-              <Button
-                variant="secondary"
-                label="코드 복사"
-                icon={<Copy size={15} color={colors.text} strokeWidth={iconStroke} />}
-                onPress={() => Clipboard.setStringAsync(inviteCode)}
-              />
+              <CopyCodeButton code={inviteCode} />
               <Button
                 label="초대 코드 공유"
                 icon={<ShareIcon size={15} color={colors.accent} strokeWidth={iconStroke} />}

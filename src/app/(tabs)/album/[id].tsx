@@ -126,7 +126,8 @@ export default function AlbumDetailScreen() {
 
   const album = isVirtual ? undefined : albums.data?.find((a) => a.id === id);
   const title = isAll ? '전체 사진' : isUnfiled ? '미분류' : (album?.title ?? '');
-  const coverUrl = isVirtual ? photos.data?.[0]?.url : album?.coverUrl;
+  // 최신이 영상이면 url 이 mp4 라 이미지로 못 그린다 — 포스터(thumbUrl) 우선
+  const coverUrl = isVirtual ? (photos.data?.[0]?.thumbUrl ?? photos.data?.[0]?.url) : album?.coverUrl;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 6) }]}>
