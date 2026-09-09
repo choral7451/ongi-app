@@ -59,17 +59,21 @@ interface IconButtonProps {
   onPress?: () => void;
   accessibilityLabel: string;
   style?: StyleProp<ViewStyle>;
+  /** 진행 중인 동작이 끝날 때까지 연타를 막는다 */
+  disabled?: boolean;
 }
 
 /** 디자인 시스템 .btn-icon — 36×36 아이콘 버튼 */
-export function IconButton({ icon, onPress, accessibilityLabel, style }: IconButtonProps) {
+export function IconButton({ icon, onPress, accessibilityLabel, style, disabled = false }: IconButtonProps) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
       hitSlop={6}
-      style={({ pressed }) => [styles.iconButton, pressed && styles.iconPressed, style]}
+      style={({ pressed }) => [styles.iconButton, pressed && styles.iconPressed, disabled && styles.iconDisabled, style]}
     >
       {icon}
     </Pressable>
@@ -77,6 +81,9 @@ export function IconButton({ icon, onPress, accessibilityLabel, style }: IconBut
 }
 
 const styles = StyleSheet.create({
+  iconDisabled: {
+    opacity: 0.4,
+  },
   base: {
     flexDirection: 'row',
     alignItems: 'center',

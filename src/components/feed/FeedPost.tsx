@@ -7,8 +7,10 @@ import { usePhotoActions } from '../../hooks/usePhotoActions';
 import { colors, iconStroke } from '../../theme';
 import type { Album, Member, Photo } from '../../types';
 import { formatTime } from '../../utils/format';
+import { displayImageUrl } from '../../utils/photoDisplay';
 import { Avatar } from '../ui/Avatar';
 import { Plate } from '../ui/Plate';
+import { VideoPlaceholder } from '../ui/VideoPlaceholder';
 
 interface FeedPostProps {
   photo: Photo;
@@ -64,10 +66,18 @@ function FeedPostInner({ photo, author, album, photoFirst = true }: FeedPostProp
   );
 
   // 영상은 포스터 위에 ▶ 배지 + 길이 표시 — 재생은 상세에서
+  const posterUri = displayImageUrl(photo);
   const media = (
     <Pressable onPress={openDetail}>
       <View>
-        <Plate uri={photo.thumbUrl ?? photo.url} aspectRatio={photo.aspectRatio} />
+        {posterUri ? (
+          <Plate uri={posterUri} aspectRatio={photo.aspectRatio} />
+        ) : (
+          // 포스터 없는 영상 — mp4 를 이미지로 그리면 빈 칸이 된다
+          <View style={{ aspectRatio: photo.aspectRatio || 1 }}>
+            <VideoPlaceholder size={30} />
+          </View>
+        )}
         {photo.mediaType === 'video' ? (
           <View style={styles.videoBadge}>
             <Play size={11} color={colors.white} fill={colors.white} strokeWidth={iconStroke} />

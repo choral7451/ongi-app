@@ -6,10 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoGroupState } from '../../components/NoGroupState';
 import { Button } from '../../components/ui/Button';
 import { Plate } from '../../components/ui/Plate';
+import { VideoPlaceholder } from '../../components/ui/VideoPlaceholder';
 import { useAlbums, useCreateAlbum, useDeleteAlbum, useFeed, useMembers, useMyGroups, useRenameAlbum, useUnfiledPhotos } from '../../hooks/queries';
 import type { Album } from '../../types';
 import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
+import { pickCoverUrl } from '../../utils/photoDisplay';
 
 /** 1b — 앨범: 전체 사진 + 미분류 + 직접 만든 앨범 */
 export default function AlbumsScreen() {
@@ -27,6 +29,10 @@ export default function AlbumsScreen() {
   const members = useMembers();
   // 앨범 추가·이름 변경·삭제는 그룹 관리자만
   const isAdmin = members.data?.find((m) => m.isMe)?.role === 'admin';
+
+  // 커버는 그릴 수 있는 가장 최근 항목 — 포스터 없는 영상은 건너뛴다
+  const allCover = pickCoverUrl(allPhotos.data);
+  const unfiledCover = pickCoverUrl(unfiled.data);
 
   const showError = (title: string) => (e: unknown) =>
     Alert.alert(title, e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
@@ -118,7 +124,7 @@ export default function AlbumsScreen() {
               style={styles.gridItem}
               onPress={() => router.push({ pathname: '/album/[id]', params: { id: 'all' } })}
             >
-              <Plate uri={allPhotos.data[0].thumbUrl ?? allPhotos.data[0].url} height={108} />
+              <Plate uri={allCover} height={108} fallback={<VideoPlaceholder size={20} />} />
               <View>
                 <Text style={styles.albumTitle}>전체 사진</Text>
                 <Text style={styles.albumMeta}>{allPhotos.data.length}장 · 이 공간의 모든 사진</Text>
@@ -130,7 +136,7 @@ export default function AlbumsScreen() {
               style={styles.gridItem}
               onPress={() => router.push({ pathname: '/album/[id]', params: { id: 'unfiled' } })}
             >
-              <Plate uri={unfiled.data[0].thumbUrl ?? unfiled.data[0].url} height={108} />
+              <Plate uri={unfiledCover} height={108} fallback={<VideoPlaceholder size={20} />} />
               <View>
                 <Text style={styles.albumTitle}>미분류</Text>
                 <Text style={styles.albumMeta}>{unfiled.data.length}장 · 앨범에 담기 전 사진</Text>

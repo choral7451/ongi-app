@@ -9,7 +9,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -40,6 +39,7 @@ import {
 } from '../../../hooks/queries';
 import { usePhotoActions } from '../../../hooks/usePhotoActions';
 import { alertError, promptReason, REPORT_DONE_MESSAGE, showActions } from '../../../utils/dialogs';
+import { shareMedia } from '../../../utils/media';
 import { useActiveGroupId, useSession } from '../../../store/session';
 import { colors, fonts, iconStroke } from '../../../theme';
 import type { Comment } from '../../../types';
@@ -54,6 +54,8 @@ export default function PhotoDetailScreen() {
 
   // 스와이프로 현재 사진이 바뀌므로 화면의 기준 id 는 상태로 든다
   const [currentId, setCurrentId] = useState(id);
+  // 공유는 파일을 먼저 내려받아야 해 시간이 걸린다 — 준비 중에는 버튼을 잠근다
+  const [sharing, setSharing] = useState(false);
 
   // 탭 안에 있어 화면이 언마운트되지 않는다 — 다른 사진으로 다시 들어오면 상태·스크롤을 재동기화
   const pagerRef = useRef<ScrollView>(null);
@@ -183,6 +185,16 @@ export default function PhotoDetailScreen() {
     );
   };
 
+  // 카카오톡 등으로 사진(영상) 파일 자체를 공유한다 — 저장소 presigned URL 은 내보내지 않는다
+  const sharePhoto = () => {
+    const target = photo.data;
+    if (!target || sharing) return;
+    setSharing(true);
+    shareMedia({ id: target.id, url: target.url, mediaType: target.mediaType })
+      .catch(alertError('공유하지 못했어요'))
+      .finally(() => setSharing(false));
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
@@ -200,17 +212,16 @@ export default function PhotoDetailScreen() {
         </View>
         <View style={styles.headerActions}>
           <IconButton
-            accessibilityLabel="공유"
-            onPress={() =>
-              // 저장소 원본 URL 은 밖으로 내보내지 않는다 — 문구만 공유
-              photo.data &&
-              Share.share({
-                message: photo.data.caption
-                  ? `"${photo.data.caption}" — 온기에서 가족과 나눈 사진이에요.`
-                  : '온기에서 가족과 나눈 사진이에요.',
-              })
+            accessibilityLabel={sharing ? '공유 준비 중' : '공유'}
+            disabled={sharing}
+            onPress={sharePhoto}
+            icon={
+              sharing ? (
+                <ActivityIndicator size="small" color={colors.text} />
+              ) : (
+                <ShareIcon size={18} color={colors.text} strokeWidth={iconStroke} />
+              )
             }
-            icon={<ShareIcon size={18} color={colors.text} strokeWidth={iconStroke} />}
           />
           <IconButton
             accessibilityLabel="더보기"
@@ -247,7 +258,12 @@ export default function PhotoDetailScreen() {
                   {/* 이웃 사진이 더 길면 스와이프 중에만 아래가 잘려 보이고, 넘기고 나면 높이가 맞춰진다 */}
                   {near ? (
                     item.mediaType === 'video' ? (
-                      <VideoPlate uri={item.url} posterUri={item.thumbUrl ?? null} aspectRatio={item.aspectRatio || 1} />
+                      <VideoPlate
+                        uri={item.url}
+                        posterUri={item.thumbUrl ?? null}
+                        aspectRatio={item.aspectRatio || 1}
+                        active={item.id === currentId}
+                      />
                     ) : (
                       <Pressable onPress={() => setZoomUri(item.url)} accessibilityLabel="사진 크게 보기">
                         <Plate uri={item.url} aspectRatio={item.aspectRatio || 1} />
