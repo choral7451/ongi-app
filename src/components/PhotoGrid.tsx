@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import type { ReactElement } from 'react';
-import { Check } from 'lucide-react-native';
+import { Check, Play } from 'lucide-react-native';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
+import { displayImageUrl } from '../utils/photoDisplay';
+import { VideoPlaceholder } from './ui/VideoPlaceholder';
 import type { Photo } from '../types';
 
 interface PhotoGridProps {
@@ -59,6 +61,7 @@ export function PhotoGrid({
       renderItem={({ item }) => {
         const allowed = !selectable || (canSelect?.(item) ?? true);
         const selected = selectable && (selectedIds?.has(item.id) ?? false);
+        const thumbUri = displayImageUrl(item);
         return (
           <Pressable
             style={styles.cell}
@@ -73,7 +76,17 @@ export function PhotoGrid({
                   })
             }
           >
-            <Image source={{ uri: item.thumbUrl ?? item.url }} style={[styles.image, selectable && !allowed && styles.imageDisabled]} transition={150} />
+            {/* 포스터가 없는 영상은 mp4 를 이미지로 못 그린다 — 대신 ▶ 자리표시자 */}
+            {thumbUri ? (
+              <Image source={{ uri: thumbUri }} style={[styles.image, selectable && !allowed && styles.imageDisabled]} transition={150} />
+            ) : (
+              <VideoPlaceholder style={selectable && !allowed ? styles.imageDisabled : undefined} />
+            )}
+            {item.mediaType === 'video' && thumbUri ? (
+              <View style={styles.videoBadge} pointerEvents="none">
+                <Play size={9} color={colors.white} fill={colors.white} strokeWidth={2} />
+              </View>
+            ) : null}
             {selectable && allowed ? (
               <View style={[styles.checkBadge, selected && styles.checkBadgeOn]}>
                 {selected ? <Check size={12} color={colors.bg} strokeWidth={2.5} /> : null}
@@ -132,6 +145,18 @@ const styles = StyleSheet.create({
   },
   imageDisabled: {
     opacity: 0.35,
+  },
+  videoBadge: {
+    position: 'absolute',
+    left: 5,
+    bottom: 5,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: 1,
+    backgroundColor: 'rgba(16,17,20,0.55)',
   },
   checkBadge: {
     position: 'absolute',

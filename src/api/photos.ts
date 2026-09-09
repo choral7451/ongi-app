@@ -1,8 +1,8 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as MediaLibrary from 'expo-media-library';
-import * as VideoThumbnails from 'expo-video-thumbnails';
 import { Platform } from 'react-native';
 import type { Comment, LocalPhoto, LocalPhotos, Photo } from '../types';
+import { clearPosterCache, extractVideoPoster } from '../utils/media';
 import { post, postForm, request } from './client';
 
 /** 커서 페이지네이션 — after 는 직전 페이지 마지막 사진 id, 서버는 그보다 오래된 사진을 최신순으로 준다 */
@@ -281,16 +281,13 @@ export async function prepareLocalVideo(local: LocalPhoto): Promise<{ uri: strin
     'iCloud 영상을 가져오는 데 너무 오래 걸려요. Wi-Fi 연결 후 다시 시도해 주세요.',
   );
   const uri = info.localUri ?? info.uri;
-  // 피드·목록용 포스터 — 실패해도 업로드는 가능
-  let posterUri: string | null = null;
-  try {
-    posterUri = (await VideoThumbnails.getThumbnailAsync(uri, { time: 500 })).uri;
-  } catch {
-    posterUri = null;
-  }
+  // 피드·목록용 포스터 — 실패해도 업로드는 가능 (목록에는 영상 자리표시자가 뜬다)
+  const duration = Math.max(local.durationSeconds ?? Math.round(info.duration), 1);
+  const posterUri = await extractVideoPoster(uri, duration);
+  clearPosterCache();
   return {
     uri,
-    durationSeconds: Math.max(local.durationSeconds ?? Math.round(info.duration), 1),
+    durationSeconds: duration,
     aspectRatio: local.aspectRatio || 16 / 9,
     posterUri,
   };

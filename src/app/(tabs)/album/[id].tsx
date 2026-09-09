@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoGrid } from '../../../components/PhotoGrid';
+import { pickCoverUrl } from '../../../utils/photoDisplay';
 import { Button, IconButton } from '../../../components/ui/Button';
 import { Plate } from '../../../components/ui/Plate';
 import { queryKeys, useAlbumPhotos, useAlbums, useCopyPhotos, useDeletePhotos, useFeed, useMembers, useMovePhotos, useMyGroups, useUnfiledPhotos } from '../../../hooks/queries';
@@ -126,8 +127,8 @@ export default function AlbumDetailScreen() {
 
   const album = isVirtual ? undefined : albums.data?.find((a) => a.id === id);
   const title = isAll ? '전체 사진' : isUnfiled ? '미분류' : (album?.title ?? '');
-  // 최신이 영상이면 url 이 mp4 라 이미지로 못 그린다 — 포스터(thumbUrl) 우선
-  const coverUrl = isVirtual ? (photos.data?.[0]?.thumbUrl ?? photos.data?.[0]?.url) : album?.coverUrl;
+  // 커버는 그릴 수 있는 가장 최근 항목 — 포스터 없는 영상(url 이 mp4)은 건너뛴다
+  const coverUrl = isVirtual ? pickCoverUrl(photos.data) : album?.coverUrl;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 6) }]}>
