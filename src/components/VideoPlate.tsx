@@ -1,8 +1,9 @@
 import { useEvent } from 'expo';
 import { Image } from 'expo-image';
+import { useFocusEffect } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Play } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, iconStroke } from '../theme';
 
@@ -32,8 +33,19 @@ export function VideoPlate({
 
   // 옆 사진으로 넘어가면 소리만 계속 나거나 여러 영상이 동시에 디코딩되는 일이 없게 멈춘다
   useEffect(() => {
-    if (!active) player.pause();
+    if (!active) pause(player);
   }, [active, player]);
+
+  // 상세는 탭 안에 있어 화면을 나가도 언마운트되지 않는다 — 포커스를 잃으면 직접 멈춰야 소리가 따라다니지 않는다.
+  // PiP 로 띄운 영상은 화면을 나가서도 계속 보는 게 목적이므로 그대로 둔다.
+  const inPictureInPicture = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        if (!inPictureInPicture.current) pause(player);
+      };
+    }, [player]),
+  );
 
   return (
     <View style={[styles.box, { aspectRatio: aspectRatio || 1 }]}>
@@ -44,6 +56,8 @@ export function VideoPlate({
         nativeControls
         allowsFullscreen
         allowsPictureInPicture
+        onPictureInPictureStart={() => (inPictureInPicture.current = true)}
+        onPictureInPictureStop={() => (inPictureInPicture.current = false)}
       />
       {started && status === 'loading' ? (
         <View style={styles.statusOverlay} pointerEvents="none">
@@ -82,6 +96,15 @@ export function VideoPlate({
       ) : null}
     </View>
   );
+}
+
+/** 이미 해제된 플레이어에 pause 를 부르면 던진다 — 언마운트 직전 정리에서도 안전하게 */
+function pause(player: { pause: () => void }): void {
+  try {
+    player.pause();
+  } catch {
+    // 해제된 플레이어 — 이미 멈춘 것과 같다
+  }
 }
 
 const styles = StyleSheet.create({
