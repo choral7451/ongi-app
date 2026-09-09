@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&display=swap');
+    body { margin: 0; font-family: -apple-system, 'Apple SD Gothic Neo', system-ui, sans-serif; }
+  </style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; background: #ffffff; color: #101114; display: flex; flex-direction: column; overflow: hidden">
+  <div style="height: 54px"></div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 20px 14px 20px">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#101114" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+    <span style="font-family: 'Noto Serif KR', serif; font-weight: 600; font-size: 16px; color: #101114">사진 올리기</span>
+    <span style="width: 18px"></span>
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; padding: 0 20px; overflow: hidden">
+    <span style="font-size: 11px; letter-spacing: 1px; color: #0164ff; padding: 0 0 8px 0">올릴 사진을 골라주세요</span>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; gap: 8px">
+        <div style="position: relative; width: 111px; height: 111px; background: #e9f0ff; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 2px #0164ff"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#a7c5ff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg><div style="position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 11px; background: #0164ff; display: flex; align-items: center; justify-content: center"><span style="font-size: 12px; color: #ffffff">1</span></div></div>
+        <div style="width: 111px; height: 111px; background: #f7f8fa; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c9ced6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg></div>
+        <div style="width: 111px; height: 111px; background: #e9f0ff; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#a7c5ff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg></div>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <div style="width: 111px; height: 111px; background: #f7f8fa; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c9ced6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg></div>
+        <div style="position: relative; width: 111px; height: 111px; background: #f7f8fa; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 2px #0164ff"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c9ced6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg><div style="position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 11px; background: #0164ff; display: flex; align-items: center; justify-content: center"><span style="font-size: 12px; color: #ffffff">2</span></div></div>
+        <div style="width: 111px; height: 111px; background: #e9f0ff; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#a7c5ff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: rgba(16,17,20,0.4)"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #ffffff; border-radius: 12px 12px 0 0; padding: 10px 20px 34px 20px; display: flex; flex-direction: column">
+    <div style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: rgba(16,17,20,0.18); margin-bottom: 14px"></div>
+    <span style="font-family: 'Noto Serif KR', serif; font-weight: 600; font-size: 16px; color: #101114; padding-bottom: 2px">어디에 올릴까요?</span>
+    <span style="font-size: 12px; color: rgba(16,17,20,0.55); padding-bottom: 4px">가족을 누르면 담을 앨범을 골라요 · 여러 곳 선택 가능</span>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(16,17,20,0.14)">
+      <div style="width: 34px; height: 34px; border-radius: 17px; border: 1px solid rgba(16,17,20,0.14); background: #e9f0ff; display: flex; align-items: center; justify-content: center">
+        <span style="font-family: 'Noto Serif KR', serif; font-weight: 600; font-size: 15px; color: #023c99">온</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px; flex: 1">
+        <span style="font-size: 14px; color: #0164ff">온기가족</span>
+        <span style="font-size: 11px; color: #0164ff">온기 앨범에 담아요</span>
+      </div>
+      <div style="width: 22px; height: 22px; border-radius: 11px; background: #0164ff; display: flex; align-items: center; justify-content: center">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(16,17,20,0.14)">
+      <div style="width: 34px; height: 34px; border-radius: 17px; border: 1px solid rgba(16,17,20,0.14); background: #f7f8fa; display: flex; align-items: center; justify-content: center">
+        <span style="font-family: 'Noto Serif KR', serif; font-weight: 600; font-size: 15px; color: #5e6269">처</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px; flex: 1">
+        <span style="font-size: 14px; color: #101114">처가 가족</span>
+        <span style="font-size: 11px; color: rgba(16,17,20,0.55)">누르면 앨범을 골라요</span>
+      </div>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b9bdc4" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0 18px 0">
+      <div style="width: 34px; height: 34px; border-radius: 17px; border: 1px solid rgba(16,17,20,0.14); background: #f7f8fa; display: flex; align-items: center; justify-content: center">
+        <span style="font-family: 'Noto Serif KR', serif; font-weight: 600; font-size: 15px; color: #5e6269">우</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px; flex: 1">
+        <span style="font-size: 14px; color: #101114">우리집</span>
+        <span style="font-size: 11px; color: rgba(16,17,20,0.55)">누르면 앨범을 골라요</span>
+      </div>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b9bdc4" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+    </div>
+    <div style="height: 50px; border-radius: 4px; background: #0164ff; display: flex; align-items: center; justify-content: center">
+      <span style="font-family: 'Noto Serif KR', serif; font-weight: 600; font-size: 15px; color: #ffffff">1개 공간에 3장 올리기</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
