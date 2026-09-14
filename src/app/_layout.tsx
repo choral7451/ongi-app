@@ -65,7 +65,7 @@ export default function RootLayout() {
     getAppConfig()
       .then((config) => {
         const current = Constants.expoConfig?.version ?? '0.0.0';
-        if (compareVersions(current, config.minIosVersion) < 0) setForceUpdateUrl(config.storeUrl);
+        if (compareVersions(current, config.minVersion ?? config.minIosVersion) < 0) setForceUpdateUrl(config.storeUrl);
       })
       .catch(() => {});
   }, []);

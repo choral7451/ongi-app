@@ -1,4 +1,4 @@
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from '../theme';
 
 /** 지원 종료 버전 차단 화면 — 업데이트 외 다른 동작은 막는다 */
@@ -10,7 +10,7 @@ export function ForceUpdateScreen({ storeUrl }: { storeUrl: string }) {
         지금 쓰시는 버전은 더 이상 지원되지 않아요.{'\n'}새 버전으로 업데이트하고 가족의 오늘을 이어가세요.
       </Text>
       <Pressable style={styles.button} onPress={() => Linking.openURL(storeUrl)} accessibilityRole="button">
-        <Text style={styles.buttonLabel}>App Store 에서 업데이트</Text>
+        <Text style={styles.buttonLabel}>{Platform.OS === 'android' ? 'Play 스토어' : 'App Store'} 에서 업데이트</Text>
       </Pressable>
     </View>
   );
