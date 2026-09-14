@@ -1,9 +1,11 @@
 import { Directory, File, Paths } from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 
-/** 공유용 임시 파일을 모아 두는 캐시 폴더 이름 */
+/** 공유·저장용 임시 파일을 모아 두는 캐시 폴더 이름 */
 const SHARE_DIR = 'share';
+const SAVE_DIR = 'save';
 
 /** URL 경로에서 확장자만 뽑는다 — presigned URL 의 쿼리스트링(?X-Amz-…)은 버린다 */
 function extensionOf(url: string, fallback: string): string {
@@ -45,9 +47,43 @@ export async function shareMedia(params: { id: string; url: string; mediaType?: 
   if (!(await Sharing.isAvailableAsync())) throw new Error('이 기기에서는 공유를 쓸 수 없어요.');
 
   const extension = extensionOf(params.url, params.mediaType === 'video' ? 'mp4' : 'jpg');
+  const file = await downloadToCache(SHARE_DIR, params.id, params.url, extension);
 
-  // 지난 공유 파일은 남겨 두면 캐시만 먹는다 — 매번 폴더를 비우고 새로 받는다
-  const directory = new Directory(Paths.cache, SHARE_DIR);
+  await Sharing.shareAsync(file.uri, {
+    mimeType: MIME[extension] ?? 'application/octet-stream',
+    UTI: UTI[extension] ?? 'public.data',
+    dialogTitle: params.mediaType === 'video' ? '영상 공유' : '사진 공유',
+  });
+}
+
+/**
+ * 사진·영상 원본을 기기의 사진 보관함(갤러리)에 저장한다.
+ *
+ * 저장 전용 권한만 요청한다 — iOS 는 '추가만 허용'(NSPhotoLibraryAddUsageDescription),
+ * Android 13+ 는 권한 없이 저장되고 12 이하는 WRITE_EXTERNAL_STORAGE 가 필요하다.
+ */
+export async function saveMediaToLibrary(params: { id: string; url: string; mediaType?: 'photo' | 'video' }): Promise<void> {
+  const permission = await MediaLibrary.requestPermissionsAsync(true);
+  if (!permission.granted) {
+    throw new Error('사진 보관함에 저장하려면 권한이 필요해요. 설정에서 온기의 사진 접근을 허용해 주세요.');
+  }
+
+  const extension = extensionOf(params.url, params.mediaType === 'video' ? 'mp4' : 'jpg');
+  const file = await downloadToCache(SAVE_DIR, params.id, params.url, extension);
+  try {
+    await MediaLibrary.saveToLibraryAsync(file.uri);
+  } finally {
+    try {
+      file.delete();
+    } catch {
+      // 캐시 정리 실패는 무시 — 다음 저장 때 폴더째 비운다
+    }
+  }
+}
+
+/** 원본을 캐시 폴더에 내려받는다 — 지난 파일이 캐시를 먹지 않도록 매번 폴더를 비우고 새로 받는다 */
+async function downloadToCache(folder: string, id: string, url: string, extension: string) {
+  const directory = new Directory(Paths.cache, folder);
   try {
     if (directory.exists) directory.delete();
   } catch {
@@ -55,13 +91,7 @@ export async function shareMedia(params: { id: string; url: string; mediaType?: 
   }
   directory.create({ intermediates: true, idempotent: true });
 
-  const file = await File.downloadFileAsync(params.url, new File(directory, `ongi-${params.id}.${extension}`));
-
-  await Sharing.shareAsync(file.uri, {
-    mimeType: MIME[extension] ?? 'application/octet-stream',
-    UTI: UTI[extension] ?? 'public.data',
-    dialogTitle: params.mediaType === 'video' ? '영상 공유' : '사진 공유',
-  });
+  return File.downloadFileAsync(url, new File(directory, `ongi-${id}.${extension}`));
 }
 
 /**

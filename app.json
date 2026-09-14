@@ -43,7 +43,6 @@
       "blockedPermissions": [
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -77,7 +76,7 @@
         "expo-media-library",
         {
           "photosPermission": "가족과 나눌 사진을 고르기 위해 사진 보관함에 접근합니다.",
-          "savePhotosPermission": false,
+          "savePhotosPermission": "가족 사진과 영상을 기기의 사진 보관함에 저장하기 위해 접근합니다.",
           "isAccessMediaLocationEnabled": false
         }
       ],

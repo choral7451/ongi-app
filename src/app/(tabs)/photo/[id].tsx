@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Heart, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
+import { ChevronLeft, Download, Heart, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -36,7 +36,7 @@ import {
 } from '../../../hooks/queries';
 import { usePhotoActions } from '../../../hooks/usePhotoActions';
 import { alertError, promptReason, REPORT_DONE_MESSAGE, showActions } from '../../../utils/dialogs';
-import { shareMedia } from '../../../utils/media';
+import { saveMediaToLibrary, shareMedia } from '../../../utils/media';
 import { useActiveGroupId, useSession } from '../../../store/session';
 import { colors, fonts, iconStroke } from '../../../theme';
 import type { Comment } from '../../../types';
@@ -53,6 +53,7 @@ export default function PhotoDetailScreen() {
   const [currentId, setCurrentId] = useState(id);
   // 공유는 파일을 먼저 내려받아야 해 시간이 걸린다 — 준비 중에는 버튼을 잠근다
   const [sharing, setSharing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // 탭 안에 있어 화면이 언마운트되지 않는다 — 다른 사진으로 다시 들어오면 상태·스크롤을 재동기화
   const pagerRef = useRef<ScrollView>(null);
@@ -182,6 +183,18 @@ export default function PhotoDetailScreen() {
       .finally(() => setSharing(false));
   };
 
+  // 원본을 기기 사진 보관함에 저장
+  const savePhoto = () => {
+    const target = photo.data;
+    if (!target || saving) return;
+    setSaving(true);
+    const label = target.mediaType === 'video' ? '영상' : '사진';
+    saveMediaToLibrary({ id: target.id, url: target.url, mediaType: target.mediaType })
+      .then(() => Alert.alert('저장 완료', `${label}을 사진 보관함에 저장했어요.`))
+      .catch(alertError(`${label}을 저장하지 못했어요`))
+      .finally(() => setSaving(false));
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
@@ -207,6 +220,18 @@ export default function PhotoDetailScreen() {
                 <ActivityIndicator size="small" color={colors.text} />
               ) : (
                 <ShareIcon size={18} color={colors.text} strokeWidth={iconStroke} />
+              )
+            }
+          />
+          <IconButton
+            accessibilityLabel={saving ? '저장 중' : '기기에 저장'}
+            disabled={saving}
+            onPress={savePhoto}
+            icon={
+              saving ? (
+                <ActivityIndicator size="small" color={colors.text} />
+              ) : (
+                <Download size={18} color={colors.text} strokeWidth={iconStroke} />
               )
             }
           />
