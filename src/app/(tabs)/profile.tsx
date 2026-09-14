@@ -51,9 +51,6 @@ function confirmAction(
   ]);
 }
 
-/** 운영 문의처 — 약관·개인정보 처리방침의 문의 이메일과 동일 */
-const SUPPORT_EMAIL = 'artinfokorea2022@gmail.com';
-
 const showError = (title: string) => (e: unknown) =>
   Alert.alert(title, e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
 
@@ -241,13 +238,8 @@ export default function ProfileScreen() {
         <SettingRow
           icon={<Mail size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
           label="문의하기"
-          trailing={<Text style={styles.settingMeta}>{SUPPORT_EMAIL}</Text>}
           divider={false}
-          onPress={() =>
-            Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('[온기] 문의')}`).catch(() =>
-              Alert.alert('문의하기', `${SUPPORT_EMAIL} 로 메일을 보내주세요.`),
-            )
-          }
+          onPress={() => router.push('/inquiries')}
         />
 
         <View style={styles.sectionGap}>

@@ -143,3 +143,13 @@ export interface LegalDoc {
   updatedAt: string; // "2026년 1월 1일" 형태의 표시용 문자열
   body: string;
 }
+
+/** 앱 문의 — 운영자가 관리자 페이지에서 답변한다 */
+export interface Inquiry {
+  id: string;
+  status: 'open' | 'answered';
+  content: string;
+  answer?: string;
+  answeredAt?: string;
+  createdAt: string;
+}

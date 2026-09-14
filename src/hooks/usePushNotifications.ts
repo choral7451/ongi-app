@@ -31,7 +31,7 @@ export function usePushNotifications() {
 
   /** 푸시가 알린 새 소식이 화면에 바로 보이게 — 사진·댓글·일정 관련 캐시를 통째로 stale 처리 */
   const invalidateForPush = () => {
-    for (const key of ['feed', 'albums', 'albumPhotos', 'unfiledPhotos', 'comments', 'events', 'members', 'photo']) {
+    for (const key of ['feed', 'albums', 'albumPhotos', 'unfiledPhotos', 'comments', 'events', 'members', 'photo', 'inquiries']) {
       void queryClient.invalidateQueries({ queryKey: [key] });
     }
   };
@@ -55,6 +55,7 @@ export function usePushNotifications() {
       if (photoId) router.push({ pathname: '/photo/[id]', params: { id: photoId, ctx: 'feed' } });
       else if (type === 'member_joined') router.push('/family');
       else if (type.startsWith('event_')) router.push('/schedule');
+      else if (type === 'inquiry_answered') router.push('/inquiries');
       else router.push('/');
     };
     // 종료 상태에서 알림으로 켜진 경우

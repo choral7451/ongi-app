@@ -1,6 +1,6 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
-import { albumsApi, eventsApi, familyApi, groupsApi, photosApi, profileApi, reportsApi } from '../api';
+import { albumsApi, eventsApi, familyApi, groupsApi, inquiriesApi, photosApi, profileApi, reportsApi } from '../api';
 import type { UploadPayload } from '../api/photos';
 import type { Comment, Photo } from '../types';
 import { useActiveGroupId, useSession } from '../store/session';
@@ -20,6 +20,7 @@ export const queryKeys = {
   members: (groupId: string) => ['members', groupId] as const,
   events: (groupId: string) => ['events', groupId] as const,
   profileStats: ['profileStats'] as const,
+  inquiries: ['inquiries'] as const,
 };
 
 // ── 그룹 ──────────────────────────────────────────────
@@ -393,6 +394,20 @@ export function useDeleteComment(photoId: string) {
 
 export function useReport() {
   return useMutation({ mutationFn: reportsApi.report });
+}
+
+// ── 문의 ──────────────────────────────────────────────
+
+export function useMyInquiries() {
+  return useQuery({ queryKey: queryKeys.inquiries, queryFn: inquiriesApi.getMyInquiries });
+}
+
+export function useCreateInquiry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: inquiriesApi.createInquiry,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.inquiries }),
+  });
 }
 
 /** 차단/차단 해제 — 차단한 사람의 콘텐츠가 사라지므로 그룹 콘텐츠 전체를 다시 불러온다 */

@@ -5,3 +5,4 @@ export * as familyApi from './family';
 export * as groupsApi from './groups';
 export * as profileApi from './profile';
 export * as reportsApi from './reports';
+export * as inquiriesApi from './inquiries';
