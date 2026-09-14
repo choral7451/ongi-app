@@ -16,7 +16,7 @@ interface PhotoGridProps {
   /** 불러오기 실패 — 빈 상태와 구분해 재시도 버튼을 보여준다 */
   error?: boolean;
   onRetry?: () => void;
-  /** 사진 상세에서 좌우 스와이프로 넘길 목록 컨텍스트 — 'feed' | 'album:<id>' | 'unfiled' | 'person:<id>' */
+  /** 사진 상세에서 좌우 스와이프로 넘길 목록 컨텍스트 — 'feed' | 'album:<id>' | 'unfiled' */
   detailCtx?: string;
   /** 선택 모드 — 탭하면 상세 대신 선택 토글. canSelect 가 false 인 사진은 흐리게 표시되고 선택 불가 */
   selectable?: boolean;

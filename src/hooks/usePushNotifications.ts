@@ -31,7 +31,7 @@ export function usePushNotifications() {
 
   /** 푸시가 알린 새 소식이 화면에 바로 보이게 — 사진·댓글·일정 관련 캐시를 통째로 stale 처리 */
   const invalidateForPush = () => {
-    for (const key of ['feed', 'albums', 'albumPhotos', 'unfiledPhotos', 'personPhotos', 'comments', 'events', 'members', 'photo']) {
+    for (const key of ['feed', 'albums', 'albumPhotos', 'unfiledPhotos', 'comments', 'events', 'members', 'photo']) {
       void queryClient.invalidateQueries({ queryKey: [key] });
     }
   };

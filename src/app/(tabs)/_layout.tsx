@@ -19,7 +19,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="schedule" options={{ href: null }} />
       <Tabs.Screen name="photo/[id]" options={{ href: null }} />
       <Tabs.Screen name="album/[id]" options={{ href: null }} />
-      <Tabs.Screen name="person/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

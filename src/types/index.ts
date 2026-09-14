@@ -35,14 +35,6 @@ export interface Member {
   isMe?: boolean;
 }
 
-/** 인물 태그 대상 (구성원이 아닌 아이 등 포함) */
-export interface Person {
-  id: string;
-  groupId: string;
-  name: string;
-  photoCount: number;
-  imageUrl?: string;
-}
 
 export interface Album {
   id: string;
@@ -74,8 +66,6 @@ export interface Photo {
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
-  /** 함께 찍힌 인물 id 목록 */
-  personIds: string[];
 }
 
 export interface Comment {

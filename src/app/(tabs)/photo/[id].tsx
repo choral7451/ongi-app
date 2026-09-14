@@ -21,7 +21,6 @@ import { Button, IconButton } from '../../../components/ui/Button';
 import { PhotoZoomViewer } from '../../../components/PhotoZoomViewer';
 import { VideoPlate } from '../../../components/VideoPlate';
 import { Plate } from '../../../components/ui/Plate';
-import { Tag } from '../../../components/ui/Tag';
 import {
   useAddComment,
   useAlbumPhotos,
@@ -30,8 +29,6 @@ import {
   useDeleteComment,
   useFeed,
   useMembers,
-  usePeople,
-  usePersonPhotos,
   usePhoto,
   useReport,
   useToggleLike,
@@ -45,7 +42,7 @@ import { colors, fonts, iconStroke } from '../../../theme';
 import type { Comment } from '../../../types';
 import { formatFullDateTime, formatTime } from '../../../utils/format';
 
-/** 1e — 사진 상세: 반응 · 댓글. 앨범 계열 ctx(all | album:<id> | unfiled | person:<id>)로 들어오면 좌우 스와이프로 그 목록을 넘겨본다. 홈 피드(feed)에서는 단건만 */
+/** 1e — 사진 상세: 반응 · 댓글. 앨범 계열 ctx(all | album:<id> | unfiled)로 들어오면 좌우 스와이프로 그 목록을 넘겨본다. 홈 피드(feed)에서는 단건만 */
 export default function PhotoDetailScreen() {
   const { id, ctx } = useLocalSearchParams<{ id: string; ctx?: string }>();
   const insets = useSafeAreaInsets();
@@ -76,10 +73,8 @@ export default function PhotoDetailScreen() {
   // 진입한 목록 컨텍스트의 사진들 — 스와이프 페이지 목록
   const activeGroupId = useActiveGroupId();
   const ctxAlbumId = ctx?.startsWith('album:') ? ctx.slice('album:'.length) : '';
-  const ctxPersonId = ctx?.startsWith('person:') ? ctx.slice('person:'.length) : '';
   const feedQuery = useFeed();
   const ctxAlbumPhotos = useAlbumPhotos(ctxAlbumId);
-  const ctxPersonPhotos = usePersonPhotos(ctxPersonId);
   const ctxUnfiledPhotos = useUnfiledPhotos(ctx === 'unfiled' ? activeGroupId : '');
   // 홈 피드에서 들어온 경우(ctx=feed)는 넘김 없이 그 사진만 본다
   const ctxQuery =
@@ -87,11 +82,9 @@ export default function PhotoDetailScreen() {
       ? feedQuery
       : ctxAlbumId
         ? ctxAlbumPhotos
-        : ctxPersonId
-          ? ctxPersonPhotos
-          : ctx === 'unfiled'
-            ? ctxUnfiledPhotos
-            : undefined;
+        : ctx === 'unfiled'
+          ? ctxUnfiledPhotos
+          : undefined;
   const ctxPhotos = ctxQuery?.data;
 
   const { width: windowWidth } = useWindowDimensions();
@@ -101,7 +94,6 @@ export default function PhotoDetailScreen() {
   const comments = useComments(currentId);
   const members = useMembers();
   const albums = useAlbums();
-  const people = usePeople();
   const toggleLike = useToggleLike();
   const addComment = useAddComment(currentId);
   const deleteComment = useDeleteComment(currentId);
@@ -117,17 +109,12 @@ export default function PhotoDetailScreen() {
     ctxPhotos && ctxPhotos.length > 1
       ? `${ctxPhotos.findIndex((p) => p.id === currentId) + 1} / ${ctxPhotos.length}`
       : null;
-  const taggedPeople =
-    photo.data?.personIds
-      .map((pid) => people.data?.find((p) => p.id === pid))
-      .filter((p): p is NonNullable<typeof p> => p != null) ?? [];
 
   // 탭 전환은 히스토리에 안 쌓여 back() 이 홈으로 떨어짐 — 들어온 컨텍스트로 명시 복귀
   const goBack = () => {
     if (ctxAlbumId) return router.replace({ pathname: '/album/[id]', params: { id: ctxAlbumId } });
     if (ctx === 'all') return router.replace({ pathname: '/album/[id]', params: { id: 'all' } });
     if (ctx === 'unfiled') return router.replace({ pathname: '/album/[id]', params: { id: 'unfiled' } });
-    if (ctxPersonId) return router.replace({ pathname: '/person/[id]', params: { id: ctxPersonId } });
     return router.replace('/');
   };
 
@@ -302,11 +289,6 @@ export default function PhotoDetailScreen() {
                   {photo.data.location ? ` · ${photo.data.location}` : ''}
                 </Text>
               </View>
-              <View style={styles.tags}>
-                {taggedPeople.map((p) => (
-                  <Tag key={p.id} label={p.name} variant="accent" />
-                ))}
-              </View>
               <Pressable
                 style={styles.likeButton}
                 onPress={() => toggleLike.mutate(photo.data!.id)}
@@ -440,10 +422,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
     fontVariant: ['tabular-nums'],
-  },
-  tags: {
-    flexDirection: 'row',
-    gap: 6,
   },
   quote: {
     fontFamily: fonts.headingRegular,

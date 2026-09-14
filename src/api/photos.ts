@@ -34,11 +34,6 @@ export function getPhotosByAlbum(albumId: string, params?: PhotoListParams): Pro
   return photoList(`/ongi/albums/${albumId}/photos`, params);
 }
 
-/** 인물이 태그된 사진 (최신순) */
-export function getPhotosByPerson(personId: string, params?: PhotoListParams): Promise<Photo[]> {
-  return photoList(`/ongi/people/${personId}/photos`, params);
-}
-
 /** 앨범에 담기지 않은 그룹 사진 — 앨범 탭의 "미분류" (최신순) */
 export function getUnfiledPhotos(groupId: string, params?: PhotoListParams): Promise<Photo[]> {
   return photoList(`/ongi/groups/${groupId}/photos/unfiled`, params);
@@ -127,11 +122,10 @@ export async function presentLimitedLibraryPicker(): Promise<void> {
   await MediaLibrary.presentPermissionsPickerAsync();
 }
 
-/** 그룹별 게시 대상 — 앨범·인물 태그는 그룹에 종속되므로 그룹마다 따로 지정 */
+/** 그룹별 게시 대상 — 앨범은 그룹에 종속되므로 그룹마다 따로 지정 */
 export interface UploadTarget {
   groupId: string;
   albumId?: string;
-  personIds: string[];
 }
 
 export interface UploadPayload {
@@ -221,7 +215,6 @@ async function uploadChunk(ids: string[], payload: UploadPayload, withCaption: b
     targets: payload.targets.map((target) => ({
       groupId: target.groupId,
       albumId: target.albumId,
-      personIds: target.personIds,
     })),
   });
   return result.photos;
@@ -334,7 +327,7 @@ export async function uploadVideo(payload: VideoUploadPayload): Promise<Photo[]>
       },
     ],
     caption: payload.caption,
-    targets: payload.targets.map((target) => ({ groupId: target.groupId, albumId: target.albumId, personIds: target.personIds })),
+    targets: payload.targets.map((target) => ({ groupId: target.groupId, albumId: target.albumId })),
   });
   return result.photos;
 }

@@ -322,7 +322,6 @@ export default function UploadScreen() {
     const mappedTargets = Object.entries(targets).map(([groupId, target]) => ({
       groupId,
       albumId: target.albumId,
-      personIds: [] as string[],
     }));
     setVideoUploading(true);
     // 진행률은 영상+사진 전체 기준 — 사진 단계는 offset 으로 이어 센다
@@ -367,7 +366,6 @@ export default function UploadScreen() {
         targets: Object.entries(targets).map(([groupId, target]) => ({
           groupId,
           albumId: target.albumId,
-          personIds: [],
         })),
         onProgress: (done, total) => setProgress({ done: progressOffset + done, total: progressOffset + total }),
       },

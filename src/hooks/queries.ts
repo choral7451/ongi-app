@@ -16,7 +16,6 @@ export const queryKeys = {
   comments: (photoId: string) => ['comments', photoId] as const,
   localPhotos: ['localPhotos'] as const,
   albums: (groupId: string) => ['albums', groupId] as const,
-  people: (groupId: string) => ['people', groupId] as const,
   group: (groupId: string) => ['group', groupId] as const,
   members: (groupId: string) => ['members', groupId] as const,
   events: (groupId: string) => ['events', groupId] as const,
@@ -100,7 +99,7 @@ export function useFeed() {
   return usePhotoList(queryKeys.feed(groupId), (after) => photosApi.getFeed(groupId, { limit: PAGE_SIZE, after }), groupId.length > 0);
 }
 
-const PHOTO_LIST_KEYS = new Set(['feed', 'albumPhotos', 'unfiledPhotos', 'personPhotos']);
+const PHOTO_LIST_KEYS = new Set(['feed', 'albumPhotos', 'unfiledPhotos']);
 
 /** 목록 캐시의 실제 모양 — 무한 스크롤 페이지 배열 */
 type PhotoListCache = InfiniteData<Photo[], string | undefined>;
@@ -151,10 +150,6 @@ export function useAlbumPhotos(albumId: string) {
 /** 앨범에 담기지 않은 사진 — 앨범 탭의 "미분류" */
 export function useUnfiledPhotos(groupId: string) {
   return usePhotoList(['unfiledPhotos', groupId], (after) => photosApi.getUnfiledPhotos(groupId, { limit: PAGE_SIZE, after }), groupId.length > 0);
-}
-
-export function usePersonPhotos(personId: string) {
-  return usePhotoList(['personPhotos', personId], (after) => photosApi.getPhotosByPerson(personId, { limit: PAGE_SIZE, after }), personId.length > 0);
 }
 
 export function useComments(photoId: string) {
@@ -236,20 +231,6 @@ export function useDeleteAlbum() {
   });
 }
 
-export function usePeople() {
-  const groupId = useActiveGroupId();
-  return usePeopleOf(groupId);
-}
-
-/** 특정 그룹의 인물 목록 */
-export function usePeopleOf(groupId: string) {
-  return useQuery({
-    queryKey: queryKeys.people(groupId),
-    queryFn: () => albumsApi.getPeople(groupId),
-    enabled: groupId.length > 0,
-  });
-}
-
 export function useFamily() {
   const groupId = useActiveGroupId();
   return useQuery({
@@ -282,9 +263,8 @@ function useApplyProfileChange() {
   return (me: profileApi.Me) => {
     queryClient.setQueryData(['me'], me);
     setCurrentUserName(me.name);
-    // 구성원·인물에 전파된 이름/이미지 반영
+    // 구성원에 전파된 이름/이미지 반영
     queryClient.invalidateQueries({ queryKey: queryKeys.members(groupId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.people(groupId) });
   };
 }
 
