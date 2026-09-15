@@ -50,3 +50,8 @@ example
 fcm-service-account.json
 credentials.json
 credentials/
+
+# 로컬 EAS 빌드 산출물
+*.ipa
+*.apk
+*.aab
