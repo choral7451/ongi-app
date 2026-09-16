@@ -7,6 +7,13 @@
     "icon": "./assets/images/icon.png",
     "scheme": "ongi",
     "userInterfaceStyle": "automatic",
+    "locales": {
+      "ko": {
+        "android": {
+          "app_name": "온기"
+        }
+      }
+    },
     "ios": {
       "bundleIdentifier": "com.ongifamily.app",
       "icon": "./assets/images/icon.png",
