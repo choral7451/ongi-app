@@ -26,6 +26,7 @@ import { albumsApi, photosApi } from '../api';
 import { useAlbumsOf, useLocalPhotos, useMyGroups, useUploadPhotos } from '../hooks/queries';
 import { colors, fonts, iconStroke, radius } from '../theme';
 import type { Group, LocalPhoto } from '../types';
+import { promptText } from '../utils/prompt';
 
 /** 그룹별 업로드 대상 — 키가 있으면 그 가족에 올린다 (albumId 없으면 미분류) */
 type Targets = Record<string, { albumId?: string }>;
@@ -110,16 +111,21 @@ function AlbumSheet({
   const queryClient = useQueryClient();
 
   const createAlbum = () => {
-    Alert.prompt('새 앨범 만들기', '앨범 이름을 입력해 주세요.', async (title) => {
-      const name = title?.trim();
-      if (!name) return;
-      try {
-        const album = await albumsApi.createAlbum(group.id, name);
-        await queryClient.invalidateQueries({ queryKey: ['albums', group.id] });
-        onPick(album.id);
-      } catch (e) {
-        Alert.alert('앨범 만들기 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
-      }
+    promptText({
+      title: '새 앨범 만들기',
+      message: '앨범 이름을 입력해 주세요.',
+      confirmText: '만들기',
+      onSubmit: async (title) => {
+        const name = title.trim();
+        if (!name) return;
+        try {
+          const album = await albumsApi.createAlbum(group.id, name);
+          await queryClient.invalidateQueries({ queryKey: ['albums', group.id] });
+          onPick(album.id);
+        } catch (e) {
+          Alert.alert('앨범 만들기 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
+        }
+      },
     });
   };
 

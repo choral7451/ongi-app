@@ -25,6 +25,7 @@ import {
   useUnblockMember,
 } from '../../hooks/queries';
 import { alertError, confirm, promptReason, REPORT_DONE_MESSAGE, showActions } from '../../utils/dialogs';
+import { promptText } from '../../utils/prompt';
 import { useActiveGroupId, useSession } from '../../store/session';
 import { colors, fonts, iconStroke, radius } from '../../theme';
 import type { Member } from '../../types';
@@ -103,33 +104,43 @@ export default function FamilyScreen() {
 
   const renameGroup = useRenameGroup();
   const promptRename = () =>
-    Alert.prompt(
-      '공간 이름 바꾸기',
-      '가족 모두에게 새 이름으로 보여요.',
-      (name) => {
-        if (!name?.trim()) return;
+    promptText({
+      title: '공간 이름 바꾸기',
+      message: '가족 모두에게 새 이름으로 보여요.',
+      defaultValue: family.data?.name ?? '',
+      confirmText: '변경',
+      onSubmit: (name) => {
+        if (!name.trim()) return;
         renameGroup.mutate({ groupId: activeGroupId, name: name.trim() }, { onError: alertError('이름 변경 실패') });
       },
-      'plain-text',
-      family.data?.name ?? '',
-    );
+    });
 
   const promptCreate = () =>
-    Alert.prompt('새 공간 만들기', '가족 공간 이름을 입력해 주세요.', (name) => {
-      if (!name?.trim()) return;
-      createGroup.mutate(name.trim(), {
-        onSuccess: (created) => setActiveGroup(created.id),
-        onError: alertError('공간 만들기 실패'),
-      });
+    promptText({
+      title: '새 공간 만들기',
+      message: '가족 공간 이름을 입력해 주세요.',
+      confirmText: '만들기',
+      onSubmit: (name) => {
+        if (!name.trim()) return;
+        createGroup.mutate(name.trim(), {
+          onSuccess: (created) => setActiveGroup(created.id),
+          onError: alertError('공간 만들기 실패'),
+        });
+      },
     });
 
   const promptJoin = () =>
-    Alert.prompt('초대 코드로 참여', '받은 6자리 초대 코드를 입력해 주세요.', (code) => {
-      if (!code?.trim()) return;
-      joinGroup.mutate(code.trim(), {
-        onSuccess: (joined) => setActiveGroup(joined.id),
-        onError: alertError('참여 실패'),
-      });
+    promptText({
+      title: '초대 코드로 참여',
+      message: '받은 6자리 초대 코드를 입력해 주세요.',
+      confirmText: '참여',
+      onSubmit: (code) => {
+        if (!code.trim()) return;
+        joinGroup.mutate(code.trim(), {
+          onSuccess: (joined) => setActiveGroup(joined.id),
+          onError: alertError('참여 실패'),
+        });
+      },
     });
   const isSoleAdmin = me?.role === 'admin' && !members.data?.some((m) => m.id !== me.id && m.role === 'admin');
   const othersCount = (members.data?.length ?? 1) - 1;

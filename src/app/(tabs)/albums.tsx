@@ -12,6 +12,7 @@ import type { Album } from '../../types';
 import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke } from '../../theme';
 import { pickCoverUrl } from '../../utils/photoDisplay';
+import { promptText } from '../../utils/prompt';
 
 /** 1b — 앨범: 전체 사진 + 미분류 + 직접 만든 앨범 */
 export default function AlbumsScreen() {
@@ -38,23 +39,16 @@ export default function AlbumsScreen() {
     Alert.alert(title, e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');
 
   const promptRename = (album: Album) => {
-    Alert.prompt(
-      '앨범 이름 변경',
-      undefined,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '변경',
-          onPress: (title?: string) => {
-            const trimmed = title?.trim();
-            if (!trimmed || trimmed === album.title) return;
-            renameAlbum.mutate({ albumId: album.id, title: trimmed }, { onError: showError('이름 변경 실패') });
-          },
-        },
-      ],
-      'plain-text',
-      album.title,
-    );
+    promptText({
+      title: '앨범 이름 변경',
+      defaultValue: album.title,
+      confirmText: '변경',
+      onSubmit: (title) => {
+        const trimmed = title.trim();
+        if (!trimmed || trimmed === album.title) return;
+        renameAlbum.mutate({ albumId: album.id, title: trimmed }, { onError: showError('이름 변경 실패') });
+      },
+    });
   };
 
   const confirmDelete = (album: Album) => {
@@ -78,25 +72,19 @@ export default function AlbumsScreen() {
   };
 
   const promptNewAlbum = () => {
-    Alert.prompt(
-      '새 앨범',
-      '앨범 이름을 입력해 주세요',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '만들기',
-          onPress: (title?: string) => {
-            const trimmed = title?.trim();
-            if (!trimmed) return;
-            createAlbum.mutate(trimmed, {
-              onError: (e) =>
-                Alert.alert('앨범 만들기 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
-            });
-          },
-        },
-      ],
-      'plain-text',
-    );
+    promptText({
+      title: '새 앨범',
+      message: '앨범 이름을 입력해 주세요',
+      confirmText: '만들기',
+      onSubmit: (title) => {
+        const trimmed = title.trim();
+        if (!trimmed) return;
+        createAlbum.mutate(trimmed, {
+          onError: (e) =>
+            Alert.alert('앨범 만들기 실패', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.'),
+        });
+      },
+    });
   };
 
   return (

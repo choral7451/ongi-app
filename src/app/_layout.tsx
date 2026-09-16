@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { compareVersions, getAppConfig } from '../api/config';
 import { ForceUpdateScreen } from '../components/ForceUpdateScreen';
+import { TextPromptHost } from '../components/TextPromptHost';
 import { useSession } from '../store/session';
 import { colors } from '../theme';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -114,6 +115,8 @@ export default function RootLayout() {
         {/* 약관·개인정보 처리방침은 로그인 전에도 열람 가능 */}
         <Stack.Screen name="legal/[slug]" />
       </Stack>
+      {/* promptText 의 안드로이드 입력 모달 (iOS 는 Alert.prompt) */}
+      <TextPromptHost />
     </QueryClientProvider>
   );
 }

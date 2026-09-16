@@ -32,6 +32,7 @@ import {
 import { useSession } from '../../store/session';
 import { usePushStore } from '../../store/push';
 import { colors, fonts, iconStroke } from '../../theme';
+import { promptText } from '../../utils/prompt';
 
 /** Alert는 웹에서 동작하지 않아 웹은 window.confirm으로 대체 */
 function confirmAction(
@@ -63,15 +64,23 @@ interface SettingRowProps {
 }
 
 function SettingRow({ icon, label, trailing, divider = true, onPress }: SettingRowProps) {
+  const rowStyle = [styles.settingRow, divider && styles.settingDivider];
+  // 누를 동작이 없는 줄(푸시 스위치 등)은 Pressable 로 감싸지 않는다 — 안드로이드에서 부모가 탭을 가로채 Switch 가 탭으로 안 움직였다
+  if (!onPress) {
+    return (
+      <View style={rowStyle}>
+        {icon}
+        <Text style={styles.settingLabel}>{label}</Text>
+        {trailing}
+      </View>
+    );
+  }
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.settingRow, divider && styles.settingDivider]}
-    >
+    <Pressable onPress={onPress} style={rowStyle}>
       {icon}
       <Text style={styles.settingLabel}>{label}</Text>
       {trailing}
-      {onPress ? <ChevronRight size={16} color={colors.neutral500} strokeWidth={iconStroke} /> : null}
+      <ChevronRight size={16} color={colors.neutral500} strokeWidth={iconStroke} />
     </Pressable>
   );
 }
@@ -96,23 +105,17 @@ export default function ProfileScreen() {
   const localPhotos = useLocalPhotos(pickerVisible);
 
   const promptRename = () => {
-    Alert.prompt(
-      '이름 변경',
-      '가족에게 보여질 이름이에요',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '변경',
-          onPress: (name?: string) => {
-            const trimmed = name?.trim();
-            if (!trimmed || trimmed === me.data?.name) return;
-            updateMyName.mutate(trimmed, { onError: showError('이름 변경 실패') });
-          },
-        },
-      ],
-      'plain-text',
-      me.data?.name ?? session.currentUserName,
-    );
+    promptText({
+      title: '이름 변경',
+      message: '가족에게 보여질 이름이에요',
+      defaultValue: me.data?.name ?? session.currentUserName,
+      confirmText: '변경',
+      onSubmit: (name) => {
+        const trimmed = name.trim();
+        if (!trimmed || trimmed === me.data?.name) return;
+        updateMyName.mutate(trimmed, { onError: showError('이름 변경 실패') });
+      },
+    });
   };
 
   const pickAvatar = (assetId: string) => {
