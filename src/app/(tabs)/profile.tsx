@@ -333,6 +333,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 34,
     color: colors.accent700,
+    // 안드로이드 폰트 상하 여백 때문에 글자가 아래로 치우치는 것 방지 (Avatar 와 동일)
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   avatarBadge: {
     position: 'absolute',

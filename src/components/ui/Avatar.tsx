@@ -63,6 +63,9 @@ const styles = StyleSheet.create({
   initial: {
     fontFamily: fonts.heading,
     color: colors.accent800,
+    // 안드로이드는 폰트 상하 여백(Noto Serif KR 은 특히 큼)이 붙어 글자가 원 안에서 아래로 밀린다
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   pending: {
     backgroundColor: 'transparent',
