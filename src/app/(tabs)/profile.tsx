@@ -197,7 +197,7 @@ export default function ProfileScreen() {
                   : pushStatus === 'registered'
                     ? '켜짐'
                     : pushStatus === 'denied'
-                      ? 'iOS 설정에서 꺼짐'
+                      ? '기기 설정에서 꺼짐'
                       : pushStatus === 'unavailable'
                         ? '이 기기에서 지원 안 함'
                         : pushStatus === 'error'
@@ -209,7 +209,7 @@ export default function ProfileScreen() {
                 onValueChange={(v) =>
                   void setPushEnabled(v).then((status) => {
                     if (v && status === 'denied') {
-                      Alert.alert('알림이 꺼져 있어요', 'iOS 설정에서 온기의 알림을 허용해 주세요.', [
+                      Alert.alert('알림이 꺼져 있어요', '휴대폰 설정에서 온기의 알림을 허용해 주세요.', [
                         { text: '나중에', style: 'cancel' },
                         { text: '설정 열기', onPress: () => void Linking.openSettings() },
                       ]);

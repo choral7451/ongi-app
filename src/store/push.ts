@@ -13,7 +13,7 @@ const PREF_KEY = 'ongi_push_enabled';
  * 푸시 상태
  * - registered: 토큰이 서버에 등록됨 (정상)
  * - off: 사용자가 앱에서 끔
- * - denied: iOS 설정에서 알림이 꺼져 있음 → 설정 앱으로 안내
+ * - denied: 기기 설정에서 알림이 꺼져 있음 → 설정 앱으로 안내
  * - unavailable: 시뮬레이터 등 토큰을 받을 수 없는 환경
  * - error: 등록 요청 실패 (네트워크 등)
  * - idle: 아직 시도 전
@@ -34,6 +34,13 @@ interface PushState {
 
 async function fetchExpoPushToken(): Promise<{ token: string | null; denied: boolean }> {
   if (!Device.isDevice) return { token: null, denied: false };
+  // Android 13+ 는 알림 채널이 있어야 권한 팝업이 뜬다 — 서버가 channelId 없이 보내므로 Expo 기본값 'default' 와 맞춘다
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: '기본 알림',
+      importance: Notifications.AndroidImportance.DEFAULT,
+    });
+  }
   const { status: existing } = await Notifications.getPermissionsAsync();
   const status = existing === 'granted' ? existing : (await Notifications.requestPermissionsAsync()).status;
   if (status !== 'granted') return { token: null, denied: true };

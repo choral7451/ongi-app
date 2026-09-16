@@ -18,7 +18,7 @@ Notifications.setNotificationHandler({
 
 /**
  * 로그인 상태가 되면 (앱 내 스위치가 켜져 있을 때) 권한을 묻고 푸시 토큰을 서버에 등록한다.
- * 앱이 다시 활성화될 때도 동기화해, iOS 설정에서 알림을 켜고 돌아온 경우를 잡는다.
+ * 앱이 다시 활성화될 때도 동기화해, 기기 설정에서 알림을 켜고 돌아온 경우를 잡는다.
  * 알림을 탭하면 페이로드(groupId, photoId)로 해당 사진 상세로 이동.
  */
 export function usePushNotifications() {
