@@ -18,9 +18,10 @@ import {
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonthCalendar } from '../components/MonthCalendar';
+import { Avatar } from '../components/ui/Avatar';
 import { useCreateEvent, useFamily, useMembers, useUpdateEvent } from '../hooks/queries';
 import { useUi } from '../store/ui';
-import { colors, fonts, iconStroke, radius } from '../theme';
+import { colors, fonts, iconStroke, radius, textCenterFix } from '../theme';
 import { REPEAT_LABELS, formatKoreanTime, formatShortDate, monthOf, todayStr } from '../utils/calendar';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -338,9 +339,7 @@ export default function EventFormScreen() {
                     const picked = notifyUserIds.includes(member.userId);
                     return (
                       <Pressable key={member.id} style={styles.notifyRow} onPress={() => toggleNotify(member.userId)}>
-                        <View style={[styles.avatar, picked && styles.avatarPicked]}>
-                          <Text style={[styles.avatarText, picked && styles.avatarTextPicked]}>{member.name.slice(0, 1)}</Text>
-                        </View>
+                        <Avatar name={member.name} uri={member.avatarUrl} size={34} style={picked ? undefined : styles.avatarUnpicked} />
                         <Text style={[styles.notifyName, picked && styles.notifyNamePicked]}>
                           {member.name}
                           {member.isMe ? <Text style={styles.notifyMe}> (나)</Text> : null}
@@ -400,6 +399,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 13,
     color: colors.accent,
+    ...textCenterFix,
   },
   content: {
     paddingHorizontal: 20,
@@ -616,26 +616,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.divider,
   },
-  avatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: colors.divider,
+  avatarUnpicked: {
     backgroundColor: colors.neutral100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarPicked: {
-    backgroundColor: colors.accent100,
-  },
-  avatarText: {
-    fontFamily: fonts.heading,
-    fontSize: 15,
-    color: colors.neutral700,
-  },
-  avatarTextPicked: {
-    color: colors.accent800,
   },
   notifyName: {
     flex: 1,

@@ -6,7 +6,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { colors, fonts, radius } from '../../theme';
+import { colors, fonts, radius, textCenterFix } from '../../theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 
@@ -99,6 +99,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 13,
     color: colors.text,
+    ...textCenterFix,
   },
   accentLabel: {
     color: colors.accent,

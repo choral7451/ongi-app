@@ -20,6 +20,7 @@ import {
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UPLOAD_MAX_SELECT, VIDEO_MAX_DURATION } from '../api/photos';
+import { Avatar } from '../components/ui/Avatar';
 import { IconButton } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { albumsApi, photosApi } from '../api';
@@ -53,11 +54,7 @@ function HubRow({
 
   return (
     <Pressable accessibilityRole="button" style={styles.hubRow} onPress={onPress}>
-      <View style={[styles.avatar, selected && styles.avatarSelected]}>
-        <Text style={[styles.avatarText, selected && styles.avatarTextSelected]}>
-          {group.name.slice(0, 1)}
-        </Text>
-      </View>
+      <Avatar name={group.name} size={34} style={selected ? undefined : styles.avatarUnselected} />
       <View style={styles.hubRowInfo}>
         <Text style={[styles.hubRowName, selected && styles.hubRowNameSelected]} numberOfLines={1}>
           {group.name}
@@ -855,26 +852,8 @@ const styles = StyleSheet.create({
   hubRowSubSelected: {
     color: colors.accent,
   },
-  avatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: colors.divider,
+  avatarUnselected: {
     backgroundColor: colors.neutral100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarSelected: {
-    backgroundColor: colors.accent100,
-  },
-  avatarText: {
-    fontFamily: fonts.heading,
-    fontSize: 15,
-    color: colors.neutral700,
-  },
-  avatarTextSelected: {
-    color: colors.accent800,
   },
   checkCircle: {
     width: 22,

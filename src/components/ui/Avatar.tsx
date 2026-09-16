@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, fonts } from '../../theme';
+import { colors, fonts, initialCenterFix } from '../../theme';
 
 interface AvatarProps {
   /** 원 안에 보여줄 이름 — 첫 글자만 사용 */
@@ -43,6 +43,7 @@ export function Avatar({ name, uri, size = 34, pending = false, style }: AvatarP
         style={[
           styles.initial,
           { fontSize: size * 0.44 },
+          initialCenterFix(size * 0.44),
           pending && styles.pendingInitial,
         ]}
       >
@@ -63,9 +64,6 @@ const styles = StyleSheet.create({
   initial: {
     fontFamily: fonts.heading,
     color: colors.accent800,
-    // 안드로이드는 폰트 상하 여백(Noto Serif KR 은 특히 큼)이 붙어 글자가 원 안에서 아래로 밀린다
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   pending: {
     backgroundColor: 'transparent',

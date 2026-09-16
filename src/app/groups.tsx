@@ -17,6 +17,7 @@ import { SectionHeader } from '../components/ui/SectionHeader';
 import { useCreateGroup, useJoinGroup, useMyGroups } from '../hooks/queries';
 import { useSession } from '../store/session';
 import { colors, fonts, iconStroke, radius } from '../theme';
+import { Avatar } from '../components/ui/Avatar';
 
 /** 가족 공간 전환 · 만들기 · 초대 코드 참여 (모달) */
 export default function GroupsScreen() {
@@ -87,9 +88,7 @@ export default function GroupsScreen() {
                 onPress={() => switchTo(group.id)}
                 style={[styles.groupRow, active && styles.groupRowActive]}
               >
-                <View style={styles.groupInitial}>
-                  <Text style={styles.groupInitialText}>{group.name.slice(0, 1)}</Text>
-                </View>
+                <Avatar name={group.name} size={40} style={styles.groupInitial} />
                 <View style={styles.groupInfo}>
                   <Text style={styles.groupName}>{group.name}</Text>
                   <Text style={styles.groupMeta}>
@@ -196,19 +195,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent100,
   },
   groupInitial: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.divider,
     backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  groupInitialText: {
-    fontFamily: fonts.heading,
-    fontSize: 17,
-    color: colors.accent800,
   },
   groupInfo: {
     flex: 1,

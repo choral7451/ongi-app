@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '../../components/AppHeader';
+import { Avatar } from '../../components/ui/Avatar';
 import { IconButton } from '../../components/ui/Button';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import {
@@ -147,15 +148,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileHead}>
           <Pressable onPress={() => setPickerVisible(true)} accessibilityLabel="프로필 이미지 변경">
-            {me.data?.avatarUrl ? (
-              <Image source={{ uri: me.data.avatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarEmpty]}>
-                <Text style={styles.avatarInitial}>
-                  {(me.data?.name ?? session.currentUserName).slice(0, 1)}
-                </Text>
-              </View>
-            )}
+            <Avatar name={me.data?.name ?? session.currentUserName} uri={me.data?.avatarUrl} size={92} />
             <View style={styles.avatarBadge}>
               <Camera size={13} color={colors.white} strokeWidth={iconStroke} />
             </View>
@@ -318,24 +311,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingTop: 24,
     paddingBottom: 20,
-  },
-  avatar: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: colors.accent100,
-  },
-  avatarEmpty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitial: {
-    fontFamily: fonts.heading,
-    fontSize: 34,
-    color: colors.accent700,
-    // 안드로이드 폰트 상하 여백 때문에 글자가 아래로 치우치는 것 방지 (Avatar 와 동일)
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   avatarBadge: {
     position: 'absolute',

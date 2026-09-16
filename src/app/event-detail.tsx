@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDeleteEvent, useMembers } from '../hooks/queries';
 import { useSession } from '../store/session';
 import { useUi } from '../store/ui';
-import { colors, fonts, iconStroke, radius } from '../theme';
+import { colors, fonts, iconStroke, radius, textCenterFix } from '../theme';
 import type { FamilyEvent } from '../types';
 import { REPEAT_LABELS, ddayLabel, daysUntil, formatKoreanDate, formatKoreanTime } from '../utils/calendar';
 
@@ -178,6 +178,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 13,
     color: colors.accent,
+    ...textCenterFix,
   },
   editButtonGhost: {
     width: 20,

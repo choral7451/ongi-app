@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 /**
  * 온기 디자인 토큰 — Classical 디자인 시스템(세리프 헤딩·헤어라인 구분선·외곽선 버튼)
  * 기반. 색상 값은 디자인 시안(온기.dc.html)의 :root 토큰과 1:1 대응.
@@ -58,3 +60,21 @@ export const fonts = {
 } as const;
 
 export const iconStroke = 1.75;
+
+/**
+ * 원·버튼 안 글자 세로 가운데 정렬 — 안드로이드는 Text 에 폰트 상하 여백(Noto Serif KR 은 특히 큼)이 붙어
+ * 글자가 아래로 밀리고 버튼이 커진다. 두 속성 모두 안드로이드 전용이라 iOS 에는 영향이 없다.
+ */
+export const textCenterFix = {
+  includeFontPadding: false,
+  textAlignVertical: 'center',
+} as const;
+
+/**
+ * 원 안 이니셜(세리프) 정확한 세로 가운데 — textCenterFix 만으로는 Noto Serif KR 한글이 글자 크기의 약 6% 아래에 그려진다
+ * (hhea ascent 1151 / descent 286 대비 한글 글리프 중심이 0.04~0.07em 아래 — 폰트 파일 실측).
+ * iOS 모양은 기존 그대로 두고 안드로이드만 보정한다.
+ */
+export function initialCenterFix(fontSize: number) {
+  return Platform.OS === 'android' ? { ...textCenterFix, transform: [{ translateY: -0.06 * fontSize }] } : null;
+}
