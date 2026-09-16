@@ -1,4 +1,5 @@
 import { ActionSheetIOS, Alert, Platform } from 'react-native';
+import { create } from 'zustand';
 
 export interface ActionItem {
   label: string;
@@ -6,7 +7,23 @@ export interface ActionItem {
   destructive?: boolean;
 }
 
-/** 하단 액션 시트 — iOS 는 네이티브 시트, 그 외는 Alert 버튼 목록 */
+interface ActionSheetState {
+  request: { title: string; actions: ActionItem[] } | null;
+  open: (title: string, actions: ActionItem[]) => void;
+  close: () => void;
+}
+
+/** 안드로이드용 액션 시트 상태 — 루트의 ActionSheetHost 가 구독해 띄운다 */
+export const useActionSheetStore = create<ActionSheetState>((set) => ({
+  request: null,
+  open: (title, actions) => set({ request: { title, actions } }),
+  close: () => set({ request: null }),
+}));
+
+/**
+ * 하단 액션 시트 — iOS 는 네이티브 시트, 그 외는 ActionSheetHost.
+ * 안드로이드 Alert 는 버튼이 3개까지만 보이고 바깥을 눌러도 닫히지 않아 메뉴로 쓸 수 없다.
+ */
 export function showActions(title: string, actions: ActionItem[]): void {
   if (actions.length === 0) return;
   if (Platform.OS === 'ios') {
@@ -23,10 +40,7 @@ export function showActions(title: string, actions: ActionItem[]): void {
     );
     return;
   }
-  Alert.alert(title, undefined, [
-    ...actions.map((a) => ({ text: a.label, style: a.destructive ? ('destructive' as const) : ('default' as const), onPress: a.onPress })),
-    { text: '취소', style: 'cancel' as const },
-  ]);
+  useActionSheetStore.getState().open(title, actions);
 }
 
 export function confirm(title: string, message: string, confirmText: string, onConfirm: () => void, destructive = true): void {

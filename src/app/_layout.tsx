@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { compareVersions, getAppConfig } from '../api/config';
 import { ForceUpdateScreen } from '../components/ForceUpdateScreen';
+import { ActionSheetHost } from '../components/ActionSheetHost';
 import { TextPromptHost } from '../components/TextPromptHost';
 import { useSession } from '../store/session';
 import { colors } from '../theme';
@@ -117,6 +118,8 @@ export default function RootLayout() {
       </Stack>
       {/* promptText 의 안드로이드 입력 모달 (iOS 는 Alert.prompt) */}
       <TextPromptHost />
+      {/* showActions 의 안드로이드 하단 시트 (iOS 는 ActionSheetIOS) */}
+      <ActionSheetHost />
     </QueryClientProvider>
   );
 }

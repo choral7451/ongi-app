@@ -68,7 +68,7 @@ export default function AlbumsScreen() {
       { text: '이름 변경', onPress: () => promptRename(album) },
       { text: '삭제', style: 'destructive', onPress: () => confirmDelete(album) },
       { text: '취소', style: 'cancel' },
-    ]);
+    ], { cancelable: true }); // 안드로이드: 바깥을 눌러 닫기
   };
 
   const promptNewAlbum = () => {
