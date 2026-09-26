@@ -42,6 +42,17 @@
         "track": "internal",
         "releaseStatus": "completed"
       }
+    },
+    "release": {
+      "ios": {
+        "ascAppId": "6805759281",
+        "appleTeamId": "D7RV3R6ALY"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "production",
+        "releaseStatus": "completed"
+      }
     }
   }
 }

@@ -19,3 +19,9 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 2. **iOS → TestFlight**: `gh workflow run ios-testflight.yml` — GitHub macOS 러너에서 EAS 로컬 빌드 후 제출 (`.github/workflows/ios-testflight.yml`, 시크릿 `EXPO_TOKEN`). EAS 무료 플랜의 iOS 클라우드 빌드 한도를 쓰지 않는다.
 3. **Android → Play 내부 테스트**: `npx eas-cli build --platform android --profile production --auto-submit --non-interactive --no-wait`. 서비스 계정 키 `google-play-service-account.json` 은 gitignore — 새 Mac 에서는 Google Cloud 'ongi' 프로젝트의 `eas-play-submit` 서비스 계정 키를 다시 받아 둔다.
 4. 둘 다 끝날 때까지 지켜보고 빌드 번호·링크를 보고한다.
+
+### 스토어 릴리즈 (테스트 확인 뒤 사용자가 "릴리즈 올려" 라고 하면)
+
+- **iOS 심사 제출**: `gh workflow run ios-release.yml -f version=<app.json version> -f notes="<한국어 새로운 기능>" [-f build_number=<TestFlight 빌드>]` — `.github/workflows/ios-release.yml` 이 App Store Connect API(시크릿 `ASC_*`, 키 파일 `AuthKey_*.p8` 은 gitignore)로 새 버전 생성 → 빌드 연결 → 릴리즈 노트 → 심사 제출. 승인되면 자동 출시(automatic_release), 단계적 출시는 `-f phased=true`.
+- **Android 프로덕션**: 내부 테스트에 올라간 같은 빌드를 승격 — `npx eas-cli submit --platform android --profile release --id <build id> --non-interactive`. (`eas.json` submit.release = production 트랙, 서비스 계정에 프로덕션 출시 권한 필요)
+- 릴리즈 노트는 그 버전에 들어간 변경으로 작성해 제출 전에 사용자에게 보여준다. 릴리즈 뒤 첫 수정에서 버전 +1 (위 1번).

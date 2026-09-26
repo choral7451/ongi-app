@@ -56,3 +56,4 @@ credentials/
 *.apk
 *.aab
 google-play-service-account.json
+*.p8
