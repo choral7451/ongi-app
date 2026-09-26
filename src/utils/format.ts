@@ -19,3 +19,17 @@ export function formatFullDateTime(iso: string): string {
   const d = new Date(iso);
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${formatTime(iso)}`;
 }
+
+/** "방금 전" · "5분 전" · "3시간 전" · "2일 전" · 그 이후는 "8월 17일" */
+export function formatRelativeTime(iso: string, now: Date = new Date()): string {
+  const diffSec = Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 1000));
+  if (diffSec < 60) return '방금 전';
+  const min = Math.floor(diffSec / 60);
+  if (min < 60) return `${min}분 전`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour}시간 전`;
+  const day = Math.floor(hour / 24);
+  if (day < 7) return `${day}일 전`;
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}

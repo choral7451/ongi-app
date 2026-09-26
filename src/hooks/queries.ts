@@ -1,6 +1,6 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
-import { albumsApi, eventsApi, familyApi, groupsApi, inquiriesApi, photosApi, profileApi, reportsApi } from '../api';
+import { albumsApi, eventsApi, familyApi, groupsApi, inquiriesApi, notificationsApi, photosApi, profileApi, reportsApi } from '../api';
 import type { UploadPayload } from '../api/photos';
 import { getPushPreferences, updatePushPreferences, type PushPreferences } from '../api/push';
 import type { Comment, Photo } from '../types';
@@ -294,6 +294,44 @@ export function useLegalDoc(slug: string) {
 
 export function useDeleteAccount() {
   return useMutation({ mutationFn: profileApi.deleteAccount });
+}
+
+// ── 앱 내 알림 목록 ───────────────────────────────────
+
+export const notificationKeys = {
+  list: ['notifications'] as const,
+  unseenCount: ['notificationsUnseenCount'] as const,
+};
+
+export function useNotifications() {
+  return useQuery({ queryKey: notificationKeys.list, queryFn: notificationsApi.getNotifications });
+}
+
+/** 종 아이콘 배지 — 화면에 돌아올 때마다, 그리고 푸시가 도착하면 갱신된다 (usePushNotifications 가 invalidate) */
+export function useUnseenNotificationCount() {
+  const isAuthenticated = useSession((s) => s.isAuthenticated);
+  return useQuery({
+    queryKey: notificationKeys.unseenCount,
+    queryFn: notificationsApi.getUnseenNotificationCount,
+    enabled: isAuthenticated,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+}
+
+/** 목록을 열면 전부 본 것으로 — 배지는 즉시 0, 목록 캐시의 seenAt 도 새 값으로 */
+export function useMarkNotificationsSeen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: notificationsApi.markNotificationsSeen,
+    onMutate: () => queryClient.setQueryData(notificationKeys.unseenCount, 0),
+    onSuccess: (seenAt) => {
+      queryClient.setQueryData(notificationKeys.unseenCount, 0);
+      queryClient.setQueryData<Awaited<ReturnType<typeof notificationsApi.getNotifications>>>(notificationKeys.list, (old) =>
+        old ? { ...old, seenAt } : old,
+      );
+    },
+  });
 }
 
 // ── 푸시 종류별 수신 설정 ─────────────────────────────

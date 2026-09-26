@@ -153,3 +153,15 @@ export interface Inquiry {
   answeredAt?: string;
   createdAt: string;
 }
+
+/** 앱 내 알림 목록 한 줄 — 서버가 푸시를 보낼 때 남긴 것 (푸시 설정과 무관하게 전부) */
+export interface AppNotification {
+  id: string;
+  /** photo · comment · like · event_created · event_updated · event_reminder · member_joined · inquiry_answered · system */
+  type: string;
+  title: string;
+  body: string;
+  /** 탭 시 이동 정보 — 푸시 data 와 동일 (groupId, photoId, eventId, inquiryId …) */
+  data: Record<string, string>;
+  createdAt: string;
+}

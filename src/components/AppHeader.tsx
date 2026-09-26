@@ -1,10 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Check, ChevronDown } from 'lucide-react-native';
+import { Bell, Check, ChevronDown } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFamily, useMyGroups } from '../hooks/queries';
+import { useFamily, useMyGroups, useUnseenNotificationCount } from '../hooks/queries';
 import { useSession } from '../store/session';
 import { useUi } from '../store/ui';
 import { colors, fonts, iconStroke, radius } from '../theme';
@@ -19,6 +19,8 @@ export function AppHeader() {
   const activeGroupId = useSession((s) => s.activeGroupId);
   const setActiveGroup = useSession((s) => s.setActiveGroup);
   const [open, setOpen] = useState(false);
+  const unseen = useUnseenNotificationCount();
+  const unseenCount = unseen.data ?? 0;
 
   // 로고 탭 → 홈으로 + 피드·일정 새로고침 + 스크롤·헤더 처음 상태로
   const goHome = () => {
@@ -39,18 +41,35 @@ export function AppHeader() {
       <Pressable onPress={goHome} accessibilityRole="button" accessibilityLabel="홈으로" hitSlop={8} style={styles.titleWrap}>
         <Text style={styles.title}>ONGI</Text>
       </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="가족 공간 전환"
-        style={styles.groupSelector}
-        onPress={() => setOpen(true)}
-        hitSlop={8}
-      >
-        <Text style={styles.kicker} numberOfLines={1}>
-          {group.data?.name ?? '우리 가족의 오늘'}
-        </Text>
-        <ChevronDown size={14} color={colors.accent} strokeWidth={iconStroke} />
-      </Pressable>
+      <View style={styles.right}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="가족 공간 전환"
+          style={styles.groupSelector}
+          onPress={() => setOpen(true)}
+          hitSlop={8}
+        >
+          <Text style={styles.kicker} numberOfLines={1}>
+            {group.data?.name ?? '우리 가족의 오늘'}
+          </Text>
+          <ChevronDown size={14} color={colors.accent} strokeWidth={iconStroke} />
+        </Pressable>
+        {/* 알림 목록 — 인스타그램처럼 목록을 열면 전부 본 것으로, 숫자는 마지막으로 연 뒤 생긴 개수 */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={unseenCount > 0 ? `알림 ${unseenCount}개` : '알림'}
+          style={styles.bell}
+          onPress={() => router.push('/notifications')}
+          hitSlop={8}
+        >
+          <Bell size={20} color={colors.text} strokeWidth={iconStroke} />
+          {unseenCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unseenCount > 99 ? '99+' : unseenCount}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+      </View>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
@@ -112,11 +131,37 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
     color: colors.text,
   },
+  right: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 1,
+  },
+  bell: {
+    padding: 6,
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.bg,
+  },
   groupSelector: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    maxWidth: '50%',
+    flexShrink: 1,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
