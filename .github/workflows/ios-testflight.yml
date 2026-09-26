@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build-and-submit:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -21,7 +21,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -32,6 +32,10 @@ jobs:
 
       - name: Check EAS login
         run: eas whoami
+
+      # Apple 은 최신 Xcode/iOS SDK 로 빌드한 앱만 받는다 (2026-09: Xcode 16.4 거부됨) — 러너 기본 Xcode 버전을 로그에 남긴다
+      - name: Show Xcode version
+        run: xcodebuild -version
 
       # 서명 인증서·프로비저닝은 EAS 서버에 저장된 것을 그대로 쓴다. 빌드 번호는 원격 자동 증가(autoIncrement)
       - name: Build (local, production)
