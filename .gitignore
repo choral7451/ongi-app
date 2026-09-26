@@ -55,3 +55,4 @@ credentials/
 *.ipa
 *.apk
 *.aab
+google-play-service-account.json
