@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronLeft, Download, Heart, MoreHorizontal, Share as ShareIcon } from 'lucide-react-native';
+import { ChevronLeft, Heart, MoreHorizontal } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -210,34 +210,24 @@ export default function PhotoDetailScreen() {
           {positionInList ? <Text style={styles.headerMeta}>{positionInList}</Text> : null}
         </View>
         <View style={styles.headerActions}>
+          {/* 공유·저장은 더보기 메뉴 안에 — 준비 중에는 아이콘 자리에 스피너 */}
           <IconButton
-            accessibilityLabel={sharing ? '공유 준비 중' : '공유'}
-            disabled={sharing}
-            onPress={sharePhoto}
+            accessibilityLabel={sharing ? '공유 준비 중' : saving ? '저장 중' : '더보기'}
+            disabled={sharing || saving}
+            onPress={() =>
+              photo.data &&
+              openPhotoActions(photo.data, [
+                { label: '공유하기', onPress: sharePhoto },
+                { label: '기기에 저장', onPress: savePhoto },
+              ])
+            }
             icon={
-              sharing ? (
+              sharing || saving ? (
                 <ActivityIndicator size="small" color={colors.text} />
               ) : (
-                <ShareIcon size={18} color={colors.text} strokeWidth={iconStroke} />
+                <MoreHorizontal size={18} color={colors.text} strokeWidth={iconStroke} />
               )
             }
-          />
-          <IconButton
-            accessibilityLabel={saving ? '저장 중' : '기기에 저장'}
-            disabled={saving}
-            onPress={savePhoto}
-            icon={
-              saving ? (
-                <ActivityIndicator size="small" color={colors.text} />
-              ) : (
-                <Download size={18} color={colors.text} strokeWidth={iconStroke} />
-              )
-            }
-          />
-          <IconButton
-            accessibilityLabel="더보기"
-            onPress={() => photo.data && openPhotoActions(photo.data)}
-            icon={<MoreHorizontal size={18} color={colors.text} strokeWidth={iconStroke} />}
           />
         </View>
       </View>

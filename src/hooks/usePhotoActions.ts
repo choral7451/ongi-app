@@ -1,10 +1,10 @@
 import { Alert } from 'react-native';
 import type { Member, Photo } from '../types';
-import { alertError, confirm, promptReason, REPORT_DONE_MESSAGE, showActions } from '../utils/dialogs';
+import { alertError, confirm, promptReason, REPORT_DONE_MESSAGE, showActions, type ActionItem } from '../utils/dialogs';
 import { useBlockMember, useDeletePhoto, useMembers, useReport } from './queries';
 
 /**
- * 사진 ⋯ 메뉴 — 삭제(작성자·관리자) · 신고 · 작성자 차단.
+ * 사진 ⋯ 메뉴 — (화면이 넘긴 공유·저장 등 일반 동작) · 삭제(작성자·관리자) · 신고 · 작성자 차단.
  * App Store 1.2 (UGC) 요건: 신고 · 차단 · 콘텐츠 삭제 수단을 콘텐츠 바로 옆에 둔다.
  */
 export function usePhotoActions(onDeleted?: () => void) {
@@ -13,7 +13,7 @@ export function usePhotoActions(onDeleted?: () => void) {
   const report = useReport();
   const block = useBlockMember();
 
-  return (photo: Photo) => {
+  return (photo: Photo, leading: ActionItem[] = []) => {
     // 구성원 정보가 아직 없으면 '내 사진'을 판별할 수 없어 자기 자신을 신고/차단하는 메뉴가 뜬다 — 로드 후에만 연다
     if (!members.data) {
       Alert.alert('잠시만요', '구성원 정보를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.');
@@ -25,6 +25,7 @@ export function usePhotoActions(onDeleted?: () => void) {
     const canDelete = isMine || me?.role === 'admin';
 
     showActions('사진', [
+      ...leading,
       ...(canDelete
         ? [
             {
