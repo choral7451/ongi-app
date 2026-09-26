@@ -20,8 +20,12 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 3. **Android → Play 내부 테스트**: `npx eas-cli build --platform android --profile production --auto-submit --non-interactive --no-wait`. 서비스 계정 키 `google-play-service-account.json` 은 gitignore — 새 Mac 에서는 Google Cloud 'ongi' 프로젝트의 `eas-play-submit` 서비스 계정 키를 다시 받아 둔다.
 4. 둘 다 끝날 때까지 지켜보고 빌드 번호·링크를 보고한다.
 
-### 스토어 릴리즈 (테스트 확인 뒤 사용자가 "릴리즈 올려" 라고 하면)
+### 스토어 릴리즈 — 사용자가 "릴리즈 올려" / "배포해줘" 라고 하면 (확인 질문 없이 바로, 2026-09-26 방식 그대로)
 
-- **iOS 심사 제출**: `gh workflow run ios-release.yml -f version=<app.json version> -f notes="<한국어 새로운 기능>" [-f build_number=<TestFlight 빌드>]` — `.github/workflows/ios-release.yml` 이 App Store Connect API(시크릿 `ASC_*`, 키 파일 `AuthKey_*.p8` 은 gitignore)로 새 버전 생성 → 빌드 연결 → 릴리즈 노트 → 심사 제출. 승인되면 자동 출시(automatic_release), 단계적 출시는 `-f phased=true`.
-- **Android 프로덕션**: 내부 테스트에 올라간 같은 빌드를 승격 — `node scripts/play-promote.mjs promote <versionCode> <version> <릴리즈노트.txt>` (Play Developer API 로 트랙만 이동, 릴리즈 노트 ko-KR 포함). `eas submit` 은 업로드 방식이라 같은 versionCode 를 다시 못 올린다("already submitted"). 현재 트랙 상태는 `node scripts/play-promote.mjs status`.
-- 릴리즈 노트는 그 버전에 들어간 변경으로 작성해 제출 전에 사용자에게 보여준다. 릴리즈 뒤 첫 수정에서 버전 +1 (위 1번).
+대상은 항상 **main 의 최신 버전**(`app.json` version)이고, 그 버전의 최신 테스트 빌드(TestFlight 최신 빌드 번호 · Play 내부 테스트 최신 versionCode)를 그대로 스토어에 올린다. 순서:
+
+1. **릴리즈 노트 작성**: 그 버전에 들어간 변경(지난 릴리즈 이후 커밋)으로 한국어 "새로운 기능"을 `•` 목록으로 쓴다. 파일로 저장해 두 플랫폼에 같은 문구를 쓴다.
+2. **iOS 심사 제출**: `gh workflow run ios-release.yml -R choral7451/ongi-app -f version=<version> -f build_number=<TestFlight 빌드> -f notes="<노트>"` → `.github/workflows/ios-release.yml` 이 App Store Connect API 로 새 버전 생성 → 빌드 연결 → 노트 입력 → 심사 제출 (승인 시 자동 출시). 시크릿 `ASC_KEY_ID`·`ASC_ISSUER_ID`·`ASC_PRIVATE_KEY`, 키 파일 `AuthKey_2C4Y97SKB3.p8` 은 gitignore. 결과는 `gh run watch` 로 지켜보고, App Store Connect 상태가 WAITING_FOR_REVIEW 인지 API 로 확인한다.
+3. **Android 프로덕션 승격**: `node scripts/play-promote.mjs status` 로 내부 테스트의 최신 versionCode 확인 → `node scripts/play-promote.mjs promote <versionCode> <version> <노트 파일>` (Play Developer API 로 internal → production 트랙 이동 + ko-KR 릴리즈 노트). `eas submit` 은 업로드 방식이라 같은 versionCode 를 다시 못 올린다 — 승격에는 쓰지 않는다.
+4. **보고**: 플랫폼별 버전·빌드 번호·상태(iOS 심사 대기 / Android 프로덕션 출시)와 제출한 릴리즈 노트를 보여준다.
+5. **이후**: 다음 앱 수정 때 `app.json` version patch +1 (릴리즈 프로세스 1번). 강제 업데이트(`ongi_configs` 의 `min_ios_version`·`min_android_version`)는 사용자가 따로 요청할 때만, 그리고 스토어 배포가 실제로 끝난 뒤에만 올린다.
