@@ -1,8 +1,21 @@
+import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 import { fetchMe, signOut as signOutApi, type AuthUser } from '../api/auth';
 import { setUnauthorizedHandler } from '../api/client';
 import { loadTokens } from '../api/token';
 import { unregisterCurrentPushToken } from '../push/token';
+
+/** 마지막으로 보던 가족 공간 — 사용자별로 기기에 저장해 앱을 껐다 켜도 같은 공간이 열리게 */
+const activeGroupKey = (userId: string) => `ongi_active_group_${userId}`;
+
+async function loadActiveGroup(userId: string): Promise<string> {
+  return (await SecureStore.getItemAsync(activeGroupKey(userId)).catch(() => null)) ?? '';
+}
+
+function saveActiveGroup(userId: string, groupId: string): void {
+  if (!userId) return;
+  void SecureStore.setItemAsync(activeGroupKey(userId), groupId).catch(() => {});
+}
 
 /** 앱 시작 시 세션 복원 최대 대기 — 네트워크가 멈춰도 스플래시에 갇히지 않게 한다 */
 const RESTORE_TIMEOUT_MS = 8_000;
@@ -44,7 +57,7 @@ interface SessionState {
   signOut: () => void;
 }
 
-export const useSession = create<SessionState>((set) => ({
+export const useSession = create<SessionState>((set, get) => ({
   isHydrating: true,
   isAuthenticated: false,
   currentUserId: '',
@@ -55,7 +68,9 @@ export const useSession = create<SessionState>((set) => ({
       const tokens = await loadTokens();
       if (!tokens) return;
       const me = await withTimeout(fetchMe(), RESTORE_TIMEOUT_MS);
-      set({ isAuthenticated: true, currentUserId: me.id, currentUserName: me.name });
+      // 저장된 공간을 먼저 복원하고 나서 화면을 띄운다 — 없거나 탈퇴한 공간이면 useActiveGroupSync 가 첫 공간으로 맞춘다
+      const activeGroupId = await loadActiveGroup(me.id);
+      set({ isAuthenticated: true, currentUserId: me.id, currentUserName: me.name, activeGroupId });
     } catch (e) {
       // 타임아웃·네트워크 오류면 토큰은 남겨두고 로그인 화면으로 (다음 실행 때 재시도)
       if (!(e instanceof Error && e.message === 'timeout')) await signOutApi();
@@ -63,10 +78,17 @@ export const useSession = create<SessionState>((set) => ({
       set({ isHydrating: false });
     }
   },
-  setUser: (user) =>
-    set({ isAuthenticated: true, currentUserId: user.id, currentUserName: user.name }),
+  setUser: (user) => {
+    set({ isAuthenticated: true, currentUserId: user.id, currentUserName: user.name });
+    void loadActiveGroup(user.id).then((saved) => {
+      if (saved && get().currentUserId === user.id) set({ activeGroupId: saved });
+    });
+  },
   setCurrentUserName: (name) => set({ currentUserName: name }),
-  setActiveGroup: (groupId) => set({ activeGroupId: groupId }),
+  setActiveGroup: (groupId) => {
+    set({ activeGroupId: groupId });
+    saveActiveGroup(get().currentUserId, groupId);
+  },
   signOut: () => {
     // 이 기기 푸시 토큰 해제 → 세션 토큰이 살아있는 동안 먼저 호출
     void unregisterCurrentPushToken().finally(() => void signOutApi());
