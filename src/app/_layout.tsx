@@ -110,6 +110,7 @@ export default function RootLayout() {
           <Stack.Screen name="groups" options={{ presentation: 'modal' }} />
           <Stack.Screen name="inquiries" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="push-settings" />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />
