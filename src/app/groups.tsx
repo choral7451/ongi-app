@@ -2,8 +2,6 @@ import { useRouter } from 'expo-router';
 import { Check, Plus, Ticket, X } from 'lucide-react-native';
 import { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, IconButton } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -61,7 +60,7 @@ export default function GroupsScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 6) }]}>
         <IconButton

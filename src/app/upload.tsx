@@ -6,7 +6,6 @@ import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Modal,
   PanResponder,
   Platform,
@@ -17,6 +16,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UPLOAD_MAX_SELECT, VIDEO_MAX_DURATION } from '../api/photos';
@@ -401,7 +401,7 @@ export default function UploadScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 6) }]}>
         <View style={[styles.titleWrap, { paddingTop: Math.max(insets.top, 6) }]} pointerEvents="none">
@@ -495,7 +495,7 @@ export default function UploadScreen() {
 
       {/* 어디에 올릴까요 — 허브 시트(가족 목록) ↔ 가족별 앨범 창 */}
       <Modal visible={sheet != null} transparent animationType="fade" onRequestClose={() => setSheet(null)}>
-        <KeyboardAvoidingView style={styles.sheetFlex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={styles.sheetFlex} behavior="padding">
         <Pressable style={styles.sheetBackdrop} onPress={() => setSheet(null)}>
           <Animated.View
             entering={SlideInDown.duration(260)}

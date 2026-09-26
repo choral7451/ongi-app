@@ -5,8 +5,6 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Button, IconButton } from '../../../components/ui/Button';
@@ -198,7 +197,7 @@ export default function PhotoDetailScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 6) }]}>
         <IconButton

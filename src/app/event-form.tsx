@@ -4,9 +4,7 @@ import { useMemo, useState } from 'react';
 import {
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonthCalendar } from '../components/MonthCalendar';
@@ -137,7 +136,7 @@ export default function EventFormScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.screen} behavior="padding">
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 6) }]}>
         <Pressable accessibilityLabel="닫기" hitSlop={10} onPress={() => router.back()}>
           <X size={18} color={colors.text} strokeWidth={iconStroke} />

@@ -4,8 +4,6 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, IconButton } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -46,7 +45,7 @@ export default function InquiriesScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.screen} behavior="padding">
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 6) }]}>
         <IconButton
           accessibilityLabel="뒤로"
