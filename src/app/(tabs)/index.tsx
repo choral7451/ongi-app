@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
+import { ActivityIndicator, Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -29,6 +30,7 @@ const AnimatedSectionList = Animated.createAnimatedComponent(SectionList) as unk
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const feed = useFeed();
+  const queryClient = useQueryClient();
   const members = useMembers();
   const albums = useAlbums();
   const myGroups = useMyGroups();
@@ -79,7 +81,13 @@ export default function HomeScreen() {
     setRefreshing(true);
     translateY.value = 0; // 새로고침 후 헤더는 항상 펼친 상태로
     try {
-      await feed.refetch();
+      // 피드와 함께 일정 배너·알림 배지·구성원도 새로 — 다른 앱처럼 "당기면 이 화면이 전부 최신"이 되게
+      await Promise.all([
+        feed.refetch(),
+        queryClient.invalidateQueries({ queryKey: ['events'] }),
+        queryClient.invalidateQueries({ queryKey: ['members'] }),
+        queryClient.invalidateQueries({ queryKey: ['notificationsUnseenCount'] }),
+      ]);
     } finally {
       setRefreshing(false);
     }
@@ -138,8 +146,16 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingTop: headerHeight }]}
         stickySectionHeadersEnabled={false}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
+        // 헤더가 목록 위에 absolute 로 떠 있어 기본 스피너는 헤더 뒤에 가려졌다 — 헤더 높이만큼 내려서 보이게
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressViewOffset={headerHeight}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+          />
+        }
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         onEndReached={() => {
