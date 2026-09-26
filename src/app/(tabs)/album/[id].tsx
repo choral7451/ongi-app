@@ -1,6 +1,6 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, FolderInput, Send, Trash2 } from 'lucide-react-native';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoGrid } from '../../../components/PhotoGrid';
@@ -42,6 +42,16 @@ export default function AlbumDetailScreen() {
   const otherGroups = (myGroups.data ?? []).filter((g) => g.id !== activeGroupId);
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // 탭 화면은 언마운트되지 않아 다른 화면에 다녀와도 선택 모드가 남아 있었다 — 화면을 벗어나면 선택을 푼다
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        setSelecting(false);
+        setSelectedIds(new Set());
+      },
+      [],
+    ),
+  );
   const deletableCount = photos.data?.filter(canDelete).length ?? 0;
 
   const exitSelect = () => {

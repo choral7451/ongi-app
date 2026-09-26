@@ -6,6 +6,7 @@ import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMyGroups } from '../hooks/queries';
+import { useUi } from '../store/ui';
 import { colors, fonts, iconStroke } from '../theme';
 
 const TABS = [
@@ -61,7 +62,11 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           <Pressable
             key={tab.name}
             style={styles.item}
-            onPress={() => navigation.navigate(tab.name)}
+            onPress={() => {
+              // 이미 홈에 있을 때 홈 탭을 다시 누르면 맨 위로 (로고 탭과 같은 동작)
+              if (focused && tab.name === 'index') useUi.getState().requestHomeReset();
+              else navigation.navigate(tab.name);
+            }}
             accessibilityLabel={tab.label}
             accessibilityState={{ selected: focused }}
           >
