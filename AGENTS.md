@@ -23,5 +23,5 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 ### 스토어 릴리즈 (테스트 확인 뒤 사용자가 "릴리즈 올려" 라고 하면)
 
 - **iOS 심사 제출**: `gh workflow run ios-release.yml -f version=<app.json version> -f notes="<한국어 새로운 기능>" [-f build_number=<TestFlight 빌드>]` — `.github/workflows/ios-release.yml` 이 App Store Connect API(시크릿 `ASC_*`, 키 파일 `AuthKey_*.p8` 은 gitignore)로 새 버전 생성 → 빌드 연결 → 릴리즈 노트 → 심사 제출. 승인되면 자동 출시(automatic_release), 단계적 출시는 `-f phased=true`.
-- **Android 프로덕션**: 내부 테스트에 올라간 같은 빌드를 승격 — `npx eas-cli submit --platform android --profile release --id <build id> --non-interactive`. (`eas.json` submit.release = production 트랙, 서비스 계정에 프로덕션 출시 권한 필요)
+- **Android 프로덕션**: 내부 테스트에 올라간 같은 빌드를 승격 — `node scripts/play-promote.mjs promote <versionCode> <version> <릴리즈노트.txt>` (Play Developer API 로 트랙만 이동, 릴리즈 노트 ko-KR 포함). `eas submit` 은 업로드 방식이라 같은 versionCode 를 다시 못 올린다("already submitted"). 현재 트랙 상태는 `node scripts/play-promote.mjs status`.
 - 릴리즈 노트는 그 버전에 들어간 변경으로 작성해 제출 전에 사용자에게 보여준다. 릴리즈 뒤 첫 수정에서 버전 +1 (위 1번).
