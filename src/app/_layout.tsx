@@ -1,28 +1,24 @@
-import { Fredoka_700Bold } from "@expo-google-fonts/fredoka";
+import { Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import {
   NotoSerifKR_400Regular,
   NotoSerifKR_600SemiBold,
   NotoSerifKR_800ExtraBold,
   useFonts,
-} from "@expo-google-fonts/noto-serif-kr";
-import {
-  focusManager,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
-import { AppState } from "react-native";
-import Constants from "expo-constants";
-import { SplashScreen, Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { compareVersions, getAppConfig } from "../api/config";
-import { ForceUpdateScreen } from "../components/ForceUpdateScreen";
-import { ActionSheetHost } from "../components/ActionSheetHost";
-import { TextPromptHost } from "../components/TextPromptHost";
-import { useSession } from "../store/session";
-import { colors } from "../theme";
-import { usePushNotifications } from "../hooks/usePushNotifications";
-import { KeyboardProvider } from "react-native-keyboard-controller";
+} from '@expo-google-fonts/noto-serif-kr';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AppState } from 'react-native';
+import Constants from 'expo-constants';
+import { SplashScreen, Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
+import { compareVersions, getAppConfig } from '../api/config';
+import { ForceUpdateScreen } from '../components/ForceUpdateScreen';
+import { ActionSheetHost } from '../components/ActionSheetHost';
+import { TextPromptHost } from '../components/TextPromptHost';
+import { useSession } from '../store/session';
+import { colors } from '../theme';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -62,9 +58,7 @@ export default function RootLayout() {
   // 앱이 다시 활성화되면 stale 쿼리를 재조회 — RN 은 웹과 달리 포커스 신호를 직접 연결해야 한다
   // (푸시를 보고 들어왔을 때 피드·앨범이 옛 캐시로 보이던 문제)
   useEffect(() => {
-    const sub = AppState.addEventListener("change", (status) =>
-      focusManager.setFocused(status === "active"),
-    );
+    const sub = AppState.addEventListener('change', (status) => focusManager.setFocused(status === 'active'));
     return () => sub.remove();
   }, []);
 
@@ -73,12 +67,8 @@ export default function RootLayout() {
   useEffect(() => {
     getAppConfig()
       .then((config) => {
-        const current = Constants.expoConfig?.version ?? "0.0.0";
-        if (
-          compareVersions(current, config.minVersion ?? config.minIosVersion) <
-          0
-        )
-          setForceUpdateUrl(config.storeUrl);
+        const current = Constants.expoConfig?.version ?? '0.0.0';
+        if (compareVersions(current, config.minVersion ?? config.minIosVersion) < 0) setForceUpdateUrl(config.storeUrl);
       })
       .catch(() => {});
   }, []);
@@ -117,13 +107,10 @@ export default function RootLayout() {
         >
           <Stack.Protected guard={isAuthenticated}>
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="upload" options={{ presentation: "modal" }} />
-            <Stack.Screen
-              name="event-form"
-              options={{ presentation: "modal" }}
-            />
+            <Stack.Screen name="upload" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="event-form" options={{ presentation: 'modal' }} />
             <Stack.Screen name="event-detail" />
-            <Stack.Screen name="groups" options={{ presentation: "modal" }} />
+            <Stack.Screen name="groups" options={{ presentation: 'modal' }} />
             <Stack.Screen name="inquiries" />
             <Stack.Screen name="notifications" />
             <Stack.Screen name="push-settings" />

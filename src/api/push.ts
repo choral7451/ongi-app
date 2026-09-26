@@ -26,7 +26,7 @@ export interface PushPreferences {
 
 export const PUSH_PREFERENCE_ITEMS: { key: keyof PushPreferences; label: string }[] = [
   { key: 'photo', label: '새 사진·영상' },
-  { key: 'comment', label: '한마디' },
+  { key: 'comment', label: '댓글' },
   { key: 'like', label: '좋아요' },
   { key: 'event', label: '일정' },
   { key: 'family', label: '가족 소식' },
