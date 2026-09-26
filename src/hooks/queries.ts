@@ -2,6 +2,7 @@ import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClie
 import { useEffect, useMemo } from 'react';
 import { albumsApi, eventsApi, familyApi, groupsApi, inquiriesApi, photosApi, profileApi, reportsApi } from '../api';
 import type { UploadPayload } from '../api/photos';
+import { getPushPreferences, updatePushPreferences, type PushPreferences } from '../api/push';
 import type { Comment, Photo } from '../types';
 import { useActiveGroupId, useSession } from '../store/session';
 
@@ -293,6 +294,34 @@ export function useLegalDoc(slug: string) {
 
 export function useDeleteAccount() {
   return useMutation({ mutationFn: profileApi.deleteAccount });
+}
+
+// ── 푸시 종류별 수신 설정 ─────────────────────────────
+
+const DEFAULT_PUSH_PREFERENCES: PushPreferences = { photo: true, comment: true, like: true, event: true, family: true };
+
+/** 서버에 저장된 설정 — 아직 못 받았거나 실패하면 전부 켜짐(서버 기본값)으로 보여준다 */
+export function usePushPreferences() {
+  const query = useQuery({ queryKey: ['pushPreferences'], queryFn: getPushPreferences, staleTime: 5 * 60 * 1000 });
+  return { ...query, preferences: query.data ?? DEFAULT_PUSH_PREFERENCES };
+}
+
+/** 스위치는 즉시 바뀌고(낙관적) 실패하면 원래대로 되돌린다 */
+export function useUpdatePushPreferences() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updatePushPreferences,
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey: ['pushPreferences'] });
+      const previous = queryClient.getQueryData<PushPreferences>(['pushPreferences']);
+      queryClient.setQueryData<PushPreferences>(['pushPreferences'], { ...(previous ?? DEFAULT_PUSH_PREFERENCES), ...patch });
+      return { previous };
+    },
+    onError: (_error, _patch, context) => {
+      queryClient.setQueryData(['pushPreferences'], context?.previous);
+    },
+    onSuccess: (saved) => queryClient.setQueryData(['pushPreferences'], saved),
+  });
 }
 
 // ── 변경 ──────────────────────────────────────────────

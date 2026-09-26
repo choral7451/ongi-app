@@ -27,9 +27,12 @@ import {
   useLocalPhotos,
   useMe,
   useProfileStats,
+  usePushPreferences,
   useUpdateMyName,
+  useUpdatePushPreferences,
   useUploadAvatar,
 } from '../../hooks/queries';
+import { PUSH_PREFERENCE_ITEMS } from '../../api/push';
 import { useSession } from '../../store/session';
 import { usePushStore } from '../../store/push';
 import { colors, fonts, iconStroke } from '../../theme';
@@ -100,6 +103,8 @@ export default function ProfileScreen() {
   const deleteAccount = useDeleteAccount();
   const updateMyName = useUpdateMyName();
   const uploadAvatar = useUploadAvatar();
+  const { preferences: pushPreferences } = usePushPreferences();
+  const updatePushPreferences = useUpdatePushPreferences();
 
   const [pickerVisible, setPickerVisible] = useState(false);
   // 사진 보관함 권한은 사용자가 프로필 이미지 변경을 눌렀을 때만 요청한다 (App Store 5.1.1)
@@ -184,7 +189,6 @@ export default function ProfileScreen() {
         <SettingRow
           icon={<Bell size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
           label="푸시 알림"
-          divider={false}
           trailing={
             <View style={styles.pushTrailing}>
               <Text style={styles.pushStatus}>
@@ -217,6 +221,29 @@ export default function ProfileScreen() {
             </View>
           }
         />
+        {/* 종류별 수신 — 서버에 저장돼 모든 기기 공통. 전체 스위치가 꺼져 있으면 값만 보여주고 잠근다 */}
+        {PUSH_PREFERENCE_ITEMS.map((item, index) => (
+          <SettingRow
+            key={item.key}
+            icon={<View style={styles.subRowIndent} />}
+            label={item.label}
+            divider={index < PUSH_PREFERENCE_ITEMS.length - 1}
+            trailing={
+              <Switch
+                value={pushPreferences[item.key]}
+                disabled={!pushEnabled}
+                onValueChange={(v) =>
+                  updatePushPreferences.mutate(
+                    { [item.key]: v },
+                    { onError: (e) => Alert.alert('설정을 저장하지 못했어요', e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.') },
+                  )
+                }
+                trackColor={{ true: colors.accent }}
+              />
+            }
+          />
+        ))}
+        <Text style={styles.pushHint}>문의 답변 알림은 설정과 관계없이 항상 보내드려요.</Text>
 
         <View style={styles.sectionGap}>
           <SectionHeader title="약관 및 정책" size="sm" />
@@ -398,6 +425,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pushStatus: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  subRowIndent: {
+    width: 18,
+  },
+  pushHint: {
+    marginTop: 8,
     fontSize: 11,
     color: colors.textMuted,
   },
