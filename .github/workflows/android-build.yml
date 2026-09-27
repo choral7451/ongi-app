@@ -1,0 +1,54 @@
+# Android 빌드(.aab). EAS 클라우드 빌드 한도와 무관하게 GitHub Linux 러너에서 로컬 빌드한다.
+# 실행: gh workflow run android-build.yml  (또는 Actions 탭에서 Run workflow)
+# 필요한 시크릿: EXPO_TOKEN — https://expo.dev/accounts/ddoniel/settings/access-tokens
+# Play 제출은 여기서 하지 않는다 — 서비스 계정 키를 GitHub 에 올리지 않으려고, 아티팩트를 받아 Mac 에서 제출한다:
+#   gh run download <run-id> -n ongi-android-aab -D <dir>
+#   npx eas-cli submit --platform android --profile production --path <dir>/ongi.aab --non-interactive
+name: Android Build
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: android-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Check EAS login
+        run: eas whoami
+
+      # 서명 키스토어는 EAS 서버에 저장된 것을 그대로 쓴다. versionCode 는 원격 자동 증가(autoIncrement)
+      - name: Build (local, production)
+        run: eas build --platform android --profile production --local --non-interactive --output ./ongi.aab
+
+      - name: Upload aab artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ongi-android-aab
+          path: ./ongi.aab
+          if-no-files-found: error
+          retention-days: 7
