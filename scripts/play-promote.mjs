@@ -2,11 +2,15 @@
 // EAS submit 은 "업로드" 라 같은 versionCode 를 다시 올릴 수 없어 승격에는 이 스크립트를 쓴다.
 //   node scripts/play-promote.mjs status
 //   node scripts/play-promote.mjs promote <versionCode> <versionName> <릴리즈노트 파일 경로>
+//   node scripts/play-promote.mjs listing          현재 스토어 등록정보(ko-KR) 보기
+//   node scripts/play-promote.mjs listing apply    store/ko 의 name · play_short_description · description 으로 바꾸기
 import { readFileSync } from 'node:fs';
 import { createSign } from 'node:crypto';
 
 const PKG = 'com.ongifamily.app';
 const KEY_PATH = new URL('../google-play-service-account.json', import.meta.url);
+const STORE_DIR = new URL('../store/ko/', import.meta.url);
+const storeText = (name) => readFileSync(new URL(`${name}.txt`, STORE_DIR), 'utf8').trim();
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 
 async function accessToken() {
@@ -40,6 +44,17 @@ async function main() {
   const tracks = await call(`${base}/${edit.id}/tracks`);
   for (const t of tracks.tracks ?? []) {
     console.log(`${t.track.padEnd(11)} ${(t.releases ?? []).map((r) => `${r.name} [${r.versionCodes?.join(',')}] ${r.status}`).join(' · ') || '-'}`);
+  }
+  if (cmd === 'listing') {
+    const url = `${base}/${edit.id}/listings/ko-KR`;
+    const current = await call(url);
+    console.log(`\n[ko-KR] ${current.title}\n${current.shortDescription}\n\n${current.fullDescription}`);
+    if (versionCode !== 'apply') return;
+    const next = { language: 'ko-KR', title: storeText('name'), shortDescription: storeText('play_short_description'), fullDescription: storeText('description') };
+    await call(url, { method: 'PUT', body: JSON.stringify(next) });
+    const commit = await call(`${base}/${edit.id}:commit`, { method: 'POST' });
+    console.log(`\nlisting ← ${next.title} committed, edit ${commit.id}`);
+    return;
   }
   if (cmd !== 'promote') return;
   if (!versionCode || !versionName || !notesPath) throw new Error('usage: promote <versionCode> <versionName> <notesPath>');
