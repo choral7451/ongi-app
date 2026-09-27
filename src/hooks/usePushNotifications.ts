@@ -3,18 +3,23 @@ import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
+import { getActiveChatRoom } from '../store/chat';
 import { usePushStore } from '../store/push';
 import { useSession } from '../store/session';
 import { navigateForPushData } from '../utils/pushNavigation';
 
-// 앱이 켜져 있을 때도 배너로 보여준다
+// 앱이 켜져 있을 때도 배너로 보여준다 — 단, 지금 보고 있는 대화방의 새 메시지는 화면에 바로 보이므로 띄우지 않는다
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data as Record<string, unknown> | undefined;
+    const inOpenRoom = data?.type === 'chat' && typeof data.roomId === 'string' && data.roomId === getActiveChatRoom();
+    return {
+      shouldShowBanner: !inOpenRoom,
+      shouldShowList: !inOpenRoom,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 /**
@@ -33,7 +38,7 @@ export function usePushNotifications() {
 
   /** 푸시가 알린 새 소식이 화면에 바로 보이게 — 사진·댓글·일정 관련 캐시를 통째로 stale 처리 */
   const invalidateForPush = () => {
-    for (const key of ['feed', 'albums', 'albumPhotos', 'unfiledPhotos', 'comments', 'events', 'members', 'photo', 'inquiries', 'notifications', 'notificationsUnseenCount']) {
+    for (const key of ['feed', 'albums', 'albumPhotos', 'unfiledPhotos', 'comments', 'events', 'members', 'photo', 'inquiries', 'notifications', 'notificationsUnseenCount', 'chatRooms', 'chatUnread', 'chatMessages']) {
       void queryClient.invalidateQueries({ queryKey: [key] });
     }
   };
