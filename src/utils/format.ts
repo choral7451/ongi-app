@@ -33,3 +33,13 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
   const d = new Date(iso);
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
+
+/** 채팅 목록 시각 — 오늘은 "오후 2:30", 어제는 "어제", 그 이전은 "8월 17일" (해가 다르면 "2025. 8. 17.") */
+export function formatChatListTime(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (d.getTime() >= startOfToday) return formatTime(iso);
+  if (d.getTime() >= startOfToday - 24 * 60 * 60 * 1000) return '어제';
+  if (d.getFullYear() !== now.getFullYear()) return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}

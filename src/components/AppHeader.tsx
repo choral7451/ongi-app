@@ -1,10 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Bell, Check, ChevronDown } from 'lucide-react-native';
+import { Bell, Check, ChevronDown, Send } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFamily, useMyGroups, useUnseenNotificationCount } from '../hooks/queries';
+import { useChatUnreadCount, useFamily, useMyGroups, useUnseenNotificationCount } from '../hooks/queries';
 import { useSession } from '../store/session';
 import { useUi } from '../store/ui';
 import { colors, fonts, iconStroke, radius } from '../theme';
@@ -21,6 +21,8 @@ export function AppHeader() {
   const [open, setOpen] = useState(false);
   const unseen = useUnseenNotificationCount();
   const unseenCount = unseen.data ?? 0;
+  const chatUnread = useChatUnreadCount();
+  const chatUnreadCount = chatUnread.data ?? 0;
 
   // 로고 탭 → 홈으로 + 피드·일정 새로고침 + 스크롤·헤더 처음 상태로
   const goHome = () => {
@@ -66,6 +68,21 @@ export function AppHeader() {
           {unseenCount > 0 ? (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unseenCount > 99 ? '99+' : unseenCount}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+        {/* 채팅 — 공간과 상관없이 내 모든 대화방. 숫자는 안 읽은 메시지 수 */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={chatUnreadCount > 0 ? `채팅, 안 읽은 메시지 ${chatUnreadCount}개` : '채팅'}
+          style={styles.bell}
+          onPress={() => router.push('/chat')}
+          hitSlop={8}
+        >
+          <Send size={20} color={colors.text} strokeWidth={iconStroke} />
+          {chatUnreadCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{chatUnreadCount > 99 ? '99+' : chatUnreadCount}</Text>
             </View>
           ) : null}
         </Pressable>

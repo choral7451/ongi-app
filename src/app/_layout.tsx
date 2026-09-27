@@ -19,6 +19,7 @@ import { useSession } from '../store/session';
 import { colors } from '../theme';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { useChatSocket } from '../hooks/useChatSocket';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -34,6 +35,7 @@ const queryClient = new QueryClient({
 /** 로그인 후 푸시 토큰 등록 + 알림 탭 이동 — 라우터가 준비된 트리 안에서 실행 */
 function PushNotificationsBridge() {
   usePushNotifications();
+  useChatSocket();
   return null;
 }
 
@@ -114,6 +116,9 @@ export default function RootLayout() {
             <Stack.Screen name="inquiries" />
             <Stack.Screen name="notifications" />
             <Stack.Screen name="push-settings" />
+            <Stack.Screen name="chat/index" />
+            <Stack.Screen name="chat/new" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="chat/[id]" />
           </Stack.Protected>
           <Stack.Protected guard={!isAuthenticated}>
             <Stack.Screen name="(auth)" />

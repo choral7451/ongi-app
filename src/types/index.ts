@@ -83,7 +83,7 @@ export interface ProfileStats {
 }
 
 /** 신고 대상 종류 */
-export type ReportTargetType = 'photo' | 'comment' | 'member';
+export type ReportTargetType = 'photo' | 'comment' | 'member' | 'chat_message';
 
 /** 업로드 화면 — 기기 갤러리의 최근 사진 (expo-media-library) */
 export interface LocalPhotos {
@@ -163,5 +163,60 @@ export interface AppNotification {
   body: string;
   /** 탭 시 이동 정보 — 푸시 data 와 동일 (groupId, photoId, eventId, inquiryId …) */
   data: Record<string, string>;
+  createdAt: string;
+}
+
+/** 채팅 참여자 — 계정 기준 (가족 공간의 구성원 레코드가 아니다) */
+export interface ChatUser {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  /** 탈퇴한 사용자 — 이름이 '탈퇴한 사용자' */
+  deleted: boolean;
+  isMe?: boolean;
+}
+
+export type ChatRoomType = 'direct' | 'group';
+
+/** 대화방 상세 */
+export interface ChatRoom {
+  id: string;
+  type: ChatRoomType;
+  /** 그룹방에 정한 이름 */
+  name?: string;
+  /** 보여줄 제목 — 이름, 없으면 나를 뺀 참여자 이름 */
+  title: string;
+  /** 참여자 (나 포함) */
+  participants: ChatUser[];
+  /** 1:1 에서 차단·탈퇴로 보낼 수 없으면 false */
+  canSend: boolean;
+}
+
+/** 대화방 목록 한 줄 */
+export interface ChatRoomListItem {
+  id: string;
+  type: ChatRoomType;
+  title: string;
+  participants: ChatUser[];
+  lastMessage?: { id: string; type: ChatMessageType; preview: string; senderId?: string; createdAt: string };
+  unreadCount: number;
+}
+
+export type ChatMessageType = 'text' | 'photo' | 'system';
+
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  type: ChatMessageType;
+  content: string;
+  mediaUrl?: string;
+  thumbUrl?: string;
+  /** 사진 가로/세로 */
+  aspectRatio: number;
+  /** 시스템 메시지는 없음 */
+  sender?: ChatUser;
+  isMine: boolean;
+  /** 아직 안 읽은 사람 수 (보낸 사람 제외) */
+  unreadCount: number;
   createdAt: string;
 }

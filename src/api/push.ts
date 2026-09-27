@@ -22,6 +22,8 @@ export interface PushPreferences {
   event: boolean;
   /** 가족 소식 (새 구성원 참여) */
   family: boolean;
+  /** 채팅 새 메시지 */
+  chat: boolean;
 }
 
 export const PUSH_PREFERENCE_ITEMS: { key: keyof PushPreferences; label: string }[] = [
@@ -30,6 +32,7 @@ export const PUSH_PREFERENCE_ITEMS: { key: keyof PushPreferences; label: string 
   { key: 'like', label: '좋아요' },
   { key: 'event', label: '일정' },
   { key: 'family', label: '가족 참여' },
+  { key: 'chat', label: '채팅' },
 ];
 
 export async function getPushPreferences(): Promise<PushPreferences> {

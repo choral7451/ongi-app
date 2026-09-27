@@ -6,6 +6,11 @@ export function navigateForPushData(router: Router, data: Record<string, unknown
   const groupId = typeof data?.groupId === 'string' ? data.groupId : '';
   const photoId = typeof data?.photoId === 'string' ? data.photoId : '';
   const type = typeof data?.type === 'string' ? data.type : '';
+  const roomId = typeof data?.roomId === 'string' ? data.roomId : '';
+  if (type === 'chat' && roomId) {
+    router.push({ pathname: '/chat/[id]', params: { id: roomId } });
+    return;
+  }
   if (groupId) useSession.getState().setActiveGroup(groupId);
   if (photoId) router.push({ pathname: '/photo/[id]', params: { id: photoId, ctx: 'feed' } });
   else if (type === 'member_joined') router.push('/family');

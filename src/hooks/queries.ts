@@ -1,9 +1,9 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
-import { albumsApi, eventsApi, familyApi, groupsApi, inquiriesApi, notificationsApi, photosApi, profileApi, reportsApi } from '../api';
+import { albumsApi, chatApi, eventsApi, familyApi, groupsApi, inquiriesApi, notificationsApi, photosApi, profileApi, reportsApi } from '../api';
 import type { UploadPayload } from '../api/photos';
 import { getPushPreferences, updatePushPreferences, type PushPreferences } from '../api/push';
-import type { Comment, Photo } from '../types';
+import type { ChatMessage, Comment, Photo } from '../types';
 import { useActiveGroupId, useSession } from '../store/session';
 
 /**
@@ -336,7 +336,7 @@ export function useMarkNotificationsSeen() {
 
 // ── 푸시 종류별 수신 설정 ─────────────────────────────
 
-const DEFAULT_PUSH_PREFERENCES: PushPreferences = { photo: true, comment: true, like: true, event: true, family: true };
+const DEFAULT_PUSH_PREFERENCES: PushPreferences = { photo: true, comment: true, like: true, event: true, family: true, chat: true };
 
 /** 서버에 저장된 설정 — 아직 못 받았거나 실패하면 전부 켜짐(서버 기본값)으로 보여준다 */
 export function usePushPreferences() {
@@ -603,4 +603,146 @@ export function useDeleteEvent() {
     mutationFn: eventsApi.deleteEvent,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
   });
+}
+
+// ── 채팅 ─────────────────────────────────────────
+
+export const chatKeys = {
+  rooms: ['chatRooms'] as const,
+  unread: ['chatUnread'] as const,
+  room: (roomId: string) => ['chatRoom', roomId] as const,
+  messages: (roomId: string) => ['chatMessages', roomId] as const,
+};
+
+/** 서버 메시지 페이지 크기 (기본 30) — 이보다 짧으면 마지막 페이지 */
+const CHAT_PAGE_SIZE = 30;
+
+export function useChatRooms() {
+  return useQuery({ queryKey: chatKeys.rooms, queryFn: chatApi.getRooms });
+}
+
+/** 헤더 종이비행기 배지 — 실시간 이벤트·푸시가 오면 갱신되고, 놓쳐도 1분마다 다시 확인 */
+export function useChatUnreadCount() {
+  const isAuthenticated = useSession((s) => s.isAuthenticated);
+  return useQuery({
+    queryKey: chatKeys.unread,
+    queryFn: chatApi.getUnreadCount,
+    enabled: isAuthenticated,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+}
+
+export function useChatRoom(roomId: string) {
+  return useQuery({ queryKey: chatKeys.room(roomId), queryFn: () => chatApi.getRoom(roomId), enabled: roomId.length > 0 });
+}
+
+/** 메시지 (최신 순으로 평탄화) — 위로 스크롤하면 이전 페이지 */
+export function useChatMessages(roomId: string) {
+  const query = useInfiniteQuery({
+    queryKey: chatKeys.messages(roomId),
+    queryFn: ({ pageParam }) => chatApi.getMessages(roomId, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => (lastPage.length < CHAT_PAGE_SIZE ? undefined : lastPage[lastPage.length - 1]?.id),
+    enabled: roomId.length > 0,
+  });
+  const data = useMemo(() => query.data?.pages.flat(), [query.data]);
+  return { ...query, data };
+}
+
+/** 보낸 메시지를 맨 앞 페이지에 바로 넣는다 — 실시간 이벤트로 다시 불러오기 전에도 화면에 보이게 */
+function prependChatMessage(queryClient: QueryClient, message: ChatMessage) {
+  queryClient.setQueryData<InfiniteData<ChatMessage[], string | undefined>>(chatKeys.messages(message.roomId), (old) => {
+    if (!old || old.pages.length === 0) return old;
+    if (old.pages.some((page) => page.some((m) => m.id === message.id))) return old;
+    return { ...old, pages: [[message, ...old.pages[0]], ...old.pages.slice(1)] };
+  });
+}
+
+export function useSendChatText(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (content: string) => chatApi.sendText(roomId, content),
+    onSuccess: (message) => {
+      prependChatMessage(queryClient, message);
+      void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+    },
+  });
+}
+
+export function useSendChatPhoto(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (image: { uri: string; width: number; height: number }) => chatApi.sendPhoto(roomId, image),
+    onSuccess: (message) => {
+      prependChatMessage(queryClient, message);
+      void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+    },
+  });
+}
+
+/** 여기까지 읽음 — 목록·배지의 안 읽은 수도 함께 갱신 */
+export function useMarkChatRead(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (messageId: string) => chatApi.markRead(roomId, messageId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+      void queryClient.invalidateQueries({ queryKey: chatKeys.unread });
+    },
+  });
+}
+
+export function useCreateChatRoom() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: chatApi.createRoom,
+    onSuccess: (room) => {
+      queryClient.setQueryData(chatKeys.room(room.id), room);
+      void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+    },
+  });
+}
+
+export function useInviteChat(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberIds: string[]) => chatApi.invite(roomId, memberIds),
+    onSuccess: (room) => {
+      queryClient.setQueryData(chatKeys.room(roomId), room);
+      void queryClient.invalidateQueries({ queryKey: chatKeys.messages(roomId) });
+      void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+    },
+  });
+}
+
+export function useLeaveChat() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: chatApi.leave,
+    onSuccess: (_, roomId) => {
+      queryClient.setQueryData<Awaited<ReturnType<typeof chatApi.getRooms>>>(chatKeys.rooms, (old) => old?.filter((room) => room.id !== roomId));
+      queryClient.removeQueries({ queryKey: chatKeys.messages(roomId) });
+      void queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+      void queryClient.invalidateQueries({ queryKey: chatKeys.unread });
+    },
+  });
+}
+
+/** 새 대화 상대 고르기 — 내가 속한 모든 공간의 구성원을 공간별로 */
+export function useAllMyGroupMembers() {
+  const groups = useMyGroups();
+  const results = useQueries({
+    queries: (groups.data ?? []).map((group) => ({
+      queryKey: queryKeys.members(group.id),
+      queryFn: () => familyApi.getMembers(group.id),
+    })),
+  });
+  const isLoading = groups.isLoading || results.some((result) => result.isLoading);
+  const sections = useMemo(
+    () => (groups.data ?? []).map((group, index) => ({ group, members: results[index]?.data ?? [] })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [groups.data, ...results.map((result) => result.data)],
+  );
+  return { sections, isLoading };
 }
