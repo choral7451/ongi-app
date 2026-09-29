@@ -20,6 +20,7 @@ import { colors } from '../theme';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useChatSocket } from '../hooks/useChatSocket';
+import { useActivityPing } from '../hooks/useActivityPing';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -36,6 +37,7 @@ const queryClient = new QueryClient({
 function PushNotificationsBridge() {
   usePushNotifications();
   useChatSocket();
+  useActivityPing();
   return null;
 }
 
