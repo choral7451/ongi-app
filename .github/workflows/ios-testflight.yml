@@ -1,6 +1,6 @@
 # iOS 빌드 → TestFlight 제출. EAS 클라우드 빌드 한도와 무관하게 GitHub macOS 러너에서 로컬 빌드한다.
 # 실행: gh workflow run ios-testflight.yml  (또는 Actions 탭에서 Run workflow)
-# 필요한 시크릿: EXPO_TOKEN — https://expo.dev/accounts/ddoniel/settings/access-tokens
+# 필요한 시크릿: EXPO_TOKEN (빌드·서명, https://expo.dev/accounts/ddoniel/settings/access-tokens) · ASC_KEY_ID · ASC_ISSUER_ID · ASC_PRIVATE_KEY (TestFlight 업로드)
 name: iOS TestFlight
 
 on:
@@ -50,5 +50,37 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Submit to TestFlight
-        run: eas submit --platform ios --profile production --path ./ongi.ipa --non-interactive
+      # EAS Submit 은 무료 플랜 큐에서 오래 기다릴 수 있어(2026-09-30 1시간) App Store Connect API 키로 Apple 에 직접 올린다
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install fastlane
+        run: gem install fastlane --no-document
+
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+        run: |
+          mkdir -p fastlane
+          cat > fastlane/Fastfile <<'RUBY'
+          default_platform(:ios)
+          lane :upload do
+            api_key = app_store_connect_api_key(
+              key_id: ENV['ASC_KEY_ID'],
+              issuer_id: ENV['ASC_ISSUER_ID'],
+              key_content: ENV['ASC_PRIVATE_KEY'],
+            )
+            upload_to_testflight(
+              api_key: api_key,
+              app_identifier: 'com.ongifamily.app',
+              ipa: './ongi.ipa',
+              skip_submission: true,
+              skip_waiting_for_build_processing: true,
+            )
+          end
+          RUBY
+          fastlane upload
