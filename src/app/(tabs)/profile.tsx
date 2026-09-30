@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Bell, Camera, ChevronRight, FileText, Mail, Pencil, ShieldCheck, X } from 'lucide-react-native';
+import { Bell, Camera, ChevronRight, FileText, LogOut, Mail, Pencil, ShieldCheck, UserCog, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
@@ -20,7 +20,6 @@ import { Avatar } from '../../components/ui/Avatar';
 import { IconButton } from '../../components/ui/Button';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import {
-  useDeleteAccount,
   useFamily,
   useLocalPhotos,
   useMe,
@@ -34,20 +33,14 @@ import { colors, fonts, iconStroke } from '../../theme';
 import { promptText } from '../../utils/prompt';
 
 /** Alert는 웹에서 동작하지 않아 웹은 window.confirm으로 대체 */
-function confirmAction(
-  title: string,
-  message: string,
-  confirmText: string,
-  onConfirm: () => void,
-  destructive = false,
-) {
+function confirmAction(title: string, message: string, confirmText: string, onConfirm: () => void) {
   if (Platform.OS === 'web') {
     if (window.confirm(`${title}\n\n${message}`)) onConfirm();
     return;
   }
   Alert.alert(title, message, [
     { text: '취소', style: 'cancel' },
-    { text: confirmText, style: destructive ? 'destructive' : 'default', onPress: onConfirm },
+    { text: confirmText, onPress: onConfirm },
   ]);
 }
 
@@ -94,7 +87,6 @@ export default function ProfileScreen() {
   const me = useMe();
   const stats = useProfileStats();
   const family = useFamily();
-  const deleteAccount = useDeleteAccount();
   const updateMyName = useUpdateMyName();
   const uploadAvatar = useUploadAvatar();
 
@@ -123,20 +115,6 @@ export default function ProfileScreen() {
 
   const onSignOut = () => {
     confirmAction('로그아웃', '로그아웃 하시겠어요?', '로그아웃', () => session.signOut());
-  };
-
-  const onDeleteAccount = () => {
-    confirmAction(
-      '회원탈퇴',
-      '탈퇴하면 올린 사진과 댓글이 모두 삭제되며 되돌릴 수 없어요. 정말 탈퇴하시겠어요?',
-      '탈퇴하기',
-      () =>
-        deleteAccount.mutate(undefined, {
-          onSuccess: () => session.signOut(),
-          onError: showError('회원탈퇴 실패'),
-        }),
-      true,
-    );
   };
 
   return (
@@ -223,21 +201,17 @@ export default function ProfileScreen() {
         <View style={styles.sectionGap}>
           <SectionHeader title="계정" size="sm" />
         </View>
-        <Pressable style={styles.settingRow} onPress={onSignOut}>
+        <Pressable style={[styles.settingRow, styles.settingDivider]} onPress={onSignOut}>
+          <LogOut size={18} color={colors.accent700} strokeWidth={iconStroke} />
           <Text style={styles.signOut}>로그아웃</Text>
         </Pressable>
-        <Pressable
-          style={styles.settingRow}
-          onPress={onDeleteAccount}
-          disabled={deleteAccount.isPending}
-        >
-          <Text style={styles.deleteAccount}>
-            {deleteAccount.isPending ? '탈퇴 처리 중…' : '회원탈퇴'}
-          </Text>
-        </Pressable>
-        <Text style={styles.deleteHint}>
-          탈퇴하면 올린 사진과 댓글이 모두 삭제되며 복구할 수 없어요.
-        </Text>
+        {/* 회원탈퇴는 계정 관리 안으로 — 프로필 탭에 바로 노출하면 충동 탈퇴가 잦았다 */}
+        <SettingRow
+          icon={<UserCog size={18} color={colors.neutral600} strokeWidth={iconStroke} />}
+          label="계정 관리"
+          divider={false}
+          onPress={() => router.push('/account')}
+        />
       </ScrollView>
 
       {/* 프로필 이미지 선택 — 최근 갤러리 사진에서 고른다 */}
@@ -380,17 +354,6 @@ const styles = StyleSheet.create({
   },
   sectionGap: {
     marginTop: 24,
-  },
-  deleteAccount: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.danger,
-  },
-  deleteHint: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: -6,
-    marginBottom: 8,
   },
   pickerScreen: {
     flex: 1,

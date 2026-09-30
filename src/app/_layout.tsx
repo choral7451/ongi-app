@@ -118,6 +118,8 @@ export default function RootLayout() {
             <Stack.Screen name="inquiries" />
             <Stack.Screen name="notifications" />
             <Stack.Screen name="push-settings" />
+            <Stack.Screen name="account" />
+            <Stack.Screen name="withdraw" />
             <Stack.Screen name="chat/index" />
             <Stack.Screen name="chat/new" options={{ presentation: 'modal' }} />
             <Stack.Screen name="chat/[id]" />
