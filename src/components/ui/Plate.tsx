@@ -35,6 +35,6 @@ const styles = StyleSheet.create({
   },
   image: {
     flex: 1,
-    backgroundColor: colors.accent100,
+    backgroundColor: colors.neutral200,
   },
 });
