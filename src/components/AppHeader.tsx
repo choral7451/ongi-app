@@ -9,7 +9,7 @@ import { useSession } from '../store/session';
 import { useUi } from '../store/ui';
 import { colors, fonts, iconStroke, radius } from '../theme';
 
-/** 모든 탭 상단에 고정되는 ONGI 로고 + 가족 공간 드롭다운 (전환 전용 — 만들기·참여는 가족 탭) */
+/** 모든 탭 상단에 고정되는 ONGI 로고 + 가족 공간 드롭다운 (전환 전용 — 만들기·참여는 가족 탭). 색은 검정 단색 — 탭 바와 같은 톤 */
 export function AppHeader() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -54,7 +54,7 @@ export function AppHeader() {
           <Text style={styles.kicker} numberOfLines={1}>
             {group.data?.name ?? '우리 가족의 오늘'}
           </Text>
-          <ChevronDown size={14} color={colors.accent} strokeWidth={iconStroke} />
+          <ChevronDown size={14} color={colors.text} strokeWidth={iconStroke} />
         </Pressable>
         {/* 알림 목록 — 인스타그램처럼 목록을 열면 전부 본 것으로, 숫자는 마지막으로 연 뒤 생긴 개수 */}
         <Pressable
@@ -103,7 +103,7 @@ export function AppHeader() {
                       구성원 {item.memberCount}명 · 사진 {item.photoCount}장
                     </Text>
                   </View>
-                  {active ? <Check size={16} color={colors.accent} strokeWidth={iconStroke} /> : null}
+                  {active ? <Check size={16} color={colors.text} strokeWidth={iconStroke} /> : null}
                 </Pressable>
               );
             })}
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     height: 16,
     paddingHorizontal: 4,
     borderRadius: 8,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 13,
     letterSpacing: 0.3,
-    color: colors.accent,
+    color: colors.text,
   },
   backdrop: {
     flex: 1,
@@ -226,7 +226,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   rowNameActive: {
-    color: colors.accent,
     fontWeight: '600',
   },
   rowMeta: {
@@ -243,6 +242,6 @@ const styles = StyleSheet.create({
   },
   manageText: {
     fontSize: 12.5,
-    color: colors.accent,
+    color: colors.text,
   },
 });
