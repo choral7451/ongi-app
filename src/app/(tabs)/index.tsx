@@ -152,8 +152,8 @@ export default function HomeScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             progressViewOffset={headerHeight}
-            tintColor={colors.accent}
-            colors={[colors.accent]}
+            tintColor={colors.text}
+            colors={[colors.text]}
           />
         }
         onScroll={scrollHandler}
