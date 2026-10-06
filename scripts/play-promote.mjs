@@ -1,7 +1,9 @@
 // 내부 테스트에 올라간 빌드를 Google Play 프로덕션 트랙으로 승격한다 (Play Developer API, 서비스 계정 키 사용).
 // EAS submit 은 "업로드" 라 같은 versionCode 를 다시 올릴 수 없어 승격에는 이 스크립트를 쓴다.
 //   node scripts/play-promote.mjs status
-//   node scripts/play-promote.mjs promote <versionCode> <versionName> <릴리즈노트 파일 경로>
+//   node scripts/play-promote.mjs promote <versionCode|latest> <versionName> [릴리즈노트 파일 경로]
+//     latest 는 내부 테스트 트랙의 최신 versionCode. 노트 파일을 생략하면 store/ko/release_notes.txt
+// 서비스 계정 키: 환경변수 PLAY_SERVICE_ACCOUNT_JSON (키 JSON 전문, GitHub Actions 시크릿) 이 있으면 그것을, 없으면 google-play-service-account.json 파일을 쓴다.
 //   node scripts/play-promote.mjs listing          현재 스토어 등록정보(ko-KR) 보기
 //   node scripts/play-promote.mjs listing apply    store/ko 의 name · play_short_description · description 으로 바꾸기
 import { readFileSync } from 'node:fs';
@@ -14,7 +16,7 @@ const storeText = (name) => readFileSync(new URL(`${name}.txt`, STORE_DIR), 'utf
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 
 async function accessToken() {
-  const sa = JSON.parse(readFileSync(KEY_PATH, 'utf8'));
+  const sa = JSON.parse(process.env.PLAY_SERVICE_ACCOUNT_JSON || readFileSync(KEY_PATH, 'utf8'));
   const now = Math.floor(Date.now() / 1000);
   const unsigned = `${b64({ alg: 'RS256', typ: 'JWT' })}.${b64({ iss: sa.client_email, scope: 'https://www.googleapis.com/auth/androidpublisher', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 600 })}`;
   const signer = createSign('RSA-SHA256');
@@ -57,14 +59,22 @@ async function main() {
     return;
   }
   if (cmd !== 'promote') return;
-  if (!versionCode || !versionName || !notesPath) throw new Error('usage: promote <versionCode> <versionName> <notesPath>');
-  const notes = readFileSync(notesPath, 'utf8').trim();
+  if (!versionCode || !versionName) throw new Error('usage: promote <versionCode|latest> <versionName> [notesPath]');
+  let code = versionCode;
+  if (code === 'latest') {
+    const internal = (tracks.tracks ?? []).find((t) => t.track === 'internal');
+    const codes = (internal?.releases ?? []).flatMap((r) => (r.versionCodes ?? []).map(Number));
+    if (!codes.length) throw new Error('내부 테스트 트랙에 빌드가 없다');
+    code = String(Math.max(...codes));
+  }
+  const notes = (notesPath ? readFileSync(notesPath, 'utf8') : storeText('release_notes')).trim();
+  if (!notes) throw new Error('릴리즈 노트가 없다 — 노트 파일이나 store/ko/release_notes.txt 가 필요하다');
   await call(`${base}/${edit.id}/tracks/production`, {
     method: 'PUT',
-    body: JSON.stringify({ track: 'production', releases: [{ name: versionName, versionCodes: [String(versionCode)], status: 'completed', releaseNotes: [{ language: 'ko-KR', text: notes }] }] }),
+    body: JSON.stringify({ track: 'production', releases: [{ name: versionName, versionCodes: [code], status: 'completed', releaseNotes: [{ language: 'ko-KR', text: notes }] }] }),
   });
   const commit = await call(`${base}/${edit.id}:commit`, { method: 'POST' });
-  console.log(`production ← ${versionName} (${versionCode}) committed, edit ${commit.id}`);
+  console.log(`production ← ${versionName} (${code}) committed, edit ${commit.id}`);
 }
 
 main().catch((e) => {

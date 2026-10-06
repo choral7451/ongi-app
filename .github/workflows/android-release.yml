@@ -1,0 +1,46 @@
+# Google Play 프로덕션 출시 — 내부 테스트에 이미 올라간 빌드를 production 트랙으로 승격하고 ko-KR 릴리즈 노트를 붙인다.
+# 실행: gh workflow run android-release.yml -f version=1.0.8 [-f notes="..."] [-f version_code=28]
+# 필요한 시크릿: PLAY_SERVICE_ACCOUNT_JSON (Google Cloud 'ongi' 프로젝트 eas-play-submit 서비스 계정 키 전문)
+# 주의: API 의 트랙 상태 completed 는 "출시됨"이 아니다 — 검토 전송은 Play Console 게시 개요에서 사용자가 눌러야 할 수 있다.
+name: Android Play Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '스토어 버전 이름 (app.json version 과 같게, 예: 1.0.8)'
+        required: true
+      notes:
+        description: '새로운 기능 (한국어 릴리즈 노트, 비우면 store/ko/release_notes.txt)'
+        required: false
+        default: ''
+      version_code:
+        description: '승격할 versionCode (비우면 내부 테스트 트랙의 최신 빌드)'
+        required: false
+        default: ''
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Promote internal → production
+        env:
+          NOTES: ${{ inputs.notes }}
+          VERSION: ${{ inputs.version }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          if [ -n "$NOTES" ]; then
+            printf '%s\n' "$NOTES" > /tmp/release_notes.txt
+            node scripts/play-promote.mjs promote "${VERSION_CODE:-latest}" "$VERSION" /tmp/release_notes.txt
+          else
+            node scripts/play-promote.mjs promote "${VERSION_CODE:-latest}" "$VERSION"
+          fi
