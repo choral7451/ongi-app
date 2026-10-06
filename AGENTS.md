@@ -17,8 +17,8 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 
 1. **버전**: 스토어 릴리즈(App Store 승인·Play 프로덕션 출시) 뒤 첫 수정 때만 `app.json` 의 `version` patch 를 +1. 그 버전이 릴리즈되기 전까지의 추가 수정은 버전 유지 — 빌드 번호(iOS buildNumber · Android versionCode)는 EAS 원격 autoIncrement 로만 올라간다.
 2. **iOS → TestFlight**: `gh workflow run ios-testflight.yml` — GitHub macOS 러너에서 EAS 로컬 빌드 후 제출 (`.github/workflows/ios-testflight.yml`, 시크릿 `EXPO_TOKEN`). EAS 무료 플랜의 iOS 클라우드 빌드 한도를 쓰지 않는다.
-3. **Android → Play 내부 테스트**: `npx eas-cli build --platform android --profile production --auto-submit --non-interactive --no-wait`. 서비스 계정 키 `google-play-service-account.json` 은 gitignore — 새 Mac 에서는 Google Cloud 'ongi' 프로젝트의 `eas-play-submit` 서비스 계정 키를 다시 받아 둔다.
-   - **EAS 클라우드 빌드 한도가 소진됐을 때** (무료 플랜, 매월 1일 초기화): `gh workflow run android-build.yml` 로 GitHub Linux 러너에서 로컬 빌드(`.github/workflows/android-build.yml`) → `gh run download <run-id> -n ongi-android-aab -D <dir>` → `npx eas-cli submit --platform android --profile production --path <dir>/ongi.aab --non-interactive --wait`. 서비스 계정 키는 GitHub 에 올리지 않고 제출만 Mac 에서 한다. 제출 뒤 `node scripts/play-promote.mjs status` 로 내부 테스트 트랙 확인.
+3. **Android → Play 내부 테스트**: `gh workflow run android-build.yml` — GitHub Linux 러너에서 EAS 로컬 빌드 후 fastlane 으로 Play 내부 테스트 트랙에 직접 제출 (`.github/workflows/android-build.yml`, 시크릿 `EXPO_TOKEN` · `PLAY_SERVICE_ACCOUNT_JSON`). EAS 클라우드 빌드 한도도, EAS Submit 큐도 쓰지 않는다. iOS 와 같은 구조.
+   - **빌드는 됐는데 제출만 실패했을 때**: `gh run download <run-id> -n ongi-android-aab -D <dir>` → `npx eas-cli submit --platform android --profile production --path <dir>/ongi.aab --non-interactive --wait` (서비스 계정 키 `google-play-service-account.json` 은 gitignore — 새 Mac 에서는 Google Cloud 'ongi' 프로젝트의 `eas-play-submit` 서비스 계정 키를 다시 받아 둔다). 제출 뒤 `node scripts/play-promote.mjs status` 로 내부 테스트 트랙 확인. 제출이 진행 중일 때는 status 를 돌리지 않는다 (같은 서비스 계정으로 새 edit 를 열면 진행 중인 제출이 'This edit has expired' 로 실패한다).
 4. 둘 다 끝날 때까지 지켜보고 빌드 번호·링크를 보고한다.
 
 ### 스토어 릴리즈 — 사용자가 "릴리즈 올려" / "배포해줘" 라고 하면 (확인 질문 없이 바로, 2026-09-26 방식 그대로)

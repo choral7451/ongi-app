@@ -1,10 +1,10 @@
-# Android 빌드(.aab). EAS 클라우드 빌드 한도와 무관하게 GitHub Linux 러너에서 로컬 빌드한다.
+# Android 빌드(.aab) → Google Play 내부 테스트 제출. EAS 클라우드 빌드 한도와 무관하게 GitHub Linux 러너에서 로컬 빌드한다.
 # 실행: gh workflow run android-build.yml  (또는 Actions 탭에서 Run workflow)
-# 필요한 시크릿: EXPO_TOKEN — https://expo.dev/accounts/ddoniel/settings/access-tokens
-# Play 제출은 여기서 하지 않는다 — 서비스 계정 키를 GitHub 에 올리지 않으려고, 아티팩트를 받아 Mac 에서 제출한다:
+# 필요한 시크릿: EXPO_TOKEN (빌드·서명, https://expo.dev/accounts/ddoniel/settings/access-tokens) · PLAY_SERVICE_ACCOUNT_JSON (Play 제출, Google Cloud 'ongi' 프로젝트 eas-play-submit 서비스 계정 키 전문)
+# 빌드는 됐는데 제출만 실패했으면 .aab 아티팩트를 받아 Mac 에서 제출할 수 있다:
 #   gh run download <run-id> -n ongi-android-aab -D <dir>
 #   npx eas-cli submit --platform android --profile production --path <dir>/ongi.aab --non-interactive
-name: Android Build
+name: Android Internal
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-submit:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -46,9 +46,42 @@ jobs:
         run: eas build --platform android --profile production --local --non-interactive --output ./ongi.aab
 
       - name: Upload aab artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ongi-android-aab
           path: ./ongi.aab
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 7
+
+      # iOS 와 같은 방식 — EAS Submit 큐를 거치지 않고 fastlane 으로 Play Developer API 에 직접 올린다 (내부 테스트 트랙)
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install fastlane
+        run: gem install fastlane --no-document
+
+      - name: Upload to Play internal testing
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+        run: |
+          mkdir -p fastlane
+          cat > fastlane/Fastfile <<'RUBY'
+          default_platform(:android)
+          lane :upload do
+            upload_to_play_store(
+              package_name: 'com.ongifamily.app',
+              json_key_data: ENV['PLAY_SERVICE_ACCOUNT_JSON'],
+              aab: './ongi.aab',
+              track: 'internal',
+              release_status: 'completed',
+              skip_upload_metadata: true,
+              skip_upload_changelogs: true,
+              skip_upload_images: true,
+              skip_upload_screenshots: true,
+            )
+          end
+          RUBY
+          fastlane upload
