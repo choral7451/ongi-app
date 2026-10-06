@@ -34,6 +34,8 @@ export const colors = {
   textMuted: 'rgba(16, 17, 20, 0.55)',
   white: '#ffffff',
   danger: '#d92d20',
+  /** 내가 누른 하트 — 피드 반응 전용 빨강 */
+  heart: '#e53935',
 } as const;
 
 export const spacing = {

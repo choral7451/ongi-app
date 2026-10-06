@@ -45,17 +45,18 @@ function FeedPostInner({ photo, author, album, photoFirst = true }: FeedPostProp
         onPress={() => toggleLike.mutate(photo.id)}
         accessibilityLabel="따뜻해요"
       >
+        {/* 반응 아이콘·숫자는 검정 — 내가 누른 하트만 빨갛게 채운다 */}
         <Heart
           size={16}
-          color={colors.accent700}
-          fill={photo.likedByMe ? colors.accent700 : 'transparent'}
+          color={photo.likedByMe ? colors.heart : colors.text}
+          fill={photo.likedByMe ? colors.heart : 'transparent'}
           strokeWidth={iconStroke}
         />
-        <Text style={[styles.statText, { color: colors.accent700 }]}>{photo.likeCount}</Text>
+        <Text style={styles.statText}>{photo.likeCount}</Text>
       </Pressable>
       {photo.commentCount > 0 ? (
         <Pressable style={styles.stat} onPress={openDetail} accessibilityLabel="댓글">
-          <MessageCircle size={16} color={colors.neutral600} strokeWidth={iconStroke} />
+          <MessageCircle size={16} color={colors.text} strokeWidth={iconStroke} />
           <Text style={styles.statText}>{photo.commentCount}</Text>
         </Pressable>
       ) : null}
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    color: colors.neutral600,
+    color: colors.text,
     fontVariant: ['tabular-nums'],
   },
   more: {
