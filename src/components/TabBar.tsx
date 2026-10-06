@@ -4,17 +4,29 @@ import { CalendarPlus, Home, Image as ImageIcon, Plus, User, Users } from 'lucid
 import { useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
+import { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMyGroups } from '../hooks/queries';
 import { useUi } from '../store/ui';
 import { colors, fonts, iconStroke } from '../theme';
 
+/**
+ * 탭 아이콘은 늘 검정 — 선택된 탭만 검정으로 채운다.
+ * cutout: 채우면 묻히는 안쪽 선(문·해와 산)을 흰색으로 다시 긋는다.
+ * base: 채움의 열린 아랫변(어깨선)을 검정 선으로 닫아 모서리를 둥글게 맞춘다.
+ */
 const TABS = [
-  { name: 'index', label: '홈', Icon: Home },
-  { name: 'albums', label: '앨범', Icon: ImageIcon },
-  { name: 'plus', label: '올리기', Icon: Plus }, // 가운데 — 사진/일정 선택 시트
-  { name: 'family', label: '가족', Icon: Users },
-  { name: 'profile', label: '나', Icon: User },
+  { name: 'index', label: '홈', Icon: Home, cutout: 'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8', base: null },
+  {
+    name: 'albums',
+    label: '앨범',
+    Icon: ImageIcon,
+    cutout: 'M7 9a2 2 0 1 0 4 0a2 2 0 1 0-4 0M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21',
+    base: null,
+  },
+  { name: 'plus', label: '올리기', Icon: Plus, cutout: null, base: null }, // 가운데 — 사진/일정 선택 시트
+  { name: 'family', label: '가족', Icon: Users, cutout: null, base: 'M2 21h14' },
+  { name: 'profile', label: '나', Icon: User, cutout: null, base: 'M5 21h14' },
 ] as const;
 
 /**
@@ -48,7 +60,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           return (
             <Pressable key={tab.name} style={styles.item} onPress={() => setSheetOpen(true)} accessibilityLabel="올리기">
               <View style={styles.uploadCircle}>
-                <Plus size={20} color={colors.accent} strokeWidth={iconStroke} />
+                <Plus size={20} color={colors.text} strokeWidth={iconStroke} />
               </View>
               <Text style={styles.label}>{tab.label}</Text>
             </Pressable>
@@ -57,7 +69,6 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
         const routeIndex = state.routes.findIndex((r) => r.name === tab.name);
         const focused = state.index === routeIndex;
-        const color = focused ? colors.accent : colors.neutral600;
         return (
           <Pressable
             key={tab.name}
@@ -70,8 +81,13 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             accessibilityLabel={tab.label}
             accessibilityState={{ selected: focused }}
           >
-            <tab.Icon size={22} color={color} strokeWidth={iconStroke} />
-            <Text style={[styles.label, { color }]}>{tab.label}</Text>
+            <tab.Icon size={22} color={colors.text} strokeWidth={iconStroke} fill={focused ? colors.text : 'none'}>
+              {focused && tab.base ? <Path key="base" d={tab.base} stroke={colors.text} strokeWidth={iconStroke} strokeLinecap="round" /> : null}
+              {focused && tab.cutout ? (
+                <Path key="cutout" d={tab.cutout} fill="none" stroke={colors.bg} strokeWidth={iconStroke} strokeLinecap="round" strokeLinejoin="round" />
+              ) : null}
+            </tab.Icon>
+            <Text style={[styles.label, focused && styles.labelFocused]}>{tab.label}</Text>
           </Pressable>
         );
       })}
@@ -128,14 +144,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     letterSpacing: 0.4,
-    color: colors.neutral600,
+    color: colors.text,
+  },
+  labelFocused: {
+    fontWeight: '700',
   },
   uploadCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.accent,
+    borderColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -22,
