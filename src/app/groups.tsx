@@ -32,9 +32,10 @@ export default function GroupsScreen() {
   const [inviteCode, setInviteCode] = useState('');
   const [joinError, setJoinError] = useState<string | null>(null);
 
+  // 공간을 바꾸면 이 화면을 닫고 홈으로 — 바꾼 공간의 피드를 바로 보여준다
   const switchTo = (groupId: string) => {
     setActiveGroup(groupId);
-    router.back();
+    router.navigate('/');
   };
 
   const onCreate = () => {

@@ -32,9 +32,13 @@ export function AppHeader() {
     router.navigate('/');
   };
 
+  // 공간을 바꾸면 홈으로 — 보던 앨범·사진·가족 화면은 이전 공간 것이라 그 자리에 두면 헷갈린다
   const switchTo = (groupId: string) => {
     setOpen(false);
-    if (groupId !== activeGroupId) setActiveGroup(groupId);
+    if (groupId === activeGroupId) return;
+    setActiveGroup(groupId);
+    useUi.getState().requestHomeReset();
+    router.navigate('/');
   };
 
   return (
