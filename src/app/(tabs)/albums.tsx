@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoGroupState } from '../../components/NoGroupState';
 import { Plate } from '../../components/ui/Plate';
 import { VideoPlaceholder } from '../../components/ui/VideoPlaceholder';
-import { useAlbums, useCreateAlbum, useDeleteAlbum, useFeed, useMembers, useMyGroups, useRenameAlbum, useUnfiledPhotos } from '../../hooks/queries';
+import { useAlbumList, useCreateAlbum, useDeleteAlbum, useFeed, useMembers, useMyGroups, useRenameAlbum, useUnfiledPhotos } from '../../hooks/queries';
 import type { Album } from '../../types';
 import { useActiveGroupId } from '../../store/session';
 import { colors, fonts, iconStroke, radius } from '../../theme';
@@ -21,8 +21,8 @@ import { promptText } from '../../utils/prompt';
 export default function AlbumsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const albums = useAlbums();
   const activeGroupId = useActiveGroupId();
+  const albums = useAlbumList(activeGroupId);
   const unfiled = useUnfiledPhotos(activeGroupId);
   const allPhotos = useFeed();
   const createAlbum = useCreateAlbum();
@@ -37,9 +37,10 @@ export default function AlbumsScreen() {
   // 커버는 그릴 수 있는 가장 최근 항목 — 포스터 없는 영상은 건너뛴다
   const allCover = pickCoverUrl(allPhotos.data);
   const unfiledCover = pickCoverUrl(unfiled.data);
-  const allCount = allPhotos.data?.length ?? 0;
-  const unfiledCount = unfiled.data?.length ?? 0;
-  const albumList = albums.data ?? [];
+  // 장수는 서버가 센 값 — 목록은 30장씩 페이지로 오므로 길이로 세면 30장 넘는 공간에서 틀린다. 구서버면 길이로 폴백
+  const allCount = albums.data?.totalCount ?? allPhotos.data?.length ?? 0;
+  const unfiledCount = albums.data?.unfiledCount ?? unfiled.data?.length ?? 0;
+  const albumList = albums.data?.albums ?? [];
 
   const showError = (title: string) => (e: unknown) =>
     Alert.alert(title, e instanceof Error ? e.message : '잠시 후 다시 시도해 주세요.');

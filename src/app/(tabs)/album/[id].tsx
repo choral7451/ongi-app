@@ -7,7 +7,7 @@ import { PhotoGrid } from '../../../components/PhotoGrid';
 import { pickCoverUrl } from '../../../utils/photoDisplay';
 import { Button, IconButton } from '../../../components/ui/Button';
 import { Plate } from '../../../components/ui/Plate';
-import { queryKeys, useAlbumPhotos, useAlbums, useCopyPhotos, useDeletePhotos, useFeed, useMembers, useMovePhotos, useMyGroups, useUnfiledPhotos } from '../../../hooks/queries';
+import { queryKeys, useAlbumList, useAlbumPhotos, useCopyPhotos, useDeletePhotos, useFeed, useMembers, useMovePhotos, useMyGroups, useUnfiledPhotos } from '../../../hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import * as albumsApi from '../../../api/albums';
 import { showActions } from '../../../utils/dialogs';
@@ -24,7 +24,8 @@ export default function AlbumDetailScreen() {
   const isAll = id === 'all';
   const isVirtual = isUnfiled || isAll;
   const activeGroupId = useActiveGroupId();
-  const albums = useAlbums();
+  const albumList = useAlbumList(activeGroupId);
+  const albums = { data: albumList.data?.albums };
   const albumPhotos = useAlbumPhotos(isVirtual ? '' : id);
   const unfiledPhotos = useUnfiledPhotos(isUnfiled ? activeGroupId : '');
   const allPhotos = useFeed();
@@ -106,7 +107,10 @@ export default function AlbumDetailScreen() {
         },
       );
     const pickAlbum = async (targetGroupId: string, groupName: string) => {
-      const albums = await queryClient.fetchQuery({ queryKey: queryKeys.albums(targetGroupId), queryFn: () => albumsApi.getAlbums(targetGroupId) }).catch(() => []);
+      const albums = await queryClient
+        .fetchQuery({ queryKey: queryKeys.albums(targetGroupId), queryFn: () => albumsApi.getAlbumList(targetGroupId) })
+        .then((list) => list.albums)
+        .catch(() => []);
       showActions(`「${groupName}」의 앨범`, [
         { label: '앨범 없음 (미분류)', onPress: () => copy(targetGroupId, null) },
         ...albums.map((a) => ({ label: a.title, onPress: () => copy(targetGroupId, a.id) })),
@@ -137,6 +141,9 @@ export default function AlbumDetailScreen() {
 
   const album = isVirtual ? undefined : albums.data?.find((a) => a.id === id);
   const title = isAll ? '전체 사진' : isUnfiled ? '미분류' : (album?.title ?? '');
+  // 장수는 서버가 센 값(앨범 목록 응답) — 사진 목록은 페이지로 오므로 길이로 세면 틀린다. 아직 없으면 받은 길이로 폴백
+  const serverCount = isAll ? albumList.data?.totalCount : isUnfiled ? albumList.data?.unfiledCount : album?.photoCount;
+  const photoCount = serverCount ?? photos.data?.length;
   // 커버는 그릴 수 있는 가장 최근 항목 — 포스터 없는 영상(url 이 mp4)은 건너뛴다
   const coverUrl = isVirtual ? pickCoverUrl(photos.data) : album?.coverUrl;
 
@@ -177,7 +184,7 @@ export default function AlbumDetailScreen() {
             <View style={styles.titleRow}>
               <Text style={styles.title}>{title}</Text>
               <Text style={styles.meta}>
-                {photos.data ? `${photos.data.length}장` : ''}
+                {photoCount != null ? `${photoCount}장` : ''}
                 {album ? ` · ${album.meta}` : ''}
               </Text>
             </View>

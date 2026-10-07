@@ -195,9 +195,16 @@ export function useAlbums() {
 
 /** 특정 그룹의 앨범 — 멀티 그룹 업로드처럼 활성 그룹 밖 데이터가 필요할 때 */
 export function useAlbumsOf(groupId: string) {
+  const query = useAlbumList(groupId);
+  const data = useMemo(() => query.data?.albums, [query.data]);
+  return { ...query, data };
+}
+
+/** 앨범 목록 응답 전체 — 앨범들 + 서버가 센 전체·미분류 장수. 캐시 키는 useAlbums 와 같다 */
+export function useAlbumList(groupId: string) {
   return useQuery({
     queryKey: queryKeys.albums(groupId),
-    queryFn: () => albumsApi.getAlbums(groupId),
+    queryFn: () => albumsApi.getAlbumList(groupId),
     enabled: groupId.length > 0,
   });
 }

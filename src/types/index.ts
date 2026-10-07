@@ -46,6 +46,15 @@ export interface Album {
   meta: string;
 }
 
+/** 앨범 목록 응답 — 앨범들 + 서버가 센 전체·미분류 장수 (구서버는 장수 필드가 없을 수 있다) */
+export interface AlbumList {
+  albums: Album[];
+  /** 그룹 전체 사진 수 (차단한 구성원 제외) */
+  totalCount?: number;
+  /** 앨범에 담기지 않은 사진 수 (차단한 구성원 제외) */
+  unfiledCount?: number;
+}
+
 export interface Photo {
   id: string;
   groupId: string;
