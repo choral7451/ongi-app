@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, FolderInput, Send, Trash2 } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoGrid } from '../../../components/PhotoGrid';
@@ -43,15 +43,19 @@ export default function AlbumDetailScreen() {
   const otherGroups = (myGroups.data ?? []).filter((g) => g.id !== activeGroupId);
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // 탭 화면은 언마운트되지 않아 다른 화면에 다녀와도 선택 모드가 남아 있었다 — 화면을 벗어나면 선택을 푼다
+  // 탭 화면은 언마운트되지 않아 다른 화면에 다녀와도 선택 모드가 남아 있었다 — 화면을 벗어나면 선택을 푼다.
+  // 같은 이유로 다시 들어와도 마운트가 아니라 사진 목록이 자동으로 새로 오지 않는다 — 오래된 캐시면 들어올 때 다시 받는다
+  // (ref 로 읽는 이유: 의존성에 넣으면 신선도가 바뀔 때마다 효과가 다시 돌아 보고 있는 중에 선택이 풀린다)
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
   useFocusEffect(
-    useCallback(
-      () => () => {
+    useCallback(() => {
+      if (photosRef.current.isStale) void photosRef.current.refetch();
+      return () => {
         setSelecting(false);
         setSelectedIds(new Set());
-      },
-      [],
-    ),
+      };
+    }, []),
   );
   const deletableCount = photos.data?.filter(canDelete).length ?? 0;
 

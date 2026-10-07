@@ -559,6 +559,8 @@ export function useUploadPhotos() {
         queryClient.invalidateQueries({ queryKey: queryKeys.feed(target.groupId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.albums(target.groupId) });
         queryClient.invalidateQueries({ queryKey: ['unfiledPhotos', target.groupId] });
+        // 앨범에 바로 올린 경우 — 앨범 목록(커버·장수)만 갱신하면 앨범 상세의 사진 목록이 옛 캐시로 남아 비어 보인다
+        if (target.albumId) queryClient.invalidateQueries({ queryKey: ['albumPhotos', target.albumId] });
       }
     },
   });
