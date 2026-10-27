@@ -41,7 +41,7 @@ import { colors, fonts, iconStroke } from '../../../theme';
 import type { Comment } from '../../../types';
 import { formatFullDateTime, formatTime } from '../../../utils/format';
 
-/** 1e — 사진 상세: 반응 · 댓글. 앨범 계열 ctx(all | album:<id> | unfiled)로 들어오면 좌우 스와이프로 그 목록을 넘겨본다. 홈 피드(feed)에서는 단건만 */
+/** 1e — 사진 상세: 반응 · 댓글. ctx(feed | all | album:<id> | unfiled)로 들어오면 좌우 스와이프로 그 목록을 넘겨본다 — 홈 피드(feed)는 홈 순서 그대로 */
 export default function PhotoDetailScreen() {
   const { id, ctx } = useLocalSearchParams<{ id: string; ctx?: string }>();
   const insets = useSafeAreaInsets();
@@ -76,16 +76,17 @@ export default function PhotoDetailScreen() {
   const feedQuery = useFeed();
   const ctxAlbumPhotos = useAlbumPhotos(ctxAlbumId);
   const ctxUnfiledPhotos = useUnfiledPhotos(ctx === 'unfiled' ? activeGroupId : '');
-  // 홈 피드에서 들어온 경우(ctx=feed)는 넘김 없이 그 사진만 본다
+  // 홈 피드(feed)와 전체 사진(all)은 같은 피드 목록 — 홈에서 들어와도 홈 순서 그대로 넘겨본다
   const ctxQuery =
-    ctx === 'all'
+    ctx === 'feed' || ctx === 'all'
       ? feedQuery
       : ctxAlbumId
         ? ctxAlbumPhotos
         : ctx === 'unfiled'
           ? ctxUnfiledPhotos
           : undefined;
-  const ctxPhotos = ctxQuery?.data;
+  // 들어온 사진이 아직 목록에 없으면(푸시로 연 사진이 불러온 피드 밖일 때 등) 넘김 없이 단건으로 — 없는 사진을 0번으로 맞추면 엉뚱한 첫 사진이 보인다
+  const ctxPhotos = ctxQuery?.data?.some((p) => p.id === id) ? ctxQuery.data : undefined;
 
   const { width: windowWidth } = useWindowDimensions();
   const pageWidth = windowWidth - 40; // content 좌우 패딩 20씩 제외
