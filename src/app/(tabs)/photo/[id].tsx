@@ -1,6 +1,6 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, Heart, MoreHorizontal } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -38,7 +38,7 @@ import { alertError, promptReason, REPORT_DONE_MESSAGE, showActions } from '../.
 import { saveMediaToLibrary, shareMedia } from '../../../utils/media';
 import { useActiveGroupId, useSession } from '../../../store/session';
 import { colors, fonts, iconStroke } from '../../../theme';
-import type { Comment } from '../../../types';
+import type { Comment, Photo } from '../../../types';
 import { formatFullDateTime, formatTime } from '../../../utils/format';
 
 /** 1e — 사진 상세: 반응 · 댓글. ctx(feed | all | album:<id> | unfiled)로 들어오면 좌우 스와이프로 그 목록을 넘겨본다 — 홈 피드(feed)는 홈 순서 그대로 */
@@ -48,8 +48,15 @@ export default function PhotoDetailScreen() {
   const router = useRouter();
   const session = useSession();
 
-  // 스와이프로 현재 사진이 바뀌므로 화면의 기준 id 는 상태로 든다
+  // 스와이프로 현재 사진이 바뀌므로 화면의 기준 id 는 상태로 든다.
+  // 탭 안이라 화면이 언마운트되지 않는다 — 다른 사진으로 다시 들어오면 첫 렌더부터 그 사진이 보이게 렌더 중에 맞춘다
+  // (effect 로 늦게 맞추면 이전에 보던 사진이 한 프레임 비친다)
   const [currentId, setCurrentId] = useState(id);
+  const [syncedId, setSyncedId] = useState(id);
+  if (syncedId !== id) {
+    setSyncedId(id);
+    setCurrentId(id);
+  }
   // 공유는 파일을 먼저 내려받아야 해 시간이 걸린다 — 준비 중에는 버튼을 잠근다
   const [sharing, setSharing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -62,13 +69,19 @@ export default function PhotoDetailScreen() {
     Keyboard.dismiss();
   }, [id]);
 
-  useEffect(() => {
-    setCurrentId(id);
-    const index = ctxPhotos?.findIndex((p) => p.id === id) ?? -1;
-    if (index >= 0) pagerRef.current?.scrollTo({ x: index * pageWidth, animated: false });
-    // ctxPhotos 는 의존성에서 제외 — 목록 갱신(좋아요 등)마다 스크롤이 튀지 않게, 재진입 시에만 위치를 맞춘다
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, ctx]);
+  // 화면에 들어올 때마다 '누른 사진'으로 되돌린다 — id 가 바뀔 때만 맞추면, 넘겨보다 나갔다가 같은 사진을 다시 눌렀을 때
+  // 스와이프로 바뀐 사진이 그대로 남아 누른 것과 다른 사진이 보였다. 페이저도 같은 위치로 되감는다
+  // (ctxPhotos·pageWidth 는 ref 로 읽어 목록 갱신(좋아요 등)마다 스크롤이 튀지 않게 한다)
+  const pagerStateRef = useRef({ ctxPhotos: undefined as Photo[] | undefined, pageWidth: 0 });
+  useFocusEffect(
+    useCallback(() => {
+      setCurrentId(id);
+      const { ctxPhotos: list, pageWidth: width } = pagerStateRef.current;
+      const index = list?.findIndex((p) => p.id === id) ?? -1;
+      // 페이저가 이번 렌더에서 막 그려졌을 수 있어 한 프레임 뒤에 되감는다
+      if (index >= 0) requestAnimationFrame(() => pagerRef.current?.scrollTo({ x: index * width, animated: false }));
+    }, [id]),
+  );
 
   // 진입한 목록 컨텍스트의 사진들 — 스와이프 페이지 목록
   const activeGroupId = useActiveGroupId();
@@ -90,6 +103,7 @@ export default function PhotoDetailScreen() {
 
   const { width: windowWidth } = useWindowDimensions();
   const pageWidth = windowWidth - 40; // content 좌우 패딩 20씩 제외
+  pagerStateRef.current = { ctxPhotos, pageWidth };
 
   const photo = usePhoto(currentId);
   const comments = useComments(currentId);
