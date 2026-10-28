@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>온기 앨범 선택·공유 개선 데모</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff; --surface:#f1f2f4; --text:#101114; --accent:#0164ff; --divider:rgba(16,17,20,.14);
+    --muted:rgba(16,17,20,.55); --danger:#d92d20;
+    --n100:#f7f8fa; --n200:#eceef1; --n300:#d9dce1; --n400:#b9bdc4; --n600:#7b8087;
+    --a100:#e9f0ff; --a200:#d0e0ff; --a300:#a7c5ff;
+    --serif:'Noto Serif KR', serif;
+    --sans:-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef0f3;font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiased}
+  .page{max-width:1120px;margin:0 auto;padding:28px 20px 60px;display:grid;grid-template-columns:390px 1fr;gap:40px;align-items:start}
+  @media (max-width:860px){.page{grid-template-columns:1fr;justify-items:center}}
+  h1{font-family:var(--serif);font-weight:600;font-size:22px;margin:0 0 6px}
+  .sub{font-size:13px;color:var(--muted);margin:0 0 18px;line-height:1.6}
+
+  /* ---------- phone ---------- */
+  .phone{position:relative;width:390px;height:844px;background:var(--bg);border-radius:44px;box-shadow:0 20px 60px rgba(16,17,20,.18),0 0 0 10px #1a1b1e,0 0 0 12px #3a3c42;overflow:hidden;display:flex;flex-direction:column;user-select:none}
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:34px;background:#1a1b1e;border-radius:20px;z-index:50}
+  .status{height:54px;flex:none}
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 20px 10px;height:46px;flex:none}
+  .hdr .title{font-family:var(--serif);font-weight:600;font-size:16px}
+  .icon-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:pointer}
+  .icon-btn:active{background:var(--n200)}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--divider);border-radius:4px;font-size:13px;background:var(--bg);color:var(--text);cursor:pointer;font-family:var(--sans)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn:active{background:var(--n100)}
+  .btn.primary:active{background:#0150cd}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+  .ghost{border:none;background:transparent;color:var(--accent);font-size:14px;padding:0 4px;height:36px;cursor:pointer;font-family:var(--sans)}
+  .ghost:active{opacity:.6}
+
+  .scroll{flex:1;overflow-y:auto;padding:0 20px 120px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .plate{height:180px;border-radius:4px;background:linear-gradient(135deg,#f5d9c8,#f0b9a2 55%,#d9c7ff);position:relative;overflow:hidden}
+  .plate::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 35%,rgba(255,255,255,.55),transparent 45%)}
+  .title-row{display:flex;align-items:baseline;justify-content:space-between;margin-top:14px}
+  .title-row .t{font-family:var(--serif);font-weight:600;font-size:24px;line-height:32px}
+  .title-row .m{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .rule{height:1px;background:var(--a300);margin:10px 0 14px}
+  .hint{font-size:11px;color:var(--muted);margin:-4px 0 12px;display:flex;align-items:center;gap:6px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+  .tile{position:relative;aspect-ratio:1;background:var(--n200);cursor:pointer;overflow:hidden;border-radius:2px;transition:transform .12s}
+  .tile .img{position:absolute;inset:0}
+  .tile .img::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.45),transparent 50%)}
+  .tile .vid{position:absolute;left:6px;top:6px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+  .tile .check{position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:50%;border:1.5px solid #fff;background:rgba(16,17,20,.25);display:none;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .tile .who{position:absolute;left:6px;bottom:6px;height:18px;padding:0 6px;border-radius:9px;background:rgba(16,17,20,.55);color:#fff;font-size:10px;display:none;align-items:center;gap:4px;backdrop-filter:blur(4px)}
+  .tile .who i{width:5px;height:5px;border-radius:50%;background:#fff;display:inline-block}
+  .phone.selecting .tile .check{display:flex}
+  .phone.selecting .tile .who{display:flex}
+  .tile.on .check{background:var(--accent);border-color:var(--accent)}
+  .tile.on::after{content:"";position:absolute;inset:0;background:rgba(1,100,255,.22);border:2px solid var(--accent);border-radius:2px}
+  .tile.on .img{transform:scale(.94)}
+  .tile .img{transition:transform .15s}
+  .tile.press{transform:scale(.96)}
+
+  /* action bar */
+  .actbar{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--divider);padding:10px 12px 28px;display:flex;justify-content:space-around;transform:translateY(110%);transition:transform .22s cubic-bezier(.2,.8,.2,1);z-index:20}
+  .phone.selecting .actbar{transform:none}
+  .act{display:flex;flex-direction:column;align-items:center;gap:4px;width:92px;padding:6px 0;border-radius:6px;cursor:pointer;font-size:11px;color:var(--text);position:relative}
+  .act:active{background:var(--n100)}
+  .act.off{opacity:.35;pointer-events:none}
+  .act.danger{color:var(--danger)}
+  .act .cnt{position:absolute;top:0;right:14px;min-width:16px;height:16px;border-radius:8px;background:var(--n600);color:#fff;font-size:10px;display:none;align-items:center;justify-content:center;padding:0 4px;font-variant-numeric:tabular-nums}
+  .act .cnt.show{display:flex}
+
+  /* sheet */
+  .dim{position:absolute;inset:0;background:rgba(16,17,20,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:14px 14px 0 0;padding:10px 20px 30px;transform:translateY(105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);z-index:40;max-height:78%;display:flex;flex-direction:column}
+  .phone.sheet-open .dim{opacity:1;pointer-events:auto}
+  .phone.sheet-open .sheet.active{transform:none}
+  .grab{width:36px;height:4px;border-radius:2px;background:var(--n300);margin:0 auto 14px}
+  .sheet h3{font-family:var(--serif);font-weight:600;font-size:17px;margin:0 0 2px}
+  .sheet .desc{font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.5}
+  .thumbs{display:flex;gap:4px;margin:0 0 16px}
+  .thumbs .th{width:44px;height:44px;border-radius:3px;position:relative;overflow:hidden;flex:none}
+  .thumbs .th.more{background:var(--n200);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+  .lbl{font-size:11px;letter-spacing:1px;color:var(--accent);margin:4px 0 8px}
+  .rows{display:flex;flex-direction:column}
+  .row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--divider);cursor:pointer}
+  .row:last-child{border-bottom:none}
+  .row:active{background:var(--n100)}
+  .row .av{width:34px;height:34px;border-radius:50%;background:var(--a100);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:600;font-size:14px;color:var(--accent);flex:none}
+  .row .nm{flex:1;font-size:14px}
+  .row .nm small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+  .row .radio{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--n400);display:flex;align-items:center;justify-content:center}
+  .row.on .radio{border-color:var(--accent);background:var(--accent)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .chip{height:32px;padding:0 12px;border:1px solid var(--divider);border-radius:16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:var(--bg)}
+  .chip.on{border-color:var(--accent);background:var(--a100);color:var(--accent)}
+  .chip.skel{background:var(--n100);border-color:transparent;color:transparent;width:72px;animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.5}}
+  .sheet .foot{margin-top:18px;display:flex;gap:8px}
+  .sheet .foot .btn{flex:1;justify-content:center;height:44px;font-size:14px}
+  .step{display:none}
+  .step.show{display:block;animation:fade .2s}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .note{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--muted);line-height:1.5;background:var(--n100);border-radius:6px;padding:10px 12px;margin-top:10px}
+
+  /* toast */
+  .toast{position:absolute;left:20px;right:20px;bottom:40px;background:#1f2024;color:#fff;border-radius:8px;padding:12px 14px;font-size:13px;display:flex;align-items:center;gap:10px;transform:translateY(30px);opacity:0;transition:all .25s;z-index:60;pointer-events:none}
+  .toast.show{transform:none;opacity:1}
+  .toast.show .go{pointer-events:auto}
+  .phone.selecting .toast{bottom:118px}
+  .toast .go{margin-left:auto;color:#8fb4ff;font-weight:600;cursor:pointer;white-space:nowrap}
+
+  /* ---------- notes ---------- */
+  .notes{font-size:14px;line-height:1.65}
+  .notes h2{font-family:var(--serif);font-weight:600;font-size:16px;margin:26px 0 8px;display:flex;align-items:center;gap:8px}
+  .notes h2:first-of-type{margin-top:0}
+  .notes ol,.notes ul{margin:0;padding-left:20px}
+  .notes li{margin:5px 0}
+  .notes li b{font-weight:600}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:3px;background:var(--a100);color:var(--accent);vertical-align:middle;font-weight:500}
+  .tag.red{background:#fde8e6;color:var(--danger)}
+  .tag.gray{background:var(--n200);color:var(--n600)}
+  .try{background:#fff;border:1px solid var(--divider);border-radius:8px;padding:14px 16px;margin-bottom:6px}
+  .try b{display:block;margin-bottom:6px;font-size:13px;letter-spacing:.5px;color:var(--accent)}
+  .try ol{padding-left:18px;font-size:13px}
+  .cmp{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  .cmp th,.cmp td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--divider);vertical-align:top}
+  .cmp th{font-weight:600;font-size:12px;color:var(--muted);letter-spacing:.5px}
+  .cmp td:first-child{color:var(--muted);width:92px}
+  code{font-size:12px;background:var(--n200);padding:1px 5px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ============ PHONE ============ -->
+  <div>
+    <div class="phone" id="phone">
+      <div class="notch"></div>
+      <div class="status"></div>
+
+      <div class="hdr">
+        <div class="icon-btn" id="hdrLeft" title="뒤로">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#101114" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </div>
+        <span class="title" id="hdrTitle">앨범</span>
+        <div id="hdrRight"><button class="btn" id="enterSel">선택</button></div>
+      </div>
+
+      <div class="scroll" id="scroll">
+        <div class="plate"></div>
+        <div class="title-row"><span class="t">첫 돌잔치</span><span class="m">15장 · 2026.10</span></div>
+        <div class="rule"></div>
+        <div class="hint" id="hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>
+          사진을 길게 누르면 바로 고를 수 있어요
+        </div>
+        <div class="grid" id="grid"></div>
+      </div>
+
+      <!-- action bar -->
+      <div class="actbar">
+        <div class="act" id="actShare">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+          <span>다른 공간에 공유</span>
+        </div>
+        <div class="act" id="actMove">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1"/><path d="M2 13h10"/><path d="m9 16 3-3-3-3"/></svg>
+          <span>앨범 이동</span>
+        </div>
+        <div class="act danger" id="actDelete">
+          <span class="cnt" id="delCnt"></span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+          <span id="delLbl">삭제</span>
+        </div>
+      </div>
+
+      <div class="dim" id="dim"></div>
+
+      <!-- share sheet -->
+      <div class="sheet" id="sheetShare">
+        <div class="grab"></div>
+        <h3 id="shareTitle">3장을 다른 공간에 공유</h3>
+        <p class="desc">원본은 이 공간에 그대로 남고, 상대 공간에 새 게시물로 올라가요. 좋아요·댓글은 따로 쌓여요.</p>
+        <div class="thumbs" id="shareThumbs"></div>
+        <div class="lbl">어느 가족 공간에 보낼까요?</div>
+        <div class="rows" id="groupRows"></div>
+        <div class="step" id="albumStep">
+          <div class="lbl" style="margin-top:16px" id="albumLbl">넣을 앨범</div>
+          <div class="chips" id="albumChips"></div>
+        </div>
+        <div class="foot">
+          <button class="btn primary" id="shareGo" disabled>공유</button>
+        </div>
+      </div>
+
+      <!-- move sheet -->
+      <div class="sheet" id="sheetMove">
+        <div class="grab"></div>
+        <h3 id="moveTitle">3장을 옮길 앨범</h3>
+        <p class="desc">이 공간 안에서 앨범만 바뀌어요. 다른 사람이 올린 사진은 그대로 두고 건너뛰어요.</p>
+        <div class="rows" id="moveRows"></div>
+        <div class="foot">
+          <button class="btn primary" id="moveGo" disabled>이동</button>
+        </div>
+      </div>
+
+      <!-- delete sheet -->
+      <div class="sheet" id="sheetDelete">
+        <div class="grab"></div>
+        <h3 id="delTitle">2장을 삭제할까요?</h3>
+        <p class="desc" id="delDesc"></p>
+        <div class="thumbs" id="delThumbs"></div>
+        <div class="foot">
+          <button class="btn" id="delCancel">취소</button>
+          <button class="btn primary" id="delGo" style="background:var(--danger);border-color:var(--danger)">삭제</button>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"><span id="toastMsg"></span><span class="go" id="toastGo">보러 가기</span></div>
+    </div>
+  </div>
+
+  <!-- ============ NOTES ============ -->
+  <div class="notes">
+    <h1>앨범 상세 · 선택 → 공유/이동/삭제 개선안</h1>
+    <p class="sub">왼쪽 화면은 눌러 볼 수 있는 데모예요. 서버 연결 없이 흐름만 재현했어요.</p>
+
+    <div class="try">
+      <b>이렇게 눌러보세요</b>
+      <ol>
+        <li>사진을 <b>길게 누르거나</b> 오른쪽 위 「선택」을 누르면 선택 모드로 들어가요.</li>
+        <li>할머니·아빠가 올린 사진(이름 칩이 붙은 것)도 함께 골라보세요.</li>
+        <li>아래 바에서 「다른 공간에 공유」 → 공간 하나 → 앨범 하나 → 공유.</li>
+        <li>「삭제」를 누르면 내가 지울 수 있는 장수만 따로 세어 보여줘요.</li>
+      </ol>
+    </div>
+
+    <h2>지금 뭐가 불편한가 <span class="tag red">현재</span></h2>
+    <ol>
+      <li><b>내 사진만 고를 수 있어요.</b> 다른 가족이 올린 사진은 회색으로 비활성. 공유·이동·삭제 중 삭제 권한 하나를 기준으로 선택 자체를 막고 있어요.</li>
+      <li><b>하단 바에 글자 버튼이 4개</b>(모두 선택·공유·이동·삭제) 들어가 좁은 폰에서 두 줄로 꺾여요.</li>
+      <li><b>공유가 네이티브 액션시트 2단</b>(공간 → 앨범)이라 어떤 사진을 보내는지 보이지 않고, 중간에 돌아가기도 안 돼요. 결과는 Alert 팝업.</li>
+      <li>선택 모드에 들어가는 길이 헤더 「선택」 하나뿐이에요.</li>
+    </ol>
+
+    <h2>바꾸는 것 <span class="tag">개선</span></h2>
+    <ul>
+      <li><b>모든 사진을 고를 수 있게.</b> 권한은 선택 단계가 아니라 <b>행동 단계</b>에서 따져요. 공유는 누구 사진이든 가능, 이동·삭제는 내 사진(관리자는 전체)만 — 삭제 아이콘에 "가능한 장수" 배지로 미리 알려줘요.</li>
+      <li><b>선택 모드에서만 작성자 칩 표시.</b> 다른 사람 사진에 "할머니" 같은 칩이 붙어 왜 삭제가 안 되는지 바로 이해돼요.</li>
+      <li><b>길게 누르기</b>로 선택 모드 진입 + 그 사진 바로 선택. 헤더는 ✕ · "N장 선택" · 모두 선택/해제 로 정리.</li>
+      <li><b>하단은 아이콘+짧은 라벨 3개</b>(공유 · 앨범 이동 · 삭제). 모두 선택은 헤더로 올려 한 줄에 끝나요.</li>
+      <li><b>공유는 바텀시트 한 장</b>에서 끝. 보낼 사진 미리보기 → 공간 선택 → 그 공간의 앨범이 아래로 펼쳐짐 → 큼직한 「○○에 N장 공유」 버튼. 뒤로 가기도 자유로워요.</li>
+      <li><b>삭제 확인도 시트</b>로. 제외되는 사진이 있으면 "N장은 할머니가 올린 사진이라 제외돼요"라고 미리 말해줘요.</li>
+      <li><b>결과는 토스트</b> + 「보러 가기」. Alert 로 흐름을 끊지 않아요.</li>
+    </ul>
+
+    <h2>정책 변경: 다른 사람 사진도 공유 <span class="tag gray">서버</span></h2>
+    <table class="cmp">
+      <tr><th></th><th>현재</th><th>변경</th></tr>
+      <tr><td>공유(복사)</td><td>작성자 본인 또는 관리자만</td><td><b>원본 공간 구성원이면 누구 사진이든</b> 가능. 대상 공간 구성원 조건은 유지</td></tr>
+      <tr><td>앨범 이동</td><td>작성자 본인 또는 관리자</td><td>그대로</td></tr>
+      <tr><td>삭제</td><td>작성자 본인 또는 관리자</td><td>그대로</td></tr>
+    </table>
+    <ul style="margin-top:10px">
+      <li>서버 <code>OngiCopyPhotosUseCase</code>의 <code>authorMemberId === me.id || ADMIN</code> 조건을 "원본 공간 구성원" 으로 완화, spec 테스트 기대값 갱신.</li>
+      <li>복사된 게시물의 작성자는 지금처럼 <b>공유한 사람</b>으로 두되, 원본 작성자를 함께 저장해 상세에 "할머니가 올린 사진 · 엄마가 공유" 로 보여주는 건 다음 단계 선택지.</li>
+      <li>앱은 <code>album/[id].tsx</code>의 <code>canSelect</code> 제거, <code>PhotoGrid</code>에 길게 누르기·작성자 칩, 공유/이동/삭제 시트 컴포넌트 신설.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  const ME='나';
+  const PALETTES=[
+    ['#f8d8c4','#efb59b'],['#d9e8ff','#a7c5ff'],['#fff0c2','#f5d57a'],['#e4f3e0','#b7dcae'],['#f3dff5','#d9a9e0'],
+    ['#ffe3e3','#f3a6a6'],['#e0ecf7','#9fbfe0'],['#f9ead5','#e7c597'],['#e8e3ff','#bfb1f2'],['#dff4f2','#a2d8d2'],
+    ['#fde2d0','#f0b08a'],['#e3e8ee','#b1bcc9'],['#fff3d6','#f6cf86'],['#e6f0e2','#a9cfa0'],['#fbe0ea','#e9a3bd']
+  ];
+  const AUTHORS=[ME,ME,'할머니',ME,'아빠',ME,ME,'할머니',ME,'이모',ME,ME,'아빠',ME,ME];
+  const photos=PALETTES.map((p,i)=>({id:'p'+i,c1:p[0],c2:p[1],author:AUTHORS[i],video:i===4||i===11}));
+  const groups=[
+    {id:'g1',name:'외가 식구들',members:6,albums:['제주 여행','명절','일상']},
+    {id:'g2',name:'친가 모임',members:4,albums:['손주 사진']},
+  ];
+  const myAlbums=['첫 돌잔치','백일','일상','병원 가는 날'];
+  const CURRENT_ALBUM='첫 돌잔치';
+
+  const phone=document.getElementById('phone');
+  const grid=document.getElementById('grid');
+  const hdrTitle=document.getElementById('hdrTitle');
+  const hdrLeft=document.getElementById('hdrLeft');
+  const hdrRight=document.getElementById('hdrRight');
+  const hint=document.getElementById('hint');
+
+  let selecting=false; let sel=new Set();
+  let pressTimer=null; let longPressed=false;
+
+  const svgCheck='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const svgPlay='<svg width="9" height="9" viewBox="0 0 24 24" fill="#fff"><path d="M6 3l14 9-14 9z"/></svg>';
+
+  function tileBg(p){return `background:linear-gradient(135deg,${p.c1},${p.c2})`;}
+
+  function renderGrid(){
+    grid.innerHTML='';
+    photos.forEach(p=>{
+      const d=document.createElement('div');
+      d.className='tile'+(sel.has(p.id)?' on':'');
+      d.dataset.id=p.id;
+      d.innerHTML=`<div class="img" style="${tileBg(p)}"></div>`+
+        (p.video?`<div class="vid">${svgPlay}</div>`:'')+
+        (p.author!==ME?`<div class="who"><i></i>${p.author}</div>`:'')+
+        `<div class="check">${sel.has(p.id)?svgCheck:''}</div>`;
+      // tap / long-press
+      const down=(e)=>{longPressed=false;d.classList.add('press');pressTimer=setTimeout(()=>{longPressed=true;d.classList.remove('press');if(!selecting){enterSelect();}toggle(p.id);if(navigator.vibrate)try{navigator.vibrate(10)}catch(_){}} ,420);};
+      const up=()=>{clearTimeout(pressTimer);d.classList.remove('press');};
+      d.addEventListener('pointerdown',down);
+      d.addEventListener('pointerup',up);
+      d.addEventListener('pointerleave',up);
+      d.addEventListener('pointercancel',up);
+      d.addEventListener('click',()=>{ if(longPressed){longPressed=false;return;} if(selecting) toggle(p.id); else flashToast('데모에서는 사진 상세로 가지 않아요 · 길게 눌러보세요',false); });
+      grid.appendChild(d);
+    });
+  }
+  function toggle(id){ if(sel.has(id)) sel.delete(id); else sel.add(id); updateSel(); }
+  function enterSelect(){ selecting=true; phone.classList.add('selecting'); hint.style.visibility='hidden'; updateSel(); }
+  function exitSelect(){ selecting=false; sel.clear(); phone.classList.remove('selecting'); hint.style.visibility=''; updateSel(); }
+  function deletable(){ return [...sel].filter(id=>photos.find(p=>p.id===id).author===ME); }
+
+  function updateSel(){
+    // tiles
+    grid.querySelectorAll('.tile').forEach(t=>{
+      const on=sel.has(t.dataset.id); t.classList.toggle('on',on);
+      t.querySelector('.check').innerHTML=on?svgCheck:'';
+    });
+    // header
+    if(selecting){
+      hdrTitle.textContent=sel.size?`${sel.size}장 선택`:'사진을 골라주세요';
+      hdrLeft.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#101114" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+      hdrLeft.title='선택 취소';
+      const all=sel.size===photos.length;
+      hdrRight.innerHTML=`<button class="ghost" id="selAll">${all?'선택 해제':'모두 선택'}</button>`;
+      document.getElementById('selAll').onclick=()=>{ if(all) sel.clear(); else photos.forEach(p=>sel.add(p.id)); updateSel(); };
+    }else{
+      hdrTitle.textContent='앨범';
+      hdrLeft.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#101114" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+      hdrLeft.title='뒤로';
+      hdrRight.innerHTML='<button class="btn" id="enterSel">선택</button>';
+      document.getElementById('enterSel').onclick=enterSelect;
+    }
+    // action bar
+    const n=sel.size, d=deletable().length;
+    document.getElementById('actShare').classList.toggle('off',n===0);
+    document.getElementById('actMove').classList.toggle('off',d===0);
+    const del=document.getElementById('actDelete'); del.classList.toggle('off',d===0);
+    const cnt=document.getElementById('delCnt');
+    if(n>0 && d<n && d>0){cnt.textContent=d;cnt.classList.add('show');}else cnt.classList.remove('show');
+    document.getElementById('delLbl').textContent = (n>0&&d===0)?'내 사진 없음':'삭제';
+  }
+  hdrLeft.onclick=()=>{ if(selecting) exitSelect(); else flashToast('데모 · 앨범 목록으로 돌아가요',false); };
+  document.getElementById('enterSel').onclick=enterSelect;
+
+  /* ----- sheets ----- */
+  let activeSheet=null;
+  function openSheet(id){ closeSheet(true); activeSheet=document.getElementById(id); activeSheet.classList.add('active'); phone.classList.add('sheet-open'); }
+  function closeSheet(silent){ if(activeSheet){activeSheet.classList.remove('active');activeSheet=null;} phone.classList.remove('sheet-open'); }
+  document.getElementById('dim').onclick=()=>closeSheet();
+
+  function thumbsHtml(ids,max){
+    const arr=[...ids]; const show=arr.slice(0,max); let h=show.map(id=>{const p=photos.find(x=>x.id===id);return `<div class="th" style="${tileBg(p)}"></div>`}).join('');
+    if(arr.length>max) h+=`<div class="th more">+${arr.length-max}</div>`; return h;
+  }
+
+  /* share */
+  let shareGroup=null, shareAlbum=undefined;
+  document.getElementById('actShare').onclick=()=>{
+    shareGroup=null; shareAlbum=undefined;
+    document.getElementById('shareTitle').textContent=`${sel.size}장을 다른 공간에 공유`;
+    document.getElementById('shareThumbs').innerHTML=thumbsHtml(sel,7);
+    const rows=document.getElementById('groupRows'); rows.innerHTML='';
+    groups.forEach(g=>{
+      const r=document.createElement('div'); r.className='row';
+      r.innerHTML=`<div class="av">${g.name[0]}</div><div class="nm">${g.name}<small>구성원 ${g.members}명 · 앨범 ${g.albums.length}개</small></div><div class="radio">${svgCheck}</div>`;
+      r.onclick=()=>pickGroup(g,r); rows.appendChild(r);
+    });
+    document.getElementById('albumStep').classList.remove('show');
+    updateShareBtn(); openSheet('sheetShare');
+  };
+  function pickGroup(g,row){
+    shareGroup=g; shareAlbum=undefined;
+    document.querySelectorAll('#groupRows .row').forEach(x=>x.classList.toggle('on',x===row));
+    const step=document.getElementById('albumStep'); const chips=document.getElementById('albumChips');
+    document.getElementById('albumLbl').textContent=`「${g.name}」의 어느 앨범에 넣을까요?`;
+    chips.innerHTML='<span class="chip skel">…</span><span class="chip skel">…</span><span class="chip skel">…</span>';
+    step.classList.add('show'); updateShareBtn();
+    setTimeout(()=>{
+      if(shareGroup!==g) return;
+      chips.innerHTML='';
+      const mk=(label,val)=>{const c=document.createElement('span');c.className='chip';c.textContent=label;c.onclick=()=>{shareAlbum=val;chips.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));updateShareBtn();};return c;};
+      chips.appendChild(mk('앨범 없음 (미분류)',null));
+      g.albums.forEach(a=>chips.appendChild(mk(a,a)));
+      // default: 미분류 preselected so one tap can finish
+      shareAlbum=null; chips.firstChild.classList.add('on'); updateShareBtn();
+    },500);
+  }
+  function updateShareBtn(){
+    const b=document.getElementById('shareGo');
+    if(!shareGroup){b.disabled=true;b.textContent='공간을 골라주세요';return;}
+    if(shareAlbum===undefined){b.disabled=true;b.textContent='앨범 불러오는 중…';return;}
+    b.disabled=false; b.textContent=`「${shareGroup.name}」에 ${sel.size}장 공유`;
+  }
+  document.getElementById('shareGo').onclick=()=>{
+    const b=document.getElementById('shareGo'); b.disabled=true; b.textContent='공유 중…';
+    const n=sel.size, g=shareGroup, a=shareAlbum;
+    setTimeout(()=>{ closeSheet(); exitSelect(); flashToast(`「${g.name}」${a?' · '+a:''}에 ${n}장을 공유했어요`,true); },700);
+  };
+
+  /* move */
+  let moveTarget=undefined;
+  document.getElementById('actMove').onclick=()=>{
+    moveTarget=undefined;
+    const d=deletable().length, n=sel.size;
+    document.getElementById('moveTitle').textContent=`${d}장을 옮길 앨범`;
+    document.querySelector('#sheetMove .desc').textContent = d<n ? `${n-d}장은 다른 가족이 올린 사진이라 옮기지 않아요. 내 사진 ${d}장만 이동해요.` : '이 공간 안에서 앨범만 바뀌어요.';
+    const rows=document.getElementById('moveRows'); rows.innerHTML='';
+    const items=[{label:'앨범 없음 (미분류)',val:null},...myAlbums.filter(a=>a!==CURRENT_ALBUM).map(a=>({label:a,val:a}))];
+    items.forEach(it=>{const r=document.createElement('div');r.className='row';r.innerHTML=`<div class="av" style="background:var(--n100);color:var(--n600)">${it.val?it.label[0]:'—'}</div><div class="nm">${it.label}</div><div class="radio">${svgCheck}</div>`;r.onclick=()=>{moveTarget=it;rows.querySelectorAll('.row').forEach(x=>x.classList.toggle('on',x===r));const b=document.getElementById('moveGo');b.disabled=false;b.textContent=`「${it.label}」으로 ${d}장 이동`;};rows.appendChild(r);});
+    const b=document.getElementById('moveGo'); b.disabled=true; b.textContent='앨범을 골라주세요';
+    openSheet('sheetMove');
+  };
+  document.getElementById('moveGo').onclick=()=>{ const d=deletable().length; const t=moveTarget; closeSheet(); exitSelect(); flashToast(`「${t.label}」으로 ${d}장을 옮겼어요`,true); };
+
+  /* delete */
+  document.getElementById('actDelete').onclick=()=>{
+    const ids=deletable(); const n=sel.size, d=ids.length;
+    const others=[...sel].filter(id=>!ids.includes(id)).map(id=>photos.find(p=>p.id===id).author);
+    const names=[...new Set(others)].join('·');
+    document.getElementById('delTitle').textContent=`${d}장을 삭제할까요?`;
+    document.getElementById('delDesc').textContent = (d<n?`선택한 ${n}장 중 ${n-d}장은 ${names}가 올린 사진이라 제외돼요. `:'')+'달린 댓글도 함께 지워지고 되돌릴 수 없어요.';
+    document.getElementById('delThumbs').innerHTML=thumbsHtml(ids,7);
+    document.getElementById('delGo').textContent=`${d}장 삭제`;
+    openSheet('sheetDelete');
+  };
+  document.getElementById('delCancel').onclick=()=>closeSheet();
+  document.getElementById('delGo').onclick=()=>{ const d=deletable().length; closeSheet(); exitSelect(); flashToast(`${d}장을 삭제했어요`,false); };
+
+  /* toast */
+  let toastT=null;
+  function flashToast(msg,withGo){
+    const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg;
+    document.getElementById('toastGo').style.display=withGo?'':'none';
+    t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2800);
+  }
+  document.getElementById('toastGo').onclick=()=>{document.getElementById('toast').classList.remove('show');};
+
+  renderGrid(); updateSel();
+})();
+</script>
+</body>
+</html>

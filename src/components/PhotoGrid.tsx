@@ -18,11 +18,15 @@ interface PhotoGridProps {
   onRetry?: () => void;
   /** 사진 상세에서 좌우 스와이프로 넘길 목록 컨텍스트 — 'feed' | 'album:<id>' | 'unfiled' */
   detailCtx?: string;
-  /** 선택 모드 — 탭하면 상세 대신 선택 토글. canSelect 가 false 인 사진은 흐리게 표시되고 선택 불가 */
+  /** 선택 모드 — 탭하면 상세 대신 선택 토글. canSelect 가 false 인 사진은 흐리게 표시되고 선택 불가 (안 주면 전부 선택 가능) */
   selectable?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (photo: Photo) => void;
   canSelect?: (photo: Photo) => boolean;
+  /** 선택 모드가 아닐 때 길게 누르면 — 보통 선택 모드로 들어가며 그 사진을 바로 고른다 */
+  onLongPress?: (photo: Photo) => void;
+  /** 선택 모드에서 사진 왼쪽 아래에 붙일 작성자 호칭 — 내 사진이면 undefined 를 돌려줘 칩을 숨긴다 */
+  authorLabel?: (photo: Photo) => string | undefined;
   /** 스크롤이 끝에 가까워지면 호출 — 무한 스크롤 다음 페이지 로드 */
   onEndReached?: () => void;
   /** 다음 페이지 로딩 중 — 그리드 아래 작은 스피너 */
@@ -42,6 +46,8 @@ export function PhotoGrid({
   selectedIds,
   onToggleSelect,
   canSelect,
+  onLongPress,
+  authorLabel,
   onEndReached,
   loadingMore = false,
 }: PhotoGridProps) {
@@ -62,11 +68,14 @@ export function PhotoGrid({
         const allowed = !selectable || (canSelect?.(item) ?? true);
         const selected = selectable && (selectedIds?.has(item.id) ?? false);
         const thumbUri = displayImageUrl(item);
+        const author = selectable ? authorLabel?.(item) : undefined;
         return (
           <Pressable
             style={styles.cell}
             disabled={selectable && !allowed}
             accessibilityState={selectable ? { selected, disabled: !allowed } : undefined}
+            onLongPress={!selectable && onLongPress ? () => onLongPress(item) : undefined}
+            delayLongPress={350}
             onPress={() =>
               selectable
                 ? onToggleSelect?.(item)
@@ -83,8 +92,15 @@ export function PhotoGrid({
               <VideoPlaceholder style={selectable && !allowed ? styles.imageDisabled : undefined} />
             )}
             {item.mediaType === 'video' && thumbUri ? (
-              <View style={styles.videoBadge} pointerEvents="none">
+              <View style={[styles.videoBadge, author ? styles.videoBadgeRaised : null]} pointerEvents="none">
                 <Play size={9} color={colors.white} fill={colors.white} strokeWidth={2} />
+              </View>
+            ) : null}
+            {author ? (
+              <View style={styles.authorChip} pointerEvents="none">
+                <Text style={styles.authorChipText} numberOfLines={1}>
+                  {author}
+                </Text>
               </View>
             ) : null}
             {selectable && allowed ? (
@@ -145,6 +161,25 @@ const styles = StyleSheet.create({
   },
   imageDisabled: {
     opacity: 0.35,
+  },
+  authorChip: {
+    position: 'absolute',
+    left: 5,
+    bottom: 5,
+    maxWidth: '80%',
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 7,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16,17,20,0.55)',
+  },
+  authorChipText: {
+    fontSize: 10,
+    lineHeight: 12,
+    color: colors.white,
+  },
+  videoBadgeRaised: {
+    bottom: 27,
   },
   videoBadge: {
     position: 'absolute',
